@@ -4,7 +4,7 @@ use std::env;
 use plist::Value;
 
 fn main() {
-    let file = env::args().nth(1).unwrap_or("/Users/rbits/OC-tool/INPUT/config.plist".to_string());
+    let file = env::args().nth(1).unwrap_or("INPUT/Sample.plist".to_string());
 
     let list = Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
 

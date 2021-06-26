@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 plist = "1"
+hex = "*"
+termion = "*"

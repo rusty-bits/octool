@@ -1,7 +1,36 @@
+extern crate hex;
 extern crate plist;
+extern crate termion;
 
 use plist::{Dictionary, Value};
 use std::env;
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::screen::*;
+use std::io::{Write, stdout, stdin};
+
+struct Position {
+    section: i32,
+    sec_length: usize,
+    depth: i32,
+}
+
+impl Position {
+    fn up(&mut self) {
+        self.section -= 1;
+        if self.section < 0 {
+            self.section = 0;
+        }
+    }
+
+    fn down(&mut self) {
+        self.section += 1;
+        if self.section == self.sec_length as i32 {
+            self.section -= 1;
+        }
+    }
+}
 
 fn main() {
     let file = env::args()
@@ -13,47 +42,84 @@ fn main() {
 
     let oc_plist = list.as_dictionary_mut().unwrap();
 
-    let keys: Vec<String> = oc_plist.keys().map(|s| s.to_string()).collect();
-    let section_number = 1;
+    let oc_keys: Vec<String> = oc_plist.keys().map(|s| s.to_string()).collect();
 
-    //    let misc = oc_plist.and_then(|dict| dict.get_mut("Misc")).unwrap()
-    //        .as_dictionary_mut().unwrap();
-    print!("\x1B[2J\x1B[H");
+    let mut position = Position {
+        section: 0,
+        sec_length: oc_keys.len(),
+        depth: 0,
+    };
 
-    for i in 0..keys.len() {
-        if i == section_number {
-            print!("\x1B[7m");
+    let stdin = stdin();
+    let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    write!(screen, "{}", termion::cursor::Hide).unwrap();
+
+
+    update_screen(&position, &oc_keys, oc_plist, &mut screen);
+    screen.flush().unwrap();
+
+    for c in stdin.keys() {
+        match c.unwrap() {
+            Key::Char('q') => break,
+            Key::Down => {
+                position.down();
+                update_screen(&position, &oc_keys, oc_plist, &mut screen);
+            }
+            Key::Up => {
+                position.up();
+                update_screen(&position, &oc_keys, oc_plist, &mut screen);
+            }
+            _ => {}
         }
-        let val = oc_plist.get_mut(&keys[i]);
-        display_value(&keys[i], val);
+        screen.flush().unwrap();
     }
+    write!(screen, "{}", termion::cursor::Show).unwrap();
     let _e = list.to_file_xml("test1");
 }
 
-fn display_value(key: &String, val: Option<&mut Value>) {
-    match val.expect("Failed to unwrap Value") {
-        Value::Dictionary(v) => {
-            println!("{}\x1B[0m >", key);
-            process_dict(v);
+fn update_screen<W: Write>(position: &Position, keys: &Vec<String>, oc_plist: &mut Dictionary, screen: &mut W) {
+    write!(screen, "{}{}", termion::clear::All, termion::cursor::Goto(1,1)).unwrap();
+    for i in 0..keys.len() {
+        if i == position.section as usize {
+            write!(screen, "\x1B[7m").unwrap();
+            display_value(&keys[i], oc_plist.get_mut(&keys[i]), 0, screen);
+        } else {
+            writeln!(screen, "{} >\r", &keys[i as usize]).unwrap();
         }
-        Value::String(v) => println!("{}\x1B[0m: {}", key, v),
-        Value::Boolean(v) => println!("\t{}\x1B[0m: {}", key, v),
-        Value::Integer(v) => println!("\t{}\x1B[0m: {}", key, v),
-        Value::Data(v) => println!("\t{}\x1B[0m: {:?}", key, v),
-        Value::Array(v) => process_array(v),
+    }
+}
+
+fn display_value<W: Write>(key: &String, val: Option<&mut Value>, depth: i32, screen: &mut W) {
+    for _ in 0..depth {
+        write!(screen, "    ").unwrap();
+    }
+    match val.expect("Failed to unwrap Value") {
+        Value::Array(v) => {
+            writeln!(screen, "{}\x1B[0m >\r", key.as_str()).unwrap();
+            for i in 0..v.len() {
+                display_value(&i.to_string(), Some(&mut v[i]), depth + 1, screen);
+            }
+        }
+        Value::Boolean(v) => match v {
+            true => writeln!(screen, "\x1B[0;32m{}\x1B[0m: {}\r", key, v).unwrap(),
+            false => writeln!(screen, "\x1B[0;31m{}\x1B[0m: {}\r", key, v).unwrap(),
+        },
+        Value::Data(v) => {
+            writeln!(
+                screen, "\x1B[0;33m{}\x1B[0m: {} | {}\r",
+                key,
+                hex::encode_upper(&*v),
+                String::from_utf8_lossy(v)
+            ).unwrap();
+        }
+        Value::Dictionary(v) => {
+            writeln!(screen, "{}\x1B[0m >\r", key).unwrap();
+            for key in v.keys().map(|s| s.to_string()).collect::<Vec<String>>() {
+                display_value(&key, v.get_mut(&key), depth + 1, screen);
+            }
+        }
+        Value::Integer(v) => writeln!(screen, "\x1B[0;34m{}\x1B[0m: {}\r", key, v).unwrap(),
+        Value::String(v) => writeln!(screen, "{:>2}\x1B[0m: {}\r", key, v).unwrap(),
         _ => panic!("Can't handle this type"),
-    }
-}
-
-fn process_dict(dict: &mut Dictionary) {
-    let section_keys: Vec<String> = dict.keys().map(|s| s.to_string()).collect();
-    for i in 0..section_keys.len() {
-        display_value(&section_keys[i], dict.get_mut(&section_keys[i]));
-    }
-}
-
-fn process_array(arr: &mut Vec<Value>) {
-    for i in 0..arr.len() {
-        display_value(&i.to_string(), Some(&mut arr[i]));
     }
 }

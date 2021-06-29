@@ -10,37 +10,38 @@ use termion::raw::IntoRawMode;
 use termion::screen::*;
 
 use std::env;
-use std::io::{Write, stdout, stdin};
+use std::io::{stdin, stdout, Write};
 
 struct Position {
-    section: i32,
-    sec_length: usize,
-    depth: i32,
+    section: [usize; 5],
+    sec_length: [usize; 5],
+    depth: usize,
+    can_expand: bool,
 }
 
 impl Position {
     fn up(&mut self) {
-        self.section -= 1;
-        if self.section < 0 {
-            self.section = 0;
+        if self.section[self.depth] > 0 {
+            self.section[self.depth] -= 1;
         }
     }
 
     fn down(&mut self) {
-        self.section += 1;
-        if self.section == self.sec_length as i32 {
-            self.section -= 1;
+        if self.section[self.depth] < self.sec_length[self.depth] - 1 {
+            self.section[self.depth] += 1;
+        }
+    }
+
+    fn left(&mut self) {
+        if self.depth > 0 {
+            self.depth -= 1;
         }
     }
 
     fn right(&mut self) {
-        self.depth += 1;
-    }
-
-    fn left(&mut self) {
-        self.depth -= 1;
-        if self.depth < 0 {
-            self.depth = 0;
+        if self.can_expand {
+            self.depth += 1;
+            self.section[self.depth] = 0;
         }
     }
 }
@@ -52,43 +53,41 @@ fn main() {
 
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
-
-    let oc_plist = list.as_dictionary_mut().unwrap();
-
-    let oc_keys: Vec<String> = oc_plist.keys().map(|s| s.to_string()).collect();
+    let oc_plist = list
+        .as_dictionary_mut()
+        .expect(format!("Didn't find Dictionary in {}", file).as_str());
 
     let mut position = Position {
-        section: 0,
-        sec_length: oc_keys.len(),
+        section: [0; 5],
+        sec_length: [oc_plist.keys().len(), 0, 0, 0, 0],
         depth: 0,
+        can_expand: true,
     };
 
     let stdin = stdin();
     let mut screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
     write!(screen, "{}", termion::cursor::Hide).unwrap();
 
-
-    update_screen(&mut position, &oc_keys, oc_plist, &mut screen);
-    screen.flush().unwrap();
+    draw_screen(&mut position, oc_plist, &mut screen);
 
     for c in stdin.keys() {
         match c.unwrap() {
             Key::Char('q') => break,
             Key::Down => {
                 position.down();
-                update_screen(&mut position, &oc_keys, oc_plist, &mut screen);
+                draw_screen(&mut position, oc_plist, &mut screen);
             }
             Key::Up => {
                 position.up();
-                update_screen(&mut position, &oc_keys, oc_plist, &mut screen);
+                draw_screen(&mut position, oc_plist, &mut screen);
             }
             Key::Right => {
                 position.right();
-                update_screen(&mut position, &oc_keys, oc_plist, &mut screen);
+                draw_screen(&mut position, oc_plist, &mut screen);
             }
             Key::Left => {
                 position.left();
-                update_screen(&mut position, &oc_keys, oc_plist, &mut screen);
+                draw_screen(&mut position, oc_plist, &mut screen);
             }
             _ => {}
         }
@@ -98,53 +97,92 @@ fn main() {
     let _e = list.to_file_xml("test1");
 }
 
-fn update_screen<W: Write>(position: &mut Position, keys: &Vec<String>, oc_plist: &mut Dictionary, screen: &mut W) {
-    write!(screen, "{}{}", termion::clear::All, termion::cursor::Goto(1,1)).unwrap();
-    for i in 0..keys.len() {
-        if i == position.section as usize {
-            write!(screen, "\x1B[7m").unwrap();
-            display_value(position, &keys[i], oc_plist.get_mut(&keys[i]), screen);
-        } else {
-            write!(screen, "{} >\n\r", &keys[i as usize]).unwrap();
-        }
+fn draw_screen<W: Write>(position: &mut Position, list: &mut Dictionary, screen: &mut W) {
+    write!(
+        screen,
+        "{}{}{}",
+        termion::clear::All,
+        termion::cursor::Goto(1, 1),
+        "Hello!\r\n"
+    )
+    .unwrap();
+    let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
+    for (i, k) in keys.iter().enumerate() {
+        display_section(k, position, list.get_mut(k).unwrap(), screen, i, 0);
     }
+    screen.flush().unwrap();
 }
 
-fn display_value<W: Write>(position: &mut Position, key: &String, val: Option<&mut Value>, screen: &mut W) {
-    for _ in 0..position.depth {
+fn display_section<W: Write>(
+    key: &String,
+    position: &mut Position,
+    oc_plist: &mut Value,
+    screen: &mut W,
+    item: usize,
+    d: usize,
+) {
+    let mut live_item = false;
+    for _ in 0..d {
         write!(screen, "    ").unwrap();
     }
-    match val.expect("Failed to unwrap Value") {
+    if position.section[d] == item {
+        write!(screen, "\x1B[7m").unwrap();
+        if d == position.depth {
+            // current live item
+            live_item = true;
+            position.can_expand = false;
+        }
+    }
+    match oc_plist {
         Value::Array(v) => {
-            write!(screen, "{}\x1B[0m >\n\r", key.as_str()).unwrap();
-            for i in 0..v.len() {
-                position.right();
-                display_value(position, &i.to_string(), Some(&mut v[i]), screen);
-                position.left();
+            if live_item {
+                position.can_expand = true;
+                position.sec_length[d + 1] = v.len();
+                if v.len() == 0 {
+                    position.can_expand = false;
+                }
+            }
+            write!(screen, "{}\x1B[0m >\n\r", key).unwrap();
+            if position.depth > d && position.section[d] == item {
+                for i in 0..v.len() {
+                    display_section(&i.to_string(), position, &mut v[i], screen, i, d + 1);
+                }
             }
         }
         Value::Boolean(v) => match v {
-            true => write!(screen, "\x1B[0;32m{}\x1B[0m: {}\n\r", key, v).unwrap(),
-            false => write!(screen, "\x1B[0;31m{}\x1B[0m: {}\n\r", key, v).unwrap(),
+            true => write!(screen, "\x1B[32m{}\x1B[0m: {}\n\r", key, v).unwrap(),
+            false => write!(screen, "\x1B[31m{}\x1B[0m: {}\n\r", key, v).unwrap(),
         },
         Value::Data(v) => {
             write!(
-                screen, "\x1B[0;33m{}\x1B[0m: {} | {}\n\r",
+                screen,
+                "\x1B[33m{}\x1B[0m: 0x{} | {}\n\r",
                 key,
                 hex::encode_upper(&*v),
                 String::from_utf8_lossy(v)
-            ).unwrap();
+            )
+            .unwrap();
         }
         Value::Dictionary(v) => {
-            write!(screen, "{}\x1B[0m >\n\r", key).unwrap();
-            for key in v.keys().map(|s| s.to_string()).collect::<Vec<String>>() {
-                position.right();
-                display_value(position, &key, v.get_mut(&key), screen);
-                position.left();
+            if live_item {
+                position.can_expand = true;
+                position.sec_length[d + 1] = v.keys().len();
+                if v.keys().len() == 0 {
+                    position.can_expand = false;
+                }
+            }
+            write!(screen, "{}\x1B[0m > \r\n", key).unwrap();
+            let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
+            if position.depth > d && position.section[d] == item {
+                for (i, k) in keys.iter().enumerate() {
+                    display_section(&k, position, v.get_mut(&k).unwrap(), screen, i, d + 1);
+                }
             }
         }
-        Value::Integer(v) => write!(screen, "\x1B[0;34m{}\x1B[0m: {}\n\r", key, v).unwrap(),
-        Value::String(v) => write!(screen, "{:>2}\x1B[0m: {}\n\r", key, v).unwrap(),
+        Value::Integer(v) => write!(screen, "\x1B[34m{}\x1B[0m: {}\n\r", key, v).unwrap(),
+        Value::String(v) => {
+            write!(screen, "{:>2}\x1B[0m: {}\n\r", key, v).unwrap();
+        }
         _ => panic!("Can't handle this type"),
     }
 }

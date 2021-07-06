@@ -1,3 +1,4 @@
+extern crate base64;
 extern crate hex;
 extern crate plist;
 
@@ -6,7 +7,7 @@ use plist::Value;
 
 use std::io::Write;
 
-use console::Term;
+use console::{style, Term};
 
 #[derive(Debug)]
 pub struct Position {
@@ -15,6 +16,7 @@ pub struct Position {
     pub sec_length: [usize; 5],
     pub depth: usize,
     pub can_expand: bool,
+    pub is_bool: bool,
 }
 
 impl Position {
@@ -44,20 +46,14 @@ impl Position {
     }
 }
 
-
 pub fn draw_screen(position: &mut Position, list: &Value, screen: &Term) {
-    write!(
-        &*screen,
-        "\x1B[2J\x1B[H{}\r\n",
-        position.file_name
-    )
-    .unwrap();
+    write!(&*screen, "\x1B[H{}\r\n", position.file_name).unwrap();
     let list = list.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         display_value(k, position, list.get(k).unwrap(), &screen, i, 0);
     }
-    write!(&*screen, "\n\n\r{:?}{}", position.section, position.depth).unwrap();
+    write!(&*screen, "\x1B[0J\n\n\r{:?}{}", position.section, position.depth).unwrap();
     write!(&*screen, "\x1B[u").unwrap();
     screen.flush().unwrap();
 }
@@ -72,7 +68,7 @@ pub fn display_value(
 ) {
     let mut live_item = false;
     let mut ls = String::new();
-    write!(&*screen, "\n\r").unwrap();
+    write!(&*screen, "\x1B[0K\n\r").unwrap();
     for _ in 0..d {
         write!(&*screen, "    ").unwrap();
     }
@@ -82,6 +78,7 @@ pub fn display_value(
             // current live item
             live_item = true;
             position.can_expand = false;
+            position.is_bool = false;
             ls = "\x1B[s".to_string();
         }
     }
@@ -101,15 +98,24 @@ pub fn display_value(
                 }
             }
         }
-        Value::Boolean(v) => match v {
-            true => write!(&*screen, "\x1B[32m{}\x1B[0m: {}", key, v).unwrap(),
-            false => write!(&*screen, "\x1B[31m{}\x1B[0m: {}", key, v).unwrap(),
-        },
+        Value::Boolean(v) => {
+            match v {
+                true => write!(&*screen, "{}: {}", style(key).green(), v).unwrap(),
+                false => write!(&*screen, "{}: {}", style(key).red(), v).unwrap(),
+            };
+            if live_item {
+                position.is_bool = true;
+            }
+        }
         Value::Data(v) => {
             write!(
                 &*screen,
-                "\x1B[33m{}\x1B[0m: 0x{}{} | {}",
-                key, ls, hex::encode_upper(&*v), String::from_utf8_lossy(v)
+                "{}: {}{} | 0x{} | {}",
+                style(key).yellow(),
+                ls,
+                base64::encode(&*v),
+                hex::encode_upper(&*v),
+                String::from_utf8_lossy(v)
             )
             .unwrap();
         }
@@ -130,7 +136,7 @@ pub fn display_value(
             }
         }
         Value::Integer(v) => {
-            write!(&*screen, "\x1B[34m{}\x1B[0m: {}{}", key, ls, v).unwrap();
+            write!(&*screen, "{}: {}{}", style(key).blue(), ls, v).unwrap();
         }
         Value::String(v) => {
             write!(&*screen, "{:>2}\x1B[0m: {}{}", key, ls, v).unwrap();

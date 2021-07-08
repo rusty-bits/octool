@@ -13,10 +13,10 @@ pub fn edit_value(
     for i in 0..position.depth + 1 {
         match val {
             Value::Dictionary(d) => {
-                let k = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
+                let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
                     [position.section[i]]
                     .clone();
-                val = d.get_mut(&k).unwrap();
+                val = d.get_mut(&key).unwrap();
             }
             Value::Array(a) => {
                 val = a.get_mut(position.section[i]).unwrap();
@@ -26,8 +26,8 @@ pub fn edit_value(
     }
     match val {
         Value::Boolean(b) => *b = !*b,
-        Value::Dictionary(d) => match d.get_mut("Enabled").unwrap() {
-            Value::Boolean(b) => *b = !*b,
+        Value::Dictionary(d) => match d.get_mut("Enabled") {
+            Some(Value::Boolean(b)) => *b = !*b,
             _ => (),
         },
         _ => (),
@@ -48,22 +48,21 @@ pub fn edit_value(
 }
 
 fn edit_data(val: &mut Vec<u8>, term: &Term) {
-//    let mut new = String::from_utf8(val.clone()).unwrap();
+    //    let mut new = String::from_utf8(val.clone()).unwrap();
     let mut new = hex::encode_upper(val.clone());
     let mut pos = new.len();
     loop {
         let mut tmp = new.clone();
         if tmp.len() % 2 == 1 {
             tmp = hex::encode("\u{fffd}");
-//            tmp = hex::encode("�");
-//            tmp.insert(0, '0');
+            //            tmp = hex::encode("�");
+            //            tmp.insert(0, '0');
         }
         let tmp = hex::decode(tmp).unwrap();
         write!(
             &*term,
             "\x1B[u{} | \x1B[0K",
-            new
-//            String::from_utf8_lossy(&tmp)
+            new //            String::from_utf8_lossy(&tmp)
         )
         .unwrap();
         draw::display_lossy_string(&tmp, term);
@@ -71,7 +70,7 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) {
         let key = term.read_key().unwrap();
         match key {
             Key::Enter => {
-//                *val = Vec::<u8>::from(new);
+                //                *val = Vec::<u8>::from(new);
                 if new.len() % 2 == 1 {
                     new.insert(0, '0');
                 }
@@ -117,8 +116,8 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) {
 
 fn edit_int(val: &mut Integer, term: &Term) {
     let mut new = val.to_string();
-    write!(&*term, "\x1B[u{}", new).unwrap();
     loop {
+        write!(&*term, "\x1B[u{}\x1B[0K", new).unwrap();
         let key = term.read_key().unwrap();
         match key {
             Key::Enter => {
@@ -139,7 +138,6 @@ fn edit_int(val: &mut Integer, term: &Term) {
             Key::Escape => break,
             _ => (),
         }
-        write!(&*term, "\x1B[u{}\x1B[0K", new).unwrap();
     }
 }
 

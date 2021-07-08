@@ -6,9 +6,9 @@ use std::io::Write;
 pub struct Position {
     pub file_name: String,
     pub section: [usize; 5],
-    pub sec_length: [usize; 5],
     pub depth: usize,
-    pub key: [String; 5],
+    pub sec_key: [String; 5],
+    pub sec_length: [usize; 5],
 }
 
 impl Position {
@@ -29,7 +29,7 @@ impl Position {
     pub fn left(&mut self) {
         if self.depth > 0 {
             self.sec_length[self.depth + 1] = 0;
-            self.key[self.depth] = "".to_string();
+            self.sec_key[self.depth] = "".to_string();
             self.depth -= 1;
         }
     }
@@ -49,14 +49,18 @@ pub fn draw_screen(position: &mut Position, list: &Value, term: &Term) {
     for (i, k) in keys.iter().enumerate() {
         display_value(k, position, list.get(k).unwrap(), &term, i, 0);
     }
-    write!(
-        &*term,
-        "\x1B[0J\r\n\nDebug:\r\n{:?} {:?} {} {:?}",
-        position.section, position.sec_length, position.depth, position.key
-    )
-    .unwrap();
+    display_footer(position, term);
     display_header(position, term);
     write!(&*term, "\x1B[u").unwrap();
+}
+
+pub fn display_footer(position: &mut Position, term: &Term) {
+    write!(
+        &*term,
+        "\x1B[0J\r\n\nDebug stuff:\r\n{:?} {:?} {} {:?}",
+        position.section, position.sec_length, position.depth, position.sec_key
+    )
+    .unwrap();
 }
 
 pub fn display_header(position: &mut Position, term: &Term) {
@@ -73,17 +77,14 @@ pub fn display_value(
 ) {
     let mut live_item = false;
     let mut ls = String::new();
-    write!(&*term, "\x1B[0K\n\r").unwrap();
-    for _ in 0..d {
-        write!(&*term, "    ").unwrap();
-    }
+    write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d)).unwrap();
     if position.section[d] == item_num {
         write!(&*term, "\x1B[7m").unwrap();
-        position.key[d] = key.clone();
+        position.sec_key[d] = key.to_string();
+        // current live item
         if d == position.depth {
-            // current live item
             live_item = true;
-            ls = "\x1B[s".to_string();
+            ls = "\x1B[s".to_string(); // save cursor position
         }
     }
     match oc_plist {
@@ -157,7 +158,7 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
             for k in ["Name", "Path", "BundlePath", "Comment"] {
                 if d.contains_key(k) {
                     *key = d.get(k).unwrap().clone().into_string().unwrap();
-                    break;
+                    break; // stop after first match
                 }
             }
 
@@ -165,8 +166,8 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
                 *key = i.to_string();
             }
 
-            match d.get("Enabled").unwrap() {
-                Value::Boolean(b) => {
+            match d.get("Enabled") {
+                Some(Value::Boolean(b)) => {
                     if *b {
                         *key = style(&*key).green().to_string();
                     } else {

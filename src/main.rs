@@ -12,7 +12,7 @@ use edit::edit_value;
 fn do_stuff() -> io::Result<()> {
     let file = env::args()
         .nth(1)
-        .unwrap_or("INPUT/Sample.plist".to_string());
+        .unwrap_or("INPUT/config.plist".to_string());
 
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
@@ -20,15 +20,9 @@ fn do_stuff() -> io::Result<()> {
     let mut position = Position {
         file_name: file.to_owned(),
         section: [0; 5],
-        sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
         depth: 0,
-        key: [
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-        ],
+        sec_key: Default::default(),
+        sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
     };
 
     let term = Term::stdout();

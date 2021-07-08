@@ -1,19 +1,13 @@
 mod draw;
 mod edit;
 
-extern crate hex;
-extern crate plist;
-
-//use plist::Dictionary;
-use plist::Value;
-
 use console::{Key, Term};
-
-use std::env;
-use std::io;
+use plist::Value;
 use std::io::Write;
+use std::{env, io};
 
-use crate::draw::draw_screen;
+use draw::{draw_screen, Position};
+use edit::edit_value;
 
 fn do_stuff() -> io::Result<()> {
     let file = env::args()
@@ -23,13 +17,18 @@ fn do_stuff() -> io::Result<()> {
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
 
-    let mut position = draw::Position {
+    let mut position = Position {
         file_name: file.to_owned(),
         section: [0; 5],
         sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
         depth: 0,
-        can_expand: false,
-        is_bool: false,
+        key: [
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+        ],
     };
 
     let term = Term::stdout();
@@ -46,12 +45,10 @@ fn do_stuff() -> io::Result<()> {
             Key::ArrowDown => position.down(),
             Key::ArrowLeft => position.left(),
             Key::ArrowRight => position.right(),
-            Key::Char(' ') => {
-                if position.is_bool {
-                    edit::edit_value(&position, &mut list, &term)?;
-                };
-            }
-            Key::Enter => edit::edit_value(&position, &mut list, &term)?,
+            Key::Home => position.section[position.depth] = 0,
+            Key::End => position.section[position.depth] = position.sec_length[position.depth] - 1,
+            Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
+            Key::Enter => edit_value(&position, &mut list, &term, false)?,
             Key::Char('s') => {
                 list.to_file_xml("test1").unwrap();
                 break;

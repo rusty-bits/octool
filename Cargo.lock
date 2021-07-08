@@ -111,7 +111,6 @@ dependencies = [
 name = "octool"
 version = "0.1.0"
 dependencies = [
- "base64",
  "console",
  "hex",
  "plist",

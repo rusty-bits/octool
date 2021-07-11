@@ -1,0 +1,139 @@
+use console::Term;
+use std::{fs, io::Write};
+
+use crate::draw::Position;
+
+pub fn show_info(position: &Position, term: &Term) {
+    let contents = fs::read_to_string("INPUT/Configuration.tex").unwrap();
+
+    let mut sec_found = false;
+    let mut sec_search = "\\section{".to_string();
+    sec_search.push_str(&position.sec_key[0]);
+    let mut text_found = false;
+    let mut text_search = "\\texttt{".to_string();
+    text_search.push_str(&position.sec_key[position.depth]);
+    text_search.push_str(&"}\\\\");
+
+    for line in contents.lines() {
+        if !sec_found {
+            if line.contains(&sec_search) {
+                write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
+                sec_found = true;
+            }
+        } else {
+            if !text_found {
+                if line.contains(&text_search) {
+                    write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
+                    text_found = true;
+                }
+            } else {
+                match line.chars().next() {
+                    Some('\\') => break,
+                    _ => write!(&*term, "\r\n{}\x1B[0K", line).unwrap(),
+                }
+            }
+        }
+    }
+    write!(&*term, "\r\n\x1B[0K").unwrap();
+}
+
+/*
+pub struct Config {
+    pub query: String,
+    pub filename: String,
+    pub case_sensitive: bool,
+}
+
+impl Config {
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        args.next();
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string."),
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name."),
+        };
+
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        })
+    }
+}
+
+pub fn get_description(f: &fs::File, name: &str) -> String {
+    let mut des = String::new();
+    des
+}
+
+pub fn run(config: Config, term: &Term) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.filename)?;
+
+    let results = if config.case_sensitive {
+        search(&config.query, &contents)
+    } else {
+        search_case_insensitive(&config.query, &contents)
+    };
+
+    write!(&*term, "{}{}\x1B[u", &config.query, &config.query.len())?;
+    for line in results {
+        write!(&*term, "\r\n{}\x1B[0K", line)?;
+    }
+
+    Ok(())
+}
+
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
+}
+
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let query = &query.to_lowercase();
+
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn case_sensitive() {
+        let query = "duct";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Duct tape.";
+
+        assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
+    }
+}*/

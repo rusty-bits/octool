@@ -1,4 +1,4 @@
-use console::Term;
+use console::{Term, style};
 use std::{fs, io::Write};
 
 use crate::draw::Position;
@@ -15,7 +15,7 @@ pub fn show_info(position: &Position, term: &Term) {
     text_search.push_str(&"}\\");
 
 
-    write!(&*term, "\x1B[2K\r\n-- {} ----------\x1B[0K\r\n", position.sec_key[position.depth]).unwrap();
+    write!(&*term, "\r\n").unwrap(); 
 
     for line in contents.lines() {
         if sec_found {
@@ -23,7 +23,7 @@ pub fn show_info(position: &Position, term: &Term) {
                 if line.starts_with('\\') {
                     break;
                 } else {
-                    write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
+                    //write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
                     write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
                 }
             } else {
@@ -39,7 +39,7 @@ pub fn show_info(position: &Position, term: &Term) {
             }
         }
     }
-    write!(&*term, "  ----------\x1B[0K\r\n\x1B[2K").unwrap();
+    write!(&*term, "{}\x1B[0K", style(" ".repeat(70)).underlined()).unwrap();
 }
 
 fn parse_line(line: &str) -> String {
@@ -56,7 +56,7 @@ fn parse_line(line: &str) -> String {
                     build_key = false;
                     build_name = true;
                     if key == "textbf" {
-                        ret.push_str("\x1B[7m");
+                        ret.push_str("\x1B[1m");
                     }
                     if key == "emph" {
                         ret.push_str("\x1B[7m");
@@ -68,7 +68,7 @@ fn parse_line(line: &str) -> String {
                         skip_line = true;
                     }
                     if key == "texttt" {
-                        ret.push_str("\x1B[31m");
+                        ret.push_str("\x1B[4m");
                     }
                     key = "".to_string();
                 }

@@ -136,8 +136,8 @@ pub fn display_value(
         }
         Value::Boolean(v) => {
             match v {
-                true => write!(&*term, "{}{}: {}", key_style, style(key).green(), v).unwrap(),
-                false => write!(&*term, "{}{}: {}", key_style, style(key).red(), v).unwrap(),
+                true => write!(&*term, "{}{}: {}{}", key_style, style(key).green(), save_curs_pos, v).unwrap(),
+                false => write!(&*term, "{}{}: {}{}", key_style, style(key).red(), save_curs_pos, v).unwrap(),
             };
         }
         Value::Data(v) => {
@@ -160,11 +160,12 @@ pub fn display_value(
             }
             write!(
                 &*term,
-                "{} {}{}\x1B[0m  [{}] ",
+                "{} {}{}\x1B[0m  [{}]{} ",
                 pre_key,
                 key_style,
                 key,
-                v.len()
+                v.len(),
+                save_curs_pos
             )
             .unwrap();
             if position.depth > d && position.section[d] == item_num {

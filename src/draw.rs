@@ -1,6 +1,6 @@
 use console::{style, Term};
 use plist::Value;
-use std::io::Write;
+use std::{error::Error, io::Write};
 
 #[derive(Debug)]
 pub struct Position {
@@ -45,7 +45,7 @@ pub fn draw_screen(position: &mut Position, list: &Value, term: &Term) {
     let list = list.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
-        display_value(k, position, list.get(k).unwrap(), &term, i, 0);
+        display_value(k, position, list.get(k).unwrap(), &term, i, 0).unwrap();
     }
     display_footer(position, term);
     display_header(position, term);
@@ -93,12 +93,12 @@ pub fn display_value(
     term: &Term,
     item_num: usize,
     d: usize,
-) {
+) -> Result<(), Box<dyn Error>> {
     let mut live_item = false;
     let mut save_curs_pos = String::new();
     let mut key_style = String::new();
     let mut pre_key = '>';
-    write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d)).unwrap();
+    write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section[d] == item_num {
         position.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
@@ -130,7 +130,7 @@ pub fn display_value(
                 let mut key = String::new();
                 for i in 0..v.len() {
                     get_array_key(&mut key, &v[i], i);
-                    display_value(&key, position, &v[i], term, i, d + 1);
+                    display_value(&key, position, &v[i], term, i, d + 1)?;
                 }
             }
         }
@@ -143,14 +143,13 @@ pub fn display_value(
         Value::Data(v) => {
             write!(
                 &*term,
-                "{}{}: 0x{}{} | ",
+                "{}{}: <{}{}> | \"{}\"\x1B[0K",
                 key_style,
-                style(key).yellow(),
+                style(key).magenta(),
                 save_curs_pos,
-                hex_with_style(&*v)
-            )
-            .unwrap();
-            write!(&*term, "{}\x1B[0K", get_lossy_string(v)).unwrap();
+                hex_str_with_style(hex::encode(&*v)),
+                get_lossy_string(v)
+            )?;
         }
         Value::Dictionary(v) => {
             if live_item {
@@ -171,7 +170,7 @@ pub fn display_value(
             if position.depth > d && position.section[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
-                    display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1);
+                    display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1)?;
                 }
             }
         }
@@ -183,19 +182,18 @@ pub fn display_value(
                 style(key).blue(),
                 save_curs_pos,
                 v
-            )
-            .unwrap();
+            )?;
         }
         Value::String(v) => {
             write!(
                 &*term,
                 "{}{:>2}\x1B[0m: {}{}",
                 key_style, key, save_curs_pos, v
-            )
-            .unwrap();
+            )?;
         }
         _ => panic!("Can't handle this type"),
     }
+    Ok(())
 }
 
 pub fn get_lossy_string(v: &Vec<u8>) -> String {
@@ -246,26 +244,17 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
 
 pub fn hex_str_with_style(v: String) -> String {
     let mut hex_u = String::new();
-    let mut col = v.len();
+    let mut col = v.len() % 2;
     for c in v.chars() {
-        if ((col + 1) / 2) % 2 > 0 {
-            hex_u.push_str(&style(c).yellow().to_string());
+        if col > 1 {
+            hex_u.push_str(&style(c).magenta().to_string());
         } else {
             hex_u.push(c);
         }
-        col -= 1;
-    }
-    hex_u
-}
-
-pub fn hex_with_style(v: &Vec<u8>) -> String {
-    let mut hex_u = String::new();
-    for (i, c) in hex::encode_upper(&v).chars().enumerate() {
-        if (i / 2) % 2 > 0 {
-            hex_u.push_str(&style(c).yellow().to_string());
-        } else {
-            hex_u.push(c);
-        }
+        col += 1;
+        if col > 3 {
+            col = 0;
+        };
     }
     hex_u
 }

@@ -4,7 +4,7 @@ use std::{fs, io::Write};
 use crate::draw::Position;
 
 pub fn show_info(position: &Position, term: &Term) {
-    let contents = fs::read_to_string("INPUT/Configuration.tex").unwrap();
+    let contents = fs::read_to_string("resources/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
     let mut sec_found = false;
     let mut sec_search = "\\section{".to_string();
@@ -12,31 +12,112 @@ pub fn show_info(position: &Position, term: &Term) {
     let mut text_found = false;
     let mut text_search = "\\texttt{".to_string();
     text_search.push_str(&position.sec_key[position.depth]);
-    text_search.push_str(&"}\\\\");
+    text_search.push_str(&"}\\");
+
+
+    write!(&*term, "\x1B[2K\r\n-- {} ----------\x1B[0K\r\n", position.sec_key[position.depth]).unwrap();
 
     for line in contents.lines() {
-        if !sec_found {
-            if line.contains(&sec_search) {
-                write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
-                sec_found = true;
-            }
-        } else {
-            if !text_found {
-                if line.contains(&text_search) {
-                    write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
-                    text_found = true;
+        if sec_found {
+            if text_found {
+                if line.starts_with('\\') {
+                    break;
+                } else {
+                    write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
+                    write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
                 }
             } else {
-                match line.chars().next() {
-                    Some('\\') => break,
-                    _ => write!(&*term, "\r\n{}\x1B[0K", line).unwrap(),
+                if line.contains(&text_search) {
+                    //                    write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
+                    text_found = true;
                 }
+            }
+        } else {
+            if line.contains(&sec_search) {
+                //                write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
+                sec_found = true;
             }
         }
     }
-    write!(&*term, "\r\n\x1B[0K").unwrap();
+    write!(&*term, "  ----------\x1B[0K\r\n\x1B[2K").unwrap();
 }
 
+fn parse_line(line: &str) -> String {
+    let mut ret = String::new();
+    let mut build_key = false;
+    let mut build_name = false;
+    let mut skip_line = false;
+    let mut key = String::new();
+    let mut name = String::new();
+    for c in line.chars() {
+        if build_key {
+            match c {
+                '{' => {
+                    build_key = false;
+                    build_name = true;
+                    if key == "textbf" {
+                        ret.push_str("\x1B[7m");
+                    }
+                    if key == "emph" {
+                        ret.push_str("\x1B[7m");
+                    }
+                    if key == "begin" {
+                        skip_line = true;
+                    }
+                    if key == "end" {
+                        skip_line = true;
+                    }
+                    if key == "texttt" {
+                        ret.push_str("\x1B[31m");
+                    }
+                    key = "".to_string();
+                }
+                ' ' => {
+                    build_key = false;
+                    if key == "textbackslash" {
+                        ret.push('\\');
+                    }
+                    if key == "item" {
+                        ret.push_str("+ ");
+                    }
+                    if key == "tightlist" {
+                        skip_line = true;
+                    }
+                    key = "".to_string();
+                }
+                _ => key.push(c),
+            }
+        } else if build_name {
+            match c {
+                '}' => {
+                    build_name = false;
+                    ret.push_str(&name);
+                    ret.push_str("\x1B[0m");
+                    name = "".to_string();
+                }
+                '\\' => (),
+                _ => name.push(c),
+            }
+        } else {
+            match c {
+                '\\' => build_key = true,
+                _ => ret.push(c),
+            }
+        }
+    }
+    if build_key {
+        if key == "tightlist" {
+            skip_line = true;
+        }
+    }
+    if skip_line {
+        ret = "".to_string();
+    } else {
+        ret.push_str("\r\n");
+    }
+
+    ret
+}
 /*
 pub struct Config {
     pub query: String,

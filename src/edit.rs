@@ -1,14 +1,14 @@
-use crate::draw::{Position, get_lossy_string, hex_str_with_style};
-use console::{Key, Term, style};
+use crate::draw::{get_lossy_string, hex_str_with_style, Position};
+use console::{style, Key, Term};
 use plist::{Integer, Value};
-use std::io::{self, Write};
+use std::{error::Error, io::Write};
 
 pub fn edit_value(
     position: &Position,
     mut val: &mut Value,
     term: &Term,
     space: bool,
-) -> io::Result<()> {
+) -> Result<(), Box<dyn Error>> {
     term.show_cursor()?;
     for i in 0..position.depth + 1 {
         match val {
@@ -16,7 +16,10 @@ pub fn edit_value(
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
                     [position.section[i]]
                     .clone();
-                val = d.get_mut(&key).unwrap();
+                val = match d.get_mut(&key) {
+                    Some(k) => k,
+                    None => panic!("failure to get Value from Dict"),
+                }
             }
             Value::Array(a) => {
                 val = a.get_mut(position.section[i]).unwrap();
@@ -33,24 +36,33 @@ pub fn edit_value(
         _ => (),
     }
 
-    if !space { //use space for toggle of bool or Enable only
+    if space {
+        match val {
+            Value::String(s) => {
+                if s.starts_with('#') {
+                    s.remove(0);
+                } else {
+                    s.insert(0, '#');
+                }
+            }
+            _ => (),
+        }
+    } else {
         match val {
             Value::Integer(i) => edit_int(i, term),
-            Value::String(s) => edit_string(s, term),
-            Value::Data(d) => edit_data(d, term),
+            Value::String(s) => edit_string(s, term)?,
+            Value::Data(d) => edit_data(d, term)?,
             _ => (),
         }
     }
 
     term.hide_cursor()?;
-
     Ok(())
 }
 
-fn edit_data(val: &mut Vec<u8>, term: &Term) {
-    let mut edit_hex = hex::encode_upper(val.clone());
+fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
+    let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
-//    let mut tmp_val = val.clone();
     let mut hexedit = true;
     loop {
         let mut tmp_val = edit_hex.clone();
@@ -61,24 +73,30 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) {
         write!(
             &*term,
             "\x1B[u\x1B[G{}\x1B[u{}\x1B[0K\x1B[E{}\x1B[0K\x1B[u\x1B[B{}\x1B[u",
-            style("hex").yellow(),
+            style("as hex").magenta(),
             hex_str_with_style(edit_hex.clone()),
-            style("string").yellow(),
+            style("as string").magenta(),
             get_lossy_string(&tmp_val)
-        )
-        .unwrap();
+        )?;
         if hexedit {
-            write!(&*term, "\x1B[G{}\x1B[u{}", style("hex").yellow().reverse(), "\x1B[C".repeat(pos)).unwrap();
+            write!(
+                &*term,
+                "\x1B[G{}\x1B[u{}",
+                style("as hex").reverse().magenta(),
+                "\x1B[C".repeat(pos)
+            )?;
         } else {
-            write!(&*term, "\x1B[E{}\x1B[u\x1B[B{}", style("string").reverse().yellow(), "\x1B[C".repeat(pos / 2)).unwrap();
+            write!(
+                &*term,
+                "\x1B[E{}\x1B[u\x1B[B{}",
+                style("as string").reverse().magenta(),
+                "\x1B[C".repeat(pos / 2)
+            )
+            .unwrap();
         }
-        let key = term.read_key().unwrap();
+        let key = term.read_key()?;
         match key {
             Key::Enter => {
-//                if new_hex.len() % 2 == 1 {
-//                    new_hex.insert(0, '0');
-//                }
-//                *val = hex::decode(new_hex).unwrap();
                 *val = tmp_val;
                 break;
             }
@@ -139,7 +157,7 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) {
                     }
                 } else {
                     if c.is_ascii() {
-                        for ic in hex::encode_upper(vec![c as u8]).chars() {
+                        for ic in hex::encode(vec![c as u8]).chars() {
                             edit_hex.insert(pos, ic);
                             pos += 1;
                         }
@@ -152,6 +170,7 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) {
             _ => (),
         }
     }
+    Ok(())
 }
 
 fn edit_int(val: &mut Integer, term: &Term) {
@@ -184,13 +203,13 @@ fn edit_int(val: &mut Integer, term: &Term) {
     }
 }
 
-fn edit_string(val: &mut String, term: &Term) {
+fn edit_string(val: &mut String, term: &Term) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
     loop {
-        write!(&*term, "\x1B[u{}\x1B[0K", new).unwrap();
-        write!(&*term, "\x1B[u{}", "\x1B[C".repeat(pos)).unwrap();
-        let key = term.read_key().unwrap();
+        write!(&*term, "\x1B[u{}\x1B[0K", new)?;
+        write!(&*term, "\x1B[u{}", "\x1B[C".repeat(pos))?;
+        let key = term.read_key()?;
         match key {
             Key::Enter => {
                 *val = new;
@@ -233,4 +252,5 @@ fn edit_string(val: &mut String, term: &Term) {
             _ => (),
         }
     }
+    Ok(())
 }

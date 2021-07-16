@@ -3,17 +3,42 @@ mod edit;
 mod parse_tex;
 
 use console::{Key, Term};
+use git2::Repository;
 use plist::Value;
 use std::io::Write;
-use std::{env, io};
+use std::{env, error::Error};
 
 use draw::{draw_screen, Position};
 use edit::edit_value;
 
-fn do_stuff() -> io::Result<()> {
+//fn do_stuff() -> io::Result<()> {
+fn do_stuff() -> Result<(), Box<dyn Error>> {
+    let term = Term::stdout();
+    term.set_title("octool");
+    term.clear_screen()?;
+    term.hide_cursor()?;
+
+    let url = "https://github.com/acidanthera/OpenCorePkg";
+    let path = "resources/OpenCorePkg";
+    write!(&term, "checking for {}\r\n", path)?;
+    let repo = match Repository::open(path) {
+        Ok(repo) => {
+            write!(&term, "Found OpenCorePkg at {}", path)?;
+            repo
+        }
+        Err(_) => {
+            write!(&term, "Cloning OpenCorePkg ... ")?;
+            match Repository::clone(url, path) {
+                Ok(repo) => repo,
+                Err(e) => panic!("\r\nfailed to clone: {}", e),
+            }
+        }
+    };
+    write!(&term, "done\r\n")?;
+
     let file = env::args()
         .nth(1)
-        .unwrap_or("INPUT/config.plist".to_string());
+        .unwrap_or("resources/OpenCorePkg/Docs/Sample.plist".to_string());
 
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
@@ -26,10 +51,6 @@ fn do_stuff() -> io::Result<()> {
         item_clone: list.clone(),
         sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
     };
-
-    let term = Term::stdout();
-    term.set_title("octool");
-    term.hide_cursor()?;
 
     draw_screen(&mut position, &list, &term);
 
@@ -50,7 +71,7 @@ fn do_stuff() -> io::Result<()> {
                 let _ = term.read_key()?;
             }
             Key::Char('s') => {
-                list.to_file_xml("test1").unwrap();
+                list.to_file_xml("test1")?;
                 break;
             }
 
@@ -65,8 +86,9 @@ fn do_stuff() -> io::Result<()> {
     Ok(())
 }
 
-fn main() {
-    do_stuff().unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    do_stuff()?;
+    Ok(())
 }
 
 /*

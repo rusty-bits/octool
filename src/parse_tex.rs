@@ -6,46 +6,79 @@ use crate::draw::Position;
 pub fn show_info(position: &Position, term: &Term) {
     let contents = fs::read_to_string("resources/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
-    let mut sec_found = false;
     let mut sec_search = "\\section{".to_string();
     sec_search.push_str(&position.sec_key[0]);
-    let mut text_found = false;
-    let mut text_search = "\\texttt{".to_string();
+    let mut sub_search = "\\subsection{".to_string();
+
+    match position.depth {
+        0 => sub_search.push_str("Introduction}\\"),
+        1 => sub_search.push_str("Properties}\\"),
+        2 | 3 => {
+            sub_search.push_str(&position.sec_key[1]);
+            sub_search.push_str(" Properties}\\");
+        }
+        _ => return,
+    }
+
+    let mut text_search = "texttt{".to_string();
     text_search.push_str(&position.sec_key[position.depth]);
     text_search.push_str(&"}\\");
 
+//    write!(&*term, "\x1B[1A\r{}", style("    ".repeat(position.depth)).underlined()).unwrap();
     write!(&*term, "\r\n").unwrap();
-    let mut itemize = false;
+    let mut itemize = 0;
+    let mut lines = contents.lines();
 
-    for line in contents.lines() {
-        if sec_found {
-            if text_found {
-                if !itemize && line.contains("\\item") {
+    loop {
+        match lines.next() {
+            Some(line) => {
+                if line.contains(&sec_search) {
                     break;
-                }
-                if line.contains("end{enumerate}") {
-                    break;
-                }
-                if line.contains("begin{itemize}") {
-                    itemize = true;
-                }
-                if line.contains("end{itemize}") {
-                    itemize = false;
-                }
-                //write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
-                write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
-            } else {
-                if line.contains(&text_search) {
-                    //                    write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
-                    text_found = true;
                 }
             }
-        } else {
-            if line.contains(&sec_search) {
-                //                write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
-                sec_found = true;
+            None => return,
+        }
+    }
+
+    loop {
+        match lines.next() {
+            Some(line) => {
+                if line.contains(&sub_search) {
+                    break;
+                }
+            }
+            None => return,
+        }
+    }
+
+    if position.depth != 0 {
+        loop {
+            match lines.next() {
+                Some(line) => {
+                    if line.contains(&text_search) {
+                        break;
+                    }
+                }
+                None => return,
             }
         }
+    }
+
+    for line in lines {
+        if itemize == 0 && line.contains("\\item") {
+            break;
+        }
+        if line.contains("end{enumerate}") {
+            break;
+        }
+        if line.contains("begin{itemize}") {
+            itemize += 1;
+        }
+        if line.contains("end{itemize}") {
+            itemize -= 1;
+        }
+        //write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
+        write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
     }
     write!(&*term, "{}\x1B[0K", style(" ".repeat(70)).underlined()).unwrap();
 }

@@ -40,7 +40,7 @@ impl Position {
     }
 }
 
-pub fn draw_screen(position: &mut Position, list: &Value, term: &Term) {
+pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
     write!(&*term, "\x1B[3H").unwrap();
     let list = list.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
@@ -119,11 +119,12 @@ pub fn display_value(
             }
             write!(
                 &*term,
-                "{} {}{}\x1B[0m  [{}] ",
+                "{} {}{}\x1B[0m  [{}]{} ",
                 pre_key,
                 key_style,
                 key,
-                v.len()
+                v.len(),
+                save_curs_pos
             )
             .unwrap();
             if position.depth > d && position.section[d] == item_num {
@@ -136,8 +137,24 @@ pub fn display_value(
         }
         Value::Boolean(v) => {
             match v {
-                true => write!(&*term, "{}{}: {}{}", key_style, style(key).green(), save_curs_pos, v).unwrap(),
-                false => write!(&*term, "{}{}: {}{}", key_style, style(key).red(), save_curs_pos, v).unwrap(),
+                true => write!(
+                    &*term,
+                    "{}{}: {}{}",
+                    key_style,
+                    style(key).green(),
+                    save_curs_pos,
+                    v
+                )
+                .unwrap(),
+                false => write!(
+                    &*term,
+                    "{}{}: {}{}",
+                    key_style,
+                    style(key).red(),
+                    save_curs_pos,
+                    v
+                )
+                .unwrap(),
             };
         }
         Value::Data(v) => {

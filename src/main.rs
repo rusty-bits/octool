@@ -8,7 +8,7 @@ use plist::Value;
 use std::io::Write;
 use std::{env, error::Error};
 
-use draw::{draw_screen, Position};
+use draw::{update_screen, Position};
 use edit::edit_value;
 
 //fn do_stuff() -> io::Result<()> {
@@ -21,7 +21,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let url = "https://github.com/acidanthera/OpenCorePkg";
     let path = "resources/OpenCorePkg";
     write!(&term, "checking for {}\r\n", path)?;
-    let repo = match Repository::open(path) {
+    let _repo = match Repository::open(path) {
         Ok(repo) => {
             write!(&term, "Found OpenCorePkg at {}", path)?;
             repo
@@ -52,7 +52,8 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
     };
 
-    draw_screen(&mut position, &list, &term);
+    update_screen(&mut position, &list, &term);
+    let mut showing_info = false;
 
     loop {
         let key = term.read_key()?;
@@ -67,8 +68,13 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
             Key::Enter | Key::Tab => edit_value(&position, &mut list, &term, false)?,
             Key::Char('i') => {
-                parse_tex::show_info(&position, &term);
-                let _ = term.read_key()?;
+                if !showing_info {
+                    parse_tex::show_info(&position, &term);
+                    showing_info = true;
+                } else {
+                    showing_info = false;
+                }
+                //let _ = term.read_key()?;
             }
             Key::Char('s') => {
                 list.to_file_xml("test1")?;
@@ -77,7 +83,13 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 
             _ => (),
         }
-        draw_screen(&mut position, &list, &term);
+
+        if key != Key::Char('i') {
+            showing_info = false;
+        }
+        if !showing_info {
+            update_screen(&mut position, &list, &term);
+        }
     }
 
     term.show_cursor()?;

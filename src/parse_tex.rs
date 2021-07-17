@@ -1,4 +1,4 @@
-use console::{Term, style};
+use console::{style, Term};
 use std::{fs, io::Write};
 
 use crate::draw::Position;
@@ -14,18 +14,26 @@ pub fn show_info(position: &Position, term: &Term) {
     text_search.push_str(&position.sec_key[position.depth]);
     text_search.push_str(&"}\\");
 
-
-    write!(&*term, "\r\n").unwrap(); 
+    write!(&*term, "\r\n").unwrap();
+    let mut itemize = false;
 
     for line in contents.lines() {
         if sec_found {
             if text_found {
-                if line.starts_with('\\') {
+                if !itemize && line.contains("\\item") {
                     break;
-                } else {
-                    //write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
-                    write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
                 }
+                if line.contains("end{enumerate}") {
+                    break;
+                }
+                if line.contains("begin{itemize}") {
+                    itemize = true;
+                }
+                if line.contains("end{itemize}") {
+                    itemize = false;
+                }
+                //write!(&*term, "{}\x1B[0K\r\n", line).unwrap();
+                write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
             } else {
                 if line.contains(&text_search) {
                     //                    write!(&*term, "\r\n{}\x1B[0K", line).unwrap();
@@ -70,7 +78,7 @@ fn parse_line(line: &str) -> String {
                     if key == "texttt" {
                         ret.push_str("\x1B[4m");
                     }
-                    key = "".to_string();
+                    key.clear();
                 }
                 ' ' => {
                     build_key = false;
@@ -83,7 +91,15 @@ fn parse_line(line: &str) -> String {
                     if key == "tightlist" {
                         skip_line = true;
                     }
-                    key = "".to_string();
+                    if key == "" {
+                        ret.push(' ');
+                    }
+                    key.clear();
+                }
+                '_' | '^' => {
+                    build_key = false;
+                    ret.push(c);
+                    key.clear();
                 }
                 _ => key.push(c),
             }
@@ -95,7 +111,11 @@ fn parse_line(line: &str) -> String {
                     ret.push_str("\x1B[0m");
                     name = "".to_string();
                 }
-                '\\' => (),
+                '\\' => {
+                    ret.push_str(&name);
+                    name = "".to_string();
+                    build_key = true;
+                }
                 _ => name.push(c),
             }
         } else {
@@ -111,7 +131,7 @@ fn parse_line(line: &str) -> String {
         }
     }
     if skip_line {
-        ret = "".to_string();
+        ret.clear();
     } else {
         ret.push_str("\r\n");
     }

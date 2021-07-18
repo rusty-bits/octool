@@ -23,7 +23,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     write!(&term, "checking for {}\r\n", path)?;
     let _repo = match Repository::open(path) {
         Ok(repo) => {
-            write!(&term, "Found OpenCorePkg at {}", path)?;
+            write!(&term, "Found OpenCorePkg at {}  ", path)?;
             repo
         }
         Err(_) => {
@@ -74,7 +74,6 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
                 } else {
                     showing_info = false;
                 }
-                //let _ = term.read_key()?;
             }
             Key::Char('s') => {
                 list.to_file_xml("test1")?;
@@ -83,7 +82,6 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 
             _ => (),
         }
-
         if key != Key::Char('i') {
             showing_info = false;
         }
@@ -91,7 +89,6 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             update_screen(&mut position, &list, &term);
         }
     }
-
     term.show_cursor()?;
     write!(&term, "\n\r")?;
 
@@ -102,25 +99,3 @@ fn main() -> Result<(), Box<dyn Error>> {
     do_stuff()?;
     Ok(())
 }
-
-/*
-fn get_info(position: &Position, term: &Term) {
-//    let config = Config::new(env::args()).unwrap_or_else(|err| {
-//        eprintln!("Problem parsing arguments: {}", err);
-//        process::exit(1);
-//    });
-
-    let mut tmp = "\\section{".to_string();
-    tmp.push_str(&position.sec_key[0]);
-    tmp.push('}');
-    let config = Config {
-        query: tmp,
-        filename: "INPUT/Configuration.tex".to_string(),
-        case_sensitive: true,
-    };
-
-    if let Err(e) = parse_tex::run(config, &term) {
-        eprintln!("Application error: {}", e);
-        process::exit(1);
-    }
-}*/

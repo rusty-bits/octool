@@ -2,10 +2,13 @@ mod draw;
 mod edit;
 mod parse_tex;
 
+use serde_json;
+
 use console::{Key, Term};
 use git2::Repository;
 use plist::Value;
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufReader, Write};
 use std::{env, error::Error};
 
 use draw::{update_screen, Position};
@@ -35,6 +38,11 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         }
     };
     write!(&term, "done\r\n")?;
+
+    let path = "octool_files/git_repo.json";
+    let f = File::open(path)?;
+    let buff = BufReader::new(f);
+    let git_repo: serde_json::Value = serde_json::from_reader(buff)?;
 
     let file = env::args()
         .nth(1)
@@ -67,6 +75,10 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::End => position.section[position.depth] = position.sec_length[position.depth] - 1,
             Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
             Key::Enter | Key::Tab => edit_value(&position, &mut list, &term, false)?,
+            Key::Char('g') => {
+                write!(&term, "{:?}", git_repo[&position.sec_key[position.depth]])?;
+                let _ = term.read_key()?;
+            }
             Key::Char('i') => {
                 if !showing_info {
                     parse_tex::show_info(&position, &term);

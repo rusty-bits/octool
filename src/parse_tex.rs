@@ -102,27 +102,21 @@ fn parse_line(line: &str) -> String {
                 '{' => {
                     build_key = false;
                     build_name = true;
-                    if key == "textbf" {
-                        ret.push_str("\x1B[1m");
-                    }
-                    if key == "emph" {
-                        ret.push_str("\x1B[7m");
-                    }
-                    if key == "texttt" {
-                        ret.push_str("\x1B[4m");
-                    }
+                    match key.as_str() {
+                        "textbf" => ret.push_str("\x1B[1m"),
+                        "emph" => ret.push_str("\x1B[7m"),
+                        "texttt" => ret.push_str("\x1B[4m"),
+                        _ => (),
+                    };
                     key.clear();
                 }
                 ' ' => {
                     build_key = false;
-                    if key == "textbackslash" {
-                        ret.push('\\');
-                    }
-                    if key == "item" {
-                        ret.push_str("+ ");
-                    }
-                    if key == "" {
-                        ret.push(' ');
+                    match key.as_str() {
+                        "textbackslash" => ret.push('\\'),
+                        "item" => ret.push_str("+ "),
+                        "" => ret.push(' '),
+                        _ => (),
                     }
                     key.clear();
                 }

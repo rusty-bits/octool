@@ -2,6 +2,8 @@ use console::{style, Term};
 use plist::Value;
 use std::{error::Error, io::Write};
 
+use strip_ansi_escapes;
+
 #[derive(Debug)]
 pub struct Position {
     pub file_name: String,
@@ -28,7 +30,7 @@ impl Position {
     pub fn left(&mut self) {
         if self.depth > 0 {
             self.sec_length[self.depth + 1] = 0;
-            self.sec_key[self.depth] = "".to_string();
+            self.sec_key[self.depth].clear();
             self.depth -= 1;
         }
     }
@@ -100,7 +102,8 @@ pub fn display_value(
     let mut pre_key = '>';
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section[d] == item_num {
-        position.sec_key[d] = key.to_string();
+        position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
+//            key.to_string();
         key_style.push_str("\x1B[7m");
         // current live item
         if d == position.depth {

@@ -2,3 +2,5 @@
 /target
 test1
 .DS_Store
+octool_files/OpenCorePkg
+octool_files/build-repo

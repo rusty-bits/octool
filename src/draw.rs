@@ -163,12 +163,14 @@ pub fn display_value(
         Value::Data(v) => {
             write!(
                 &*term,
-                "{}{}: <{}{}> | \"{}\"\x1B[0K",
+                "{}{}: <{}{}> | {}{}{}\x1B[0K",
                 key_style,
                 style(key).magenta(),
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
-                get_lossy_string(v)
+                style('\"').magenta(),
+                get_lossy_string(v),
+                style('\"').magenta()
             )?;
         }
         Value::Dictionary(v) => {

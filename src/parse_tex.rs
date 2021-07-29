@@ -4,7 +4,7 @@ use std::{fs, io::Write};
 use crate::draw::Position;
 
 pub fn show_info(position: &Position, term: &Term) {
-    let contents = fs::read_to_string("resources/OpenCorePkg/Docs/Configuration.tex").unwrap();
+    let contents = fs::read_to_string("octool_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
     let mut sec_search = "\\section{".to_string();
     sec_search.push_str(&position.sec_key[0]);
@@ -20,7 +20,6 @@ pub fn show_info(position: &Position, term: &Term) {
         }
         _ => return,
     }
-    //    write!(&*term, "\x1B[1A\r{}", style("    ".repeat(position.depth)).underlined()).unwrap();
     write!(&*term, "\r\n").unwrap();
 
     let mut lines = contents.lines();
@@ -82,7 +81,10 @@ pub fn show_info(position: &Position, term: &Term) {
         if line.contains("\\section{") {
             break;
         }
-        if line.contains("\\subsection{") && !line.contains("\\subsection{Introduction}") {
+        if line.contains("\\subsection{Introduction}") {
+            continue;
+        }
+        if line.contains("\\subsection{") {
             break;
         }
         write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();

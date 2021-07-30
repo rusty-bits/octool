@@ -17,66 +17,80 @@ use sha2::Digest;
 use draw::{update_screen, Position};
 use edit::edit_value;
 
+fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
+    let out = Command::new(command).args(args).status()?;
+    Ok(out.code().unwrap())
+}
+
 fn get_file_unzip(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
-//    let mut out_file = File::create(&path)?;
-//    let _file_len = reqwest::blocking::get(url)?.copy_to(&mut out_file)?;
-    let _status = Command::new("curl")
-        .arg("-L")
-        .arg("-o")
-        .arg(path)
-        .arg(url)
-        .status()?;
+    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])? != 0 {
+        panic!("failed to get {:?}", path);
+    }
+    if status(
+        "unzip",
+        &[
+            "-q",
+            path.to_str().unwrap(),
+            "-d",
+            path.parent().unwrap().to_str().unwrap(),
+        ],
+    )? != 0
+    {
+        panic!("failed to unzip {:?}", path);
+    }
 
-    let _status = Command::new("unzip")
-        .arg("-q")
-        .arg(path)
-        .arg("-d")
-        .arg(path.parent().unwrap())
-        .status()?;
-
-//    unzip(path)?;
     print!("downloaded + unzipped\r\n");
     Ok(())
 }
-/*
-fn unzip(path: &Path) -> Result<(), Box<dyn Error>> {
-    let file = File::open(path).unwrap();
-    let mut archive = zip::ZipArchive::new(file).unwrap();
-    archive.extract(path.parent().unwrap())?;
-    Ok(())
-}
-*/
+
 fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>> {
     if path.exists() {
         print!(
             "found {:?}, checking for updates\r\n",
             path.parent().unwrap()
         );
-        let _status = Command::new("git")
-            .arg("-C")
-            .arg(path.parent().unwrap())
-            .arg("pull")
-            .status();
+        if status(
+            "git",
+            &["-C", path.parent().unwrap().to_str().unwrap(), "pull"],
+        )? != 0
+        {
+            panic!("failed to update {:?}", path);
+        }
     } else {
         print!(
             "{:?} not found\r\n Cloning from {:?}\r\n",
             path.parent().unwrap(),
             url
         );
-        let _status = Command::new("git")
-            .arg("-C")
-            .arg("octool_files")
-            .arg("clone")
-            .arg("--depth")
-            .arg("1")
-            .arg("--branch")
-            .arg(branch)
-            .arg(url)
-            .status();
+        if status(
+            "git",
+            &[
+                "-C",
+                "octool_files",
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                branch,
+                url,
+            ],
+        )? != 0
+        {
+            panic!("failed to clone {:?}", url);
+        }
     };
     Ok(())
+}
+
+fn get_serde(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
+    print!("loading {} ... ", path);
+    let file = File::open(Path::new(path))?;
+    let buf = BufReader::new(file);
+    let v = serde_json::from_reader(buf)?;
+    println!("done");
+    Ok(v)
 }
 
 fn do_stuff() -> Result<(), Box<dyn Error>> {
@@ -85,15 +99,9 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     term.clear_screen()?;
     term.hide_cursor()?;
 
-    let path = Path::new("octool_files/octool_config.json");
-    let f = File::open(path)?;
-    let buf = BufReader::new(f);
-    let octool_config: serde_json::Value = serde_json::from_reader(buf)?;
+    let octool_config = get_serde("octool_files/octool_config.json")?;
 
-    let path = Path::new("octool_files/git_repo.json");
-    let f = File::open(path)?;
-    let buf = BufReader::new(f);
-    let git_repo: serde_json::Value = serde_json::from_reader(buf)?;
+    let git_repo = get_serde("octool_files/git_repo.json")?;
 
     write!(&term, "checking for OpenCorePkg\r\n")?;
     let path = Path::new(octool_config["opencorepkg_path"].as_str().unwrap());
@@ -105,9 +113,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let url = octool_config["build_repo_url"].as_str().unwrap();
     clone_pull(url, path, "builds")?;
 
-    let f = File::open(path.parent().unwrap().join("config.json"))?;
-    let buf = BufReader::new(f);
-    let build_repo: serde_json::Value = serde_json::from_reader(buf)?;
+    let build_repo = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
     let url = build_repo["OpenCorePkg"]["versions"][0]["links"]["release"]
         .as_str()
@@ -135,7 +141,11 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         }
         Err(e) => match e.kind() {
             std::io::ErrorKind::NotFound => {
-                write!(&term, "{:?} not found, downloading from\r\n{}\r\n", dir, url)?;
+                write!(
+                    &term,
+                    "{:?} not found, downloading from\r\n{}\r\n",
+                    dir, url
+                )?;
                 get_file_unzip(url, &path)?;
             }
             _ => panic!("{}", e),
@@ -229,7 +239,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     }
     term.show_cursor()?;
 
-    write!(&term, "\n\ri\x1B[0J")?;
+    write!(&term, "\n\r\x1B[0J")?;
 
     let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
         .arg("test_out.plist")
@@ -238,10 +248,9 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     match do_stuff() {
         Ok(()) => (),
-        Err(e) => print!("Error {:?}\r\n", e),
+        Err(e) => print!("\r\n{:?}\r\n", e),
     }
-    Ok(())
 }

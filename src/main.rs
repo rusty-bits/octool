@@ -17,31 +17,44 @@ use sha2::Digest;
 use draw::{update_screen, Position};
 use edit::edit_value;
 
-fn get_file_unzip(target: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+fn get_file_unzip(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
-    let mut out_file = File::create(&path)?;
-    let _file_len = reqwest::blocking::get(target)?.copy_to(&mut out_file)?;
+//    let mut out_file = File::create(&path)?;
+//    let _file_len = reqwest::blocking::get(url)?.copy_to(&mut out_file)?;
+    let _status = Command::new("curl")
+        .arg("-L")
+        .arg("-o")
+        .arg(path)
+        .arg(url)
+        .status()?;
 
-    unzip(path)?;
+    let _status = Command::new("unzip")
+        .arg("-q")
+        .arg(path)
+        .arg("-d")
+        .arg(path.parent().unwrap())
+        .status()?;
+
+//    unzip(path)?;
     print!("downloaded + unzipped\r\n");
     Ok(())
 }
-
+/*
 fn unzip(path: &Path) -> Result<(), Box<dyn Error>> {
     let file = File::open(path).unwrap();
     let mut archive = zip::ZipArchive::new(file).unwrap();
     archive.extract(path.parent().unwrap())?;
     Ok(())
 }
-
+*/
 fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>> {
     if path.exists() {
         print!(
             "found {:?}, checking for updates\r\n",
-            path.file_name().unwrap()
+            path.parent().unwrap()
         );
-        let status = Command::new("git")
+        let _status = Command::new("git")
             .arg("-C")
             .arg(path.parent().unwrap())
             .arg("pull")
@@ -49,10 +62,10 @@ fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>
     } else {
         print!(
             "{:?} not found\r\n Cloning from {:?}\r\n",
-            path.file_name().unwrap(),
+            path.parent().unwrap(),
             url
         );
-        let status = Command::new("git")
+        let _status = Command::new("git")
             .arg("-C")
             .arg("octool_files")
             .arg("clone")
@@ -92,7 +105,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let url = octool_config["build_repo_url"].as_str().unwrap();
     clone_pull(url, path, "builds")?;
 
-    let f = File::open(path)?;
+    let f = File::open(path.parent().unwrap().join("config.json"))?;
     let buf = BufReader::new(f);
     let build_repo: serde_json::Value = serde_json::from_reader(buf)?;
 
@@ -109,25 +122,43 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let file_name = Path::new(url).file_name().unwrap();
     let path = path.join(dir).join(file_name);
 
-    let mut file = File::open(&path)?;
-    let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
-    let hash = format!("{:x}", sha2::Sha256::digest(&data));
-
-    write!(&term, " sum {}\r\nhash {}\r\n", sum, hash)?;
-    if sum != hash {
-        write!(&term, "new version found, downloading\r\n")?;
-        get_file_unzip(url, &path)?;
+    match File::open(&path) {
+        Ok(mut f) => {
+            let mut data = Vec::new();
+            f.read_to_end(&mut data).unwrap();
+            let hash = format!("{:x}", sha2::Sha256::digest(&data));
+            write!(&term, " sum {}\r\nhash {}\r\n", sum, hash)?;
+            if sum != hash {
+                write!(&term, "new version found, downloading\r\n")?;
+                get_file_unzip(url, &path)?;
+            }
+        }
+        Err(e) => match e.kind() {
+            std::io::ErrorKind::NotFound => {
+                write!(&term, "{:?} not found, downloading from\r\n{}\r\n", dir, url)?;
+                get_file_unzip(url, &path)?;
+            }
+            _ => panic!("{}", e),
+        },
     }
+
     let open_core_pkg = path.parent().unwrap();
 
     write!(&term, "pkg at {:?}\r\n", open_core_pkg)?;
-    write!(&term, "done\r\n")?;
 
-    let file = env::args().nth(1).unwrap_or("octool_files/OpenCorePkg/Docs/Sample.plist".to_string());
+    let file = env::args()
+        .nth(1)
+        .unwrap_or("octool_files/OpenCorePkg/Docs/Sample.plist".to_string());
 
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
+
+    let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
+        .arg(file.clone())
+        .status()?;
+
+    write!(&term, "\r\ndone with init, any key to continue\r\n")?;
+    let _ = term.read_key();
 
     let mut position = Position {
         file_name: file.to_owned(),
@@ -183,7 +214,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
                 }
             }
             Key::Char('s') => {
-                list.to_file_xml("test1")?;
+                list.to_file_xml("test_out.plist")?;
                 break;
             }
 
@@ -198,18 +229,11 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     }
     term.show_cursor()?;
 
-    write!(&term, "\n\r")?;
+    write!(&term, "\n\ri\x1B[0J")?;
 
-    let status = Command::new(
-        open_core_pkg
-            .join("Utilities")
-            .join("ocvalidate")
-            .join("ocvalidate"),
-    )
-    .arg("test1")
-    .output()?;
-
-    writeln!(&term, "\x1B[0J{}", String::from_utf8_lossy(&status.stdout))?;
+    let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
+        .arg("test_out.plist")
+        .status()?;
 
     Ok(())
 }
@@ -217,7 +241,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     match do_stuff() {
         Ok(()) => (),
-        Err(e) => print!("Error {}\r\n", e),
+        Err(e) => print!("Error {:?}\r\n", e),
     }
     Ok(())
 }

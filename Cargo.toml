@@ -12,6 +12,4 @@ hex = "*"
 console ="*"
 serde_json = "1.0"
 strip-ansi-escapes = "0.1.0"
-reqwest = { version = "*", features = ["blocking"] }
-zip = "*"
 sha2 = "*"

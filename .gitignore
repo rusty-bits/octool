@@ -1,6 +1,6 @@
 /resources
 /target
-test1
+test_out.plist
 .DS_Store
 octool_files/OpenCorePkg
 octool_files/build-repo

@@ -305,7 +305,7 @@
 		<dict>
 			<key>AllowRelocationBlock</key>
 			<false/>
-			<key>AvoidRuntimeDefrag</key>
+			<key>AvodRuntimeDefrag</key>
 			<true/>
 			<key>DevirtualiseMmio</key>
 			<false/>

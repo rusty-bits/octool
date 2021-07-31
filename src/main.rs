@@ -105,7 +105,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 
     let acidanthera_config = get_serde("octool_config_files/acidanthera_config.json")?;
 
-    write!(&term, "\r\nchecking for OpenCorePkg\r\n")?;
+    write!(&term, "\r\nchecking for acidanthera OpenCorePkg\r\n")?;
     let path = Path::new(octool_config["opencorepkg_path"].as_str().unwrap());
     let url = octool_config["opencorepkg_url"].as_str().unwrap();
     let branch = octool_config["opencorepkg_branch"].as_str().unwrap();
@@ -125,7 +125,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let hash = dortania_config["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
-    write!(&term, "\r\nchecking  {:?}\r\n", url)?;
+    write!(&term, "\r\nchecking for dortania {} version\r\n{:?}\r\n", build_version, url)?;
 
     let path = Path::new("./resources");
     let dir = Path::new(url).file_stem().unwrap();
@@ -137,7 +137,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             let mut data = Vec::new();
             f.read_to_end(&mut data).unwrap();
             let sum = format!("{:x}", sha2::Sha256::digest(&data));
-            write!(&term, "hash {}\r\n sum {}\r\n", hash, sum)?;
+            write!(&term, "remote hash {}\r\nlocal sum   {}\r\n", hash, sum)?;
             if sum != hash {
                 write!(&term, "new version found, downloading\r\n")?;
                 get_file_unzip(url, &path)?;

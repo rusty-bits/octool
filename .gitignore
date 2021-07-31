@@ -2,5 +2,5 @@
 /target
 test_out.plist
 .DS_Store
-octool_files/OpenCorePkg
-octool_files/build-repo
+octool_config_files/OpenCorePkg
+octool_config_files/build-repo

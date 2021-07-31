@@ -85,7 +85,7 @@ fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>
 }
 
 fn get_serde(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("loading {} ... ", path);
+    print!("\r\nloading {} ... ", path);
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
@@ -99,29 +99,33 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     term.clear_screen()?;
     term.hide_cursor()?;
 
-    let octool_config = get_serde("octool_files/octool_config.json")?;
+    let octool_config = get_serde("octool_config_files/octool_config.json")?;
+    let build_version = octool_config["build_version"].as_str().unwrap();
+    write!(&term, "build_version set to {}\r\n", build_version)?;
 
-    let git_repo = get_serde("octool_files/git_repo.json")?;
+    let acidanthera_config = get_serde("octool_config_files/acidanthera_config.json")?;
 
-    write!(&term, "checking for OpenCorePkg\r\n")?;
+    write!(&term, "\r\nchecking for OpenCorePkg\r\n")?;
     let path = Path::new(octool_config["opencorepkg_path"].as_str().unwrap());
     let url = octool_config["opencorepkg_url"].as_str().unwrap();
-    clone_pull(url, path, "master")?;
+    let branch = octool_config["opencorepkg_branch"].as_str().unwrap();
+    clone_pull(url, path, branch)?;
 
-    write!(&term, "checking for build_repo/config.json\r\n")?;
-    let path = Path::new(octool_config["build_repo_path"].as_str().unwrap());
-    let url = octool_config["build_repo_url"].as_str().unwrap();
-    clone_pull(url, path, "builds")?;
+    write!(&term, "\r\nchecking for dortania/build_repo/config.json\r\n")?;
+    let path = Path::new(octool_config["dortania_config_path"].as_str().unwrap());
+    let url = octool_config["dortania_config_url"].as_str().unwrap();
+    let branch = octool_config["dortania_config_branch"].as_str().unwrap();
+    clone_pull(url, path, branch)?;
 
-    let build_repo = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
+    let dortania_config = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
-    let url = build_repo["OpenCorePkg"]["versions"][0]["links"]["release"]
+    let url = dortania_config["OpenCorePkg"]["versions"][0]["links"][build_version]
         .as_str()
         .unwrap();
-    let sum = build_repo["OpenCorePkg"]["versions"][0]["hashes"]["release"]["sha256"]
+    let hash = dortania_config["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
-    write!(&term, "checking  {:?}\r\n", url)?;
+    write!(&term, "\r\nchecking  {:?}\r\n", url)?;
 
     let path = Path::new("./resources");
     let dir = Path::new(url).file_stem().unwrap();
@@ -132,11 +136,13 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         Ok(mut f) => {
             let mut data = Vec::new();
             f.read_to_end(&mut data).unwrap();
-            let hash = format!("{:x}", sha2::Sha256::digest(&data));
-            write!(&term, " sum {}\r\nhash {}\r\n", sum, hash)?;
+            let sum = format!("{:x}", sha2::Sha256::digest(&data));
+            write!(&term, "hash {}\r\n sum {}\r\n", hash, sum)?;
             if sum != hash {
                 write!(&term, "new version found, downloading\r\n")?;
                 get_file_unzip(url, &path)?;
+            } else {
+                write!(&term, "Already up to date.\r\n")?;
             }
         }
         Err(e) => match e.kind() {
@@ -154,15 +160,17 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 
     let open_core_pkg = path.parent().unwrap();
 
-    write!(&term, "pkg at {:?}\r\n", open_core_pkg)?;
-
     let file = env::args()
         .nth(1)
-        .unwrap_or("octool_files/OpenCorePkg/Docs/Sample.plist".to_string());
+        .unwrap_or("octool_config_files/OpenCorePkg/Docs/Sample.plist".to_string());
 
     let mut list =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
 
+    write!(
+        &term,
+        "\r\nChecking input config.plist with latest acidanthera/ocvalidate\r\n"
+    )?;
     let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
         .arg(file.clone())
         .status()?;
@@ -201,17 +209,17 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
                 write!(
                     &term,
                     "{:?}\r\n\x1B[0K",
-                    build_repo[res]["versions"][0]["links"]["release"]
+                    dortania_config[res]["versions"][0]["links"]["release"]
                 )?;
                 write!(
                     &term,
                     "{:?}\r\n\x1B[0K",
-                    git_repo[&position.sec_key[position.depth]]
+                    acidanthera_config[&position.sec_key[position.depth]]
                 )?;
                 write!(
                     &term,
                     "{:?}\r\n\x1B[0K",
-                    git_repo[res]["versions"][0]["links"]["release"]
+                    acidanthera_config[res]["versions"][0]["links"]["release"]
                 )?;
                 let _ = term.read_key()?;
             }
@@ -224,7 +232,12 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
                 }
             }
             Key::Char('s') => {
+                write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\nChecking test_out.plist with acidanthera/ocvalidate\r\n")?;
                 list.to_file_xml("test_out.plist")?;
+                let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
+                    .arg("test_out.plist")
+                    .status()?;
+
                 break;
             }
 
@@ -240,10 +253,6 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     term.show_cursor()?;
 
     write!(&term, "\n\r\x1B[0J")?;
-
-    let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
-        .arg("test_out.plist")
-        .status()?;
 
     Ok(())
 }

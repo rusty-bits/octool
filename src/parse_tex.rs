@@ -20,7 +20,7 @@ pub fn show_info(position: &Position, term: &Term) {
         }
         _ => return,
     }
-    write!(&*term, "\r\n").unwrap();
+    write!(&*term, "\x1B[G-\r\n").unwrap();
 
     let mut lines = contents.lines();
 

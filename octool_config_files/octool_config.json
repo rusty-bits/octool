@@ -1,0 +1,10 @@
+{
+        "dortania_config_url": "https://github.com/dortania/build-repo.git",
+        "dortania_config_branch": "build",
+        "dortania_config_path": "octool_config_files/build-repo/.git",
+        "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
+        "opencorepkg_branch": "master",
+        "opencorepkg_path": "octool_config_files/OpenCorePkg/.git",
+        "build_version": "release"
+}
+

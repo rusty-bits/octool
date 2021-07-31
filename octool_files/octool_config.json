@@ -1,9 +1,0 @@
-{
-        "build_repo_url": "https://github.com/dortania/build-repo.git",
-        "build_repo_branch": "build",
-        "build_repo_path": "octool_files/build-repo/.git",
-        "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
-        "opencorepkg_branch": "master",
-        "opencorepkg_path": "octool_files/OpenCorePkg/.git"
-}
-

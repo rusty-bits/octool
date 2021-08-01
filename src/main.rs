@@ -31,6 +31,7 @@ fn get_file_unzip(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     if status(
         "unzip",
         &[
+            "-o",
             "-q",
             path.to_str().unwrap(),
             "-d",
@@ -68,7 +69,7 @@ fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>
             "git",
             &[
                 "-C",
-                "octool_files",
+                "octool_config_files",
                 "clone",
                 "--depth",
                 "1",
@@ -111,7 +112,10 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let branch = octool_config["opencorepkg_branch"].as_str().unwrap();
     clone_pull(url, path, branch)?;
 
-    write!(&term, "\r\nchecking for dortania/build_repo/config.json\r\n")?;
+    write!(
+        &term,
+        "\r\nchecking for dortania/build_repo/config.json\r\n"
+    )?;
     let path = Path::new(octool_config["dortania_config_path"].as_str().unwrap());
     let url = octool_config["dortania_config_url"].as_str().unwrap();
     let branch = octool_config["dortania_config_branch"].as_str().unwrap();
@@ -125,7 +129,11 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let hash = dortania_config["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
-    write!(&term, "\r\nchecking for dortania {} version\r\n{:?}\r\n", build_version, url)?;
+    write!(
+        &term,
+        "\r\nchecking for dortania {} version\r\n{:?}\r\n",
+        build_version, url
+    )?;
 
     let path = Path::new("./resources");
     let dir = Path::new(url).file_stem().unwrap();

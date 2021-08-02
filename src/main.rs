@@ -211,24 +211,29 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
             Key::Enter | Key::Tab => edit_value(&position, &mut list, &term, false)?,
             Key::Char('g') => {
-                let path = Path::new(&position.sec_key[position.depth]);
-                let res = path.file_stem().unwrap().to_str().unwrap();
-                write!(&term, " {}  \r\n\x1B[2K", res)?;
+                //                let path = Path::new(&position.sec_key[position.depth]);
+                let full_res = position.sec_key[position.depth].clone();
+                let ind_res: &str = full_res.split('/').collect::<Vec<&str>>().last().unwrap();
+                let stem: Vec<&str> = ind_res.split('.').collect();
+                //                let res = path.file_stem().unwrap().to_str().unwrap();
+                write!(&term, " {}  \r\n\x1B[2K", stem[0])?;
                 write!(
                     &term,
                     "{:?}\r\n\x1B[0K",
-                    dortania_config[res]["versions"][0]["links"]["release"]
+                    dortania_config[stem[0]]["versions"][0]["links"]["release"]
                 )?;
-                write!(
-                    &term,
-                    "{:?}\r\n\x1B[0K",
-                    acidanthera_config[&position.sec_key[position.depth]]
-                )?;
-                write!(
-                    &term,
-                    "{:?}\r\n\x1B[0K",
-                    acidanthera_config[res]["versions"][0]["links"]["release"]
-                )?;
+                let acid_child = acidanthera_config[ind_res].clone();
+                write!(&term, "{:?}\r\n\x1B[0K", acid_child)?;
+                match acid_child["parent"].to_owned() {
+                    serde_json::Value::String(s) => {
+                        write!(
+                            &term,
+                            "{:?}\r\n\x1B[0K",
+                            acidanthera_config[s]["versions"][0]["links"]["release"]
+                        )?;
+                    }
+                    _ => (),
+                }
                 let _ = term.read_key()?;
             }
             Key::Char('i') => {

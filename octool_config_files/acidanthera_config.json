@@ -385,19 +385,15 @@
                         }
                 ]
         },
-        "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext": {
+        "VoodooPS2Keyboard.kext": {
                 "parent": "VoodooPS2Controller",
                 "path": "VoodooPS2Controller.kext/Contents/PlugIns"
         },
-        "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Keyboard.kext": {
+        "VoodooPS2Mouse.kext": {
                 "parent": "VoodooPS2Controller",
                 "path": "VoodooPS2Controller.kext/Contents/PlugIns"
         },
-        "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext": {
-                "parent": "VoodooPS2Controller",
-                "path": "VoodooPS2Controller.kext/Contents/PlugIns"
-        },
-        "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext": {
+        "VoodooPS2Trackpad.kext": {
                 "parent": "VoodooPS2Controller",
                 "path": "VoodooPS2Controller.kext/Contents/PlugIns"
         },
@@ -424,15 +420,11 @@
                         }
                 ]
         },
-        "VoodooI2C.kext/Contents/PlugIns/VoodooGPIO.kext": {
+        "VoodooGPIO.kext": {
                 "parent": "VoodooI2C",
                 "path": "VoodooI2C.kext/Contents/PlugIns"
         },
-        "VoodooI2C.kext/Contents/PlugIns/VoodooI2CServices.kext": {
-                "parent": "VoodooI2C",
-                "path": "VoodooI2C.kext/Contents/PlugIns"
-        },
-        "VoodooI2C.kext/Contents/PlugIns/VoodooInput.kext": {
+        "VoodooI2CServices.kext": {
                 "parent": "VoodooI2C",
                 "path": "VoodooI2C.kext/Contents/PlugIns"
         },
@@ -479,11 +471,11 @@
                         }
                 ]
         },
-        "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcm4360_Injector.kext": {
+        "AirPortBrcm4360_Injector.kext": {
                 "parent": "AirportBrcmFixup",
                 "path": "AirportBrcmFixup.kext/Contents/PlugIns"
         },
-        "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcmNIC_Injector.kext": {
+        "AirPortBrcmNIC_Injector.kext": {
                 "parent": "AirportBrcmFixup",
                 "path": "AirportBrcmFixup.kext/Contents/PlugIns"
         },

@@ -1,5 +1,6 @@
 mod draw;
 mod edit;
+mod get_res;
 mod parse_tex;
 
 use serde_json;
@@ -16,6 +17,10 @@ use sha2::Digest;
 
 use draw::{update_screen, Position};
 use edit::edit_value;
+use get_res::Resources;
+
+use crate::get_res::check_res;
+
 
 fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
     let out = Command::new(command).args(args).status()?;
@@ -100,33 +105,39 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     term.clear_screen()?;
     term.hide_cursor()?;
 
-    let octool_config = get_serde("octool_config_files/octool_config.json")?;
-    let build_version = octool_config["build_version"].as_str().unwrap();
+    let mut resources = Resources {
+        acidanthera: serde_json::Value::Bool(false),
+        dortania: serde_json::Value::Bool(false),
+        octool_config: serde_json::Value::Bool(false),
+    };
+
+    resources.octool_config = get_serde("octool_config_files/octool_config.json")?;
+    let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(&term, "build_version set to {}\r\n", build_version)?;
 
-    let acidanthera_config = get_serde("octool_config_files/acidanthera_config.json")?;
+    resources.acidanthera= get_serde("octool_config_files/acidanthera_config.json")?;
 
     write!(&term, "\r\nchecking for acidanthera OpenCorePkg\r\n")?;
-    let path = Path::new(octool_config["opencorepkg_path"].as_str().unwrap());
-    let url = octool_config["opencorepkg_url"].as_str().unwrap();
-    let branch = octool_config["opencorepkg_branch"].as_str().unwrap();
+    let path = Path::new(resources.octool_config["opencorepkg_path"].as_str().unwrap());
+    let url = resources.octool_config["opencorepkg_url"].as_str().unwrap();
+    let branch = resources.octool_config["opencorepkg_branch"].as_str().unwrap();
     clone_pull(url, path, branch)?;
 
     write!(
         &term,
         "\r\nchecking for dortania/build_repo/config.json\r\n"
     )?;
-    let path = Path::new(octool_config["dortania_config_path"].as_str().unwrap());
-    let url = octool_config["dortania_config_url"].as_str().unwrap();
-    let branch = octool_config["dortania_config_branch"].as_str().unwrap();
+    let path = Path::new(resources.octool_config["dortania_config_path"].as_str().unwrap());
+    let url = resources.octool_config["dortania_config_url"].as_str().unwrap();
+    let branch = resources.octool_config["dortania_config_branch"].as_str().unwrap();
     clone_pull(url, path, branch)?;
 
-    let dortania_config = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
+    resources.dortania= get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
-    let url = dortania_config["OpenCorePkg"]["versions"][0]["links"][build_version]
+    let url = resources.dortania["OpenCorePkg"]["versions"][0]["links"][build_version]
         .as_str()
         .unwrap();
-    let hash = dortania_config["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
+    let hash = resources.dortania["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
     write!(
@@ -211,32 +222,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
             Key::Enter | Key::Tab => edit_value(&position, &mut list, &term, false)?,
             Key::Char('g') => {
-                let full_res = position.sec_key[position.depth].clone();
-                let ind_res: &str = full_res.split('/').collect::<Vec<&str>>().last().unwrap();
-                let stem: Vec<&str> = ind_res.split('.').collect();
-                write!(&term, "\r\n {} - {}\x1B[0K\r\n", stem[0], ind_res)?;
-                write!(&term, "inside INPUT dir?\x1B[0K\r\n {:?}\x1B[0K\r\n\x1B[2K\r\n", Path::new("INPUT").join(ind_res).exists())?;
-                write!(&term, "{} in dortania_config\x1B[0K\r\n", stem[0])?;
-                write!(
-                    &term,
-                    "{:?}\x1B[0K\r\n\x1B[2K\r\n",
-                    dortania_config[stem[0]]["versions"][0]["links"]["release"]
-                )?;
-                let acid_child = acidanthera_config[ind_res].clone();
-                write!(&term, "{} in acidanthera_config\x1B[0K\r\n", ind_res)?;
-                write!(&term, "{:?}\x1B[0K\r\n\x1B[2K\r\n", acid_child)?;
-                match acid_child["parent"].to_owned() {
-                    serde_json::Value::String(s) => {
-                        write!(&term, "parent {} in acidanthera_config\x1B[0K\r\n", s)?;
-                        write!(
-                            &term,
-                            "{:?}\x1B[0K\r\n",
-                            acidanthera_config[s]["versions"][0]["links"]["release"]
-                        )?;
-                    }
-                    _ => (),
-                }
-                write!(&term, "\x1B[2K")?;
+                check_res(&resources, &position);
                 let _ = term.read_key()?;
             }
             Key::Char('i') => {

@@ -1,6 +1,7 @@
 use crate::draw::{get_lossy_string, hex_str_with_style, Position};
 use console::{style, Key, Term};
 use plist::{Integer, Value};
+
 use std::{error::Error, io::Write};
 
 pub fn edit_value(

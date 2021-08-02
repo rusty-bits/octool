@@ -4,3 +4,4 @@ test_out.plist
 .DS_Store
 octool_config_files/OpenCorePkg
 octool_config_files/build-repo
+INPUT/*

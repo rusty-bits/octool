@@ -3,8 +3,13 @@ use std::{fs, io::Write};
 
 use crate::draw::Position;
 
-pub fn show_info(position: &Position, term: &Term) {
-    let contents = fs::read_to_string("octool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
+pub fn show_info(position: &Position, term: &Term) -> bool {
+    let mut showing_info = true;
+    let (rows, _cols) = term.size();
+    let mut row = 0;
+
+    let contents =
+        fs::read_to_string("octool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
     let mut sec_search = "\\section{".to_string();
     sec_search.push_str(&position.sec_key[0]);
@@ -18,9 +23,10 @@ pub fn show_info(position: &Position, term: &Term) {
             sub_search.push_str(&position.sec_key[1]);
             sub_search.push_str(" Properties}\\");
         }
-        _ => return,
+        _ => return true,
     }
     write!(&*term, "\x1B[G-\r\n").unwrap();
+    row += 1;
 
     let mut lines = contents.lines();
 
@@ -31,7 +37,7 @@ pub fn show_info(position: &Position, term: &Term) {
                     break;
                 }
             }
-            None => return,
+            None => return true,
         }
     }
 
@@ -43,7 +49,7 @@ pub fn show_info(position: &Position, term: &Term) {
                         break;
                     }
                 }
-                None => return,
+                None => return true,
             }
         }
 
@@ -57,7 +63,7 @@ pub fn show_info(position: &Position, term: &Term) {
                         break;
                     }
                 }
-                None => return,
+                None => return true,
             }
         }
     }
@@ -65,6 +71,17 @@ pub fn show_info(position: &Position, term: &Term) {
     let mut itemize = 0;
 
     for line in lines {
+        if row == rows {
+            write!(&*term, "{} ...\x1B[G", style("more").reverse()).unwrap();
+            match term.read_key().unwrap() {
+                console::Key::Char('q') => {
+                    showing_info = false;
+                    break;
+                }
+                console::Key::ArrowDown => row -= 1,
+                _ => row = 0,
+            }
+        }
         if line.contains("\\item") {
             if itemize == 0 {
                 break;
@@ -88,8 +105,9 @@ pub fn show_info(position: &Position, term: &Term) {
             break;
         }
         write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
+        row += 1;
     }
-    write!(&*term, "{}\x1B[0K", style(" ".repeat(70)).underlined()).unwrap();
+    showing_info
 }
 
 fn parse_line(line: &str) -> String {

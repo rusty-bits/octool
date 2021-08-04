@@ -15,7 +15,7 @@ pub fn edit_value(
         match val {
             Value::Dictionary(d) => {
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                    [position.section[i]]
+                    [position.section_num[i]]
                     .clone();
                 val = match d.get_mut(&key) {
                     Some(k) => k,
@@ -23,7 +23,7 @@ pub fn edit_value(
                 }
             }
             Value::Array(a) => {
-                val = a.get_mut(position.section[i]).unwrap();
+                val = a.get_mut(position.section_num[i]).unwrap();
             }
             _ => (),
         }

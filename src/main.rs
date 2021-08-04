@@ -1,11 +1,11 @@
 mod draw;
 mod edit;
-mod get_res;
 mod parse_tex;
+mod res;
 
 use serde_json;
 
-use console::{Key, Term};
+use console::{Key, Term, style};
 use plist::Value;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
@@ -17,10 +17,8 @@ use sha2::Digest;
 
 use draw::{update_screen, Position};
 use edit::edit_value;
-use get_res::Resources;
-
-use crate::get_res::check_res;
-
+use res::show_res_path;
+use res::Resources;
 
 fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
     let out = Command::new(command).args(args).status()?;
@@ -99,6 +97,21 @@ fn get_serde(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     Ok(v)
 }
 
+fn on_resource(position: &Position) -> bool {
+    if position.depth != 2 {
+        false
+    } else {
+        let mut sec_sub = position.sec_key[0].clone();
+        sec_sub.push_str(&position.sec_key[1]);
+        match sec_sub.as_str() {
+            "ACPIAdd" => true,
+            "KernelAdd" => true,
+            "UEFIDrivers" => true,
+            _ => false,
+        }
+    }
+}
+
 fn do_stuff() -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
@@ -109,30 +122,45 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         acidanthera: serde_json::Value::Bool(false),
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
+        config: plist::Value::Boolean(false),
     };
 
     resources.octool_config = get_serde("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(&term, "build_version set to {}\r\n", build_version)?;
 
-    resources.acidanthera= get_serde("octool_config_files/acidanthera_config.json")?;
+    resources.acidanthera = get_serde("octool_config_files/acidanthera_config.json")?;
 
     write!(&term, "\r\nchecking for acidanthera OpenCorePkg\r\n")?;
-    let path = Path::new(resources.octool_config["opencorepkg_path"].as_str().unwrap());
+    let path = Path::new(
+        resources.octool_config["opencorepkg_path"]
+            .as_str()
+            .unwrap(),
+    );
     let url = resources.octool_config["opencorepkg_url"].as_str().unwrap();
-    let branch = resources.octool_config["opencorepkg_branch"].as_str().unwrap();
+    let branch = resources.octool_config["opencorepkg_branch"]
+        .as_str()
+        .unwrap();
     clone_pull(url, path, branch)?;
 
     write!(
         &term,
         "\r\nchecking for dortania/build_repo/config.json\r\n"
     )?;
-    let path = Path::new(resources.octool_config["dortania_config_path"].as_str().unwrap());
-    let url = resources.octool_config["dortania_config_url"].as_str().unwrap();
-    let branch = resources.octool_config["dortania_config_branch"].as_str().unwrap();
+    let path = Path::new(
+        resources.octool_config["dortania_config_path"]
+            .as_str()
+            .unwrap(),
+    );
+    let url = resources.octool_config["dortania_config_url"]
+        .as_str()
+        .unwrap();
+    let branch = resources.octool_config["dortania_config_branch"]
+        .as_str()
+        .unwrap();
     clone_pull(url, path, branch)?;
 
-    resources.dortania= get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
+    resources.dortania = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
     let url = resources.dortania["OpenCorePkg"]["versions"][0]["links"][build_version]
         .as_str()
@@ -183,7 +211,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
         .nth(1)
         .unwrap_or("octool_config_files/OpenCorePkg/Docs/Sample.plist".to_string());
 
-    let mut list =
+    resources.config =
         Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
 
     write!(
@@ -199,14 +227,14 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 
     let mut position = Position {
         file_name: file.to_owned(),
-        section: [0; 5],
+        section_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),
-        item_clone: list.clone(),
-        sec_length: [list.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
+        item_clone: resources.config.clone(),
+        sec_length: [resources.config.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
     };
 
-    update_screen(&mut position, &list, &term);
+    update_screen(&mut position, &resources.config, &term);
     let mut showing_info = false;
 
     loop {
@@ -217,29 +245,31 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::ArrowDown | Key::Char('j') => position.down(),
             Key::ArrowLeft | Key::Char('h') => position.left(),
             Key::ArrowRight | Key::Char('l') => position.right(),
-            Key::Home => position.section[position.depth] = 0,
-            Key::End => position.section[position.depth] = position.sec_length[position.depth] - 1,
-            Key::Char(' ') => edit_value(&position, &mut list, &term, true)?,
-            Key::Enter | Key::Tab => edit_value(&position, &mut list, &term, false)?,
-            Key::Char('g') => {
-                check_res(&resources, &position);
-                let _ = term.read_key()?;
+            Key::Home | Key::Char('t') => position.section_num[position.depth] = 0,
+            Key::End | Key::Char('b') => {
+                position.section_num[position.depth] = position.sec_length[position.depth] - 1
             }
+            Key::Char(' ') => edit_value(&position, &mut resources.config, &term, true)?,
+            Key::Enter | Key::Tab => edit_value(&position, &mut resources.config, &term, false)?,
             Key::Char('i') => {
                 if !showing_info {
-                    parse_tex::show_info(&position, &term);
-                    showing_info = true;
+                    if on_resource(&position) {
+                        show_res_path(&resources, &position);
+                        showing_info = true;
+                    } else {
+                        showing_info = parse_tex::show_info(&position, &term);
+                    }
+                    write!(&term, "{}\x1B[0K", style(" ".repeat(70)).underlined())?;
                 } else {
                     showing_info = false;
                 }
             }
             Key::Char('s') => {
                 write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\nChecking test_out.plist with acidanthera/ocvalidate\r\n")?;
-                list.to_file_xml("test_out.plist")?;
+                resources.config.to_file_xml("test_out.plist")?;
                 let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
                     .arg("test_out.plist")
                     .status()?;
-
                 break;
             }
 
@@ -249,7 +279,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             showing_info = false;
         }
         if !showing_info {
-            update_screen(&mut position, &list, &term);
+            update_screen(&mut position, &resources.config, &term);
         }
     }
     term.show_cursor()?;

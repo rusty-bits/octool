@@ -7,7 +7,7 @@ use strip_ansi_escapes;
 #[derive(Debug)]
 pub struct Position {
     pub file_name: String,
-    pub section: [usize; 5],
+    pub section_num: [usize; 5],
     pub depth: usize,
     pub sec_key: [String; 5],
     pub item_clone: Value,
@@ -16,14 +16,14 @@ pub struct Position {
 
 impl Position {
     pub fn up(&mut self) {
-        if self.section[self.depth] > 0 {
-            self.section[self.depth] -= 1;
+        if self.section_num[self.depth] > 0 {
+            self.section_num[self.depth] -= 1;
             self.sec_length[self.depth + 1] = 0;
         }
     }
     pub fn down(&mut self) {
-        if self.section[self.depth] < self.sec_length[self.depth] - 1 {
-            self.section[self.depth] += 1;
+        if self.section_num[self.depth] < self.sec_length[self.depth] - 1 {
+            self.section_num[self.depth] += 1;
             self.sec_length[self.depth + 1] = 0;
         }
     }
@@ -37,7 +37,7 @@ impl Position {
     pub fn right(&mut self) {
         if self.sec_length[self.depth + 1] > 0 {
             self.depth += 1;
-            self.section[self.depth] = 0;
+            self.section_num[self.depth] = 0;
         }
     }
 }
@@ -57,10 +57,14 @@ pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
 pub fn display_footer(position: &mut Position, term: &Term) {
     write!(
         &*term,
-        "\x1B[0J\r\n\nDebug stuff:\r\n{:?} {:?} {} {:?}",
-        position.section, position.sec_length, position.depth, position.sec_key
+        "\x1B[0J\r\n\nDebug stuff:\r\n{:?} {:?} {} {:?}\r\n",
+        position.section_num, position.sec_length, position.depth, position.sec_key
     )
     .unwrap();
+    let t = term.features();
+    write!(&*term, "{:?}\r\n", t).unwrap();
+    let t = term.size();
+    write!(&*term, "{:?}\r\n", t).unwrap();
 }
 
 pub fn display_header(position: &mut Position, term: &Term) {
@@ -101,9 +105,9 @@ pub fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
-    if position.section[d] == item_num {
+    if position.section_num[d] == item_num {
         position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
-//            key.to_string();
+        //            key.to_string();
         key_style.push_str("\x1B[7m");
         // current live item
         if d == position.depth {
@@ -117,7 +121,7 @@ pub fn display_value(
             if live_item {
                 position.sec_length[d + 1] = v.len();
             }
-            if position.depth > d && position.section[d] == item_num {
+            if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -130,7 +134,7 @@ pub fn display_value(
                 save_curs_pos
             )
             .unwrap();
-            if position.depth > d && position.section[d] == item_num {
+            if position.depth > d && position.section_num[d] == item_num {
                 let mut key = String::new();
                 for i in 0..v.len() {
                     get_array_key(&mut key, &v[i], i);
@@ -177,7 +181,7 @@ pub fn display_value(
             if live_item {
                 position.sec_length[d + 1] = v.keys().len();
             }
-            if position.depth > d && position.section[d] == item_num {
+            if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -190,7 +194,7 @@ pub fn display_value(
                 save_curs_pos
             )
             .unwrap();
-            if position.depth > d && position.section[d] == item_num {
+            if position.depth > d && position.section_num[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
                     display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1)?;

@@ -30,7 +30,7 @@ fn on_resource(position: &Position) -> bool {
     }
 }
 
-fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
     //    term.clear_screen()?;
@@ -45,14 +45,9 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
         open_core_pkg: PathBuf::new(),
     };
 
-    resources.config_plist = Value::from_file(&config_file)
-        .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
-
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(&term, "build_version set to {}\r\n", build_version)?;
-
-    resources.acidanthera = res::get_serde_json("octool_config_files/acidanthera_config.json")?;
 
     write!(&term, "\r\nchecking acidanthera OpenCorePkg source\r\n")?;
     let path = Path::new(
@@ -65,6 +60,11 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
         .as_str()
         .unwrap();
     res::clone_or_pull(url, path, branch)?;
+
+    resources.config_plist = Value::from_file(&config_plist)
+        .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
+
+    resources.acidanthera = res::get_serde_json("octool_config_files/acidanthera_config.json")?;
 
     write!(
         &term,
@@ -93,7 +93,7 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
     write!(
         &term,
         "\r\nChecking {:?} with latest acidanthera/ocvalidate\r\n",
-        config_file
+        config_plist
     )?;
 
     let _status = Command::new(
@@ -101,14 +101,14 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
             .open_core_pkg
             .join("Utilities/ocvalidate/ocvalidate"),
     )
-    .arg(config_file.clone())
+    .arg(config_plist.clone())
     .status()?;
 
     write!(&term, "\r\ndone with init, any key to continue\r\n")?;
     let _ = term.read_key();
 
     let mut position = Position {
-        file_name: config_file.to_str().unwrap().to_string(),
+        file_name: config_plist.to_str().unwrap().to_string(),
         section_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),

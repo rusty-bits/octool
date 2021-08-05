@@ -54,7 +54,7 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     resources.acidanthera = res::get_serde_json("octool_config_files/acidanthera_config.json")?;
 
-    write!(&term, "\r\nchecking for acidanthera OpenCorePkg\r\n")?;
+    write!(&term, "\r\nchecking acidanthera OpenCorePkg source\r\n")?;
     let path = Path::new(
         resources.octool_config["opencorepkg_path"]
             .as_str()
@@ -68,7 +68,7 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     write!(
         &term,
-        "\r\nchecking for dortania/build_repo/config.json\r\n"
+        "\r\nchecking dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -96,9 +96,13 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
         config_file
     )?;
 
-    let _status = Command::new(resources.open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
-        .arg(config_file.clone())
-        .status()?;
+    let _status = Command::new(
+        resources
+            .open_core_pkg
+            .join("Utilities/ocvalidate/ocvalidate"),
+    )
+    .arg(config_file.clone())
+    .status()?;
 
     write!(&term, "\r\ndone with init, any key to continue\r\n")?;
     let _ = term.read_key();
@@ -139,7 +143,13 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
             Key::End | Key::Char('b') => {
                 position.section_num[position.depth] = position.sec_length[position.depth] - 1
             }
-            Key::Char(' ') => edit_value(&position, &mut resources.config_plist, &term, true)?,
+            Key::Char(' ') => {
+                if showing_info {
+                    showing_info = false;
+                } else {
+                    edit_value(&position, &mut resources.config_plist, &term, true)?;
+                }
+            }
             Key::Enter | Key::Tab => {
                 edit_value(&position, &mut resources.config_plist, &term, false)?
             }
@@ -159,9 +169,13 @@ fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
             Key::Char('s') => {
                 write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\nChecking test_out.plist with acidanthera/ocvalidate\r\n")?;
                 resources.config_plist.to_file_xml("test_out.plist")?;
-                let _status = Command::new(resources.open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
-                    .arg("test_out.plist")
-                    .status()?;
+                let _status = Command::new(
+                    resources
+                        .open_core_pkg
+                        .join("Utilities/ocvalidate/ocvalidate"),
+                )
+                .arg("test_out.plist")
+                .status()?;
                 break;
             }
 

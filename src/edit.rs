@@ -34,17 +34,14 @@ pub fn edit_value(
             _ => (),
         }
     }
-    match val {
-        Value::Boolean(b) => *b = !*b,
-        Value::Dictionary(d) => match d.get_mut("Enabled") {
-            Some(Value::Boolean(b)) => *b = !*b,
-            _ => (),
-        },
-        _ => (),
-    }
 
     if space {
         match val {
+            Value::Boolean(b) => *b = !*b,
+            Value::Dictionary(d) => match d.get_mut("Enabled") {
+                Some(Value::Boolean(b)) => *b = !*b,
+                _ => (),
+            },
             Value::String(s) => {
                 if s.starts_with('#') {
                     s.remove(0);

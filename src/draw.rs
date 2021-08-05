@@ -97,8 +97,8 @@ pub fn display_header(position: &mut Position, term: &Term) {
             }
             Value::Integer(_) => "enter/tab to edit",
             Value::String(_) => "enter/tab to edit",
-            Value::Boolean(_) => "space/tab/enter to toggle",
-            Value::Data(_) => "enter/tab to edit,  tab to switch between hex and string",
+            Value::Boolean(_) => "\x1B[7mspace\x1B[0m to toggle",
+            Value::Data(_) => "enter/tab to edit,  \x1B[7mtab\x1B[0m to switch between hex and string",
             _ => "XXX",
         }
     )

@@ -29,12 +29,9 @@ pub fn update_local_res(
     let hash = resources[res]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
-    println!(
-        "\nchecking for dortania {} version\n{:?}",
-        build_version, url
-    );
+    println!("\nchecking {} binaries\n{:?}", build_version, url);
 
-    let path = Path::new("./resources");
+    let path = Path::new("resources");
     let dir = Path::new(url).file_stem().unwrap();
     let file_name = Path::new(url).file_name().unwrap();
     let path = path.join(dir).join(file_name);
@@ -162,23 +159,28 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     } else {
         full_res = position.sec_key[position.depth].clone();
     }
-    let ind_res: &str = full_res.split('/').collect::<Vec<&str>>().last().unwrap();
+    let mut ind_res = full_res.split('/').collect::<Vec<&str>>().last().unwrap().to_string();
+    if ind_res.starts_with('#') {
+        ind_res.remove(0);
+    }
+    let ind_res = &ind_res;
     let stem: Vec<&str> = ind_res.split('.').collect();
-    println!();
+
+    println!("\nlocal\x1B[0K");
 
     println!(
-        "inside {:?} INPUT dir?\x1B[0K {}\x1B[0K\n\x1B[2K",
+        "inside {:?} INPUT dir?\x1B[0K {}",
         resources.working_dir,
         match Path::new("INPUT").join(ind_res).exists() {
             true => style("true").green(),
             false => style("false").red(),
         }
     );
-    
+
     let open_core_pkg = &resources.open_core_pkg;
     let acpi_path = resources.octool_config["acpi_path"].as_str().unwrap();
     println!(
-        "inside {:?} AcpiSamples dir?\x1B[0K {}\n\x1B[2K",
+        "inside {:?} AcpiSamples dir?\x1B[0K {}",
         open_core_pkg,
         match Path::new(open_core_pkg)
             .join(acpi_path)
@@ -192,7 +194,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 
     let drivers_path = resources.octool_config["drivers_path"].as_str().unwrap();
     println!(
-        "inside {:?} Drivers dir?\x1B[0K {}\n\x1B[2K",
+        "inside {:?} Drivers dir?\x1B[0K {}",
         open_core_pkg,
         match Path::new(&open_core_pkg)
             .join(drivers_path)
@@ -206,7 +208,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 
     let tools_path = resources.octool_config["tools_path"].as_str().unwrap();
     println!(
-        "inside {:?} Tools dir?\x1B[0K {}\n\x1B[2K",
+        "inside {:?} Tools dir?\x1B[0K {}",
         open_core_pkg,
         match Path::new(&open_core_pkg)
             .join(tools_path)
@@ -218,28 +220,29 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         }
     );
 
-    println!("{} in dortania_config\x1B[0K", stem[0]);
+    println!("\x1B[2K\nremote\x1B[0K");
+    print!("{} in root of dortania_config \x1B[0K", stem[0]);
     println!(
-        "{}\x1B[0K\n\x1B[2K",
+        "{}\x1B[0K",
         match &resources.dortania[stem[0]]["versions"][0]["links"]["release"] {
-            Value::String(s) => style(s).green().to_string(),
-            _ => style("false").red().to_string(),
+            Value::String(s) => {
+                println!();
+                style(s).green().to_string()
+            }
+            _ => style("false, will check parent of acidanthera resource").red().to_string(),
         }
     );
 
     let acid_child = resources.acidanthera[ind_res].clone();
-    println!("{} in acidanthera_config\x1B[0K", ind_res);
-    //    print!("{:?}\x1B[0K\n\x1B[2K", acid_child);
+    print!("{} in acidanthera_config \x1B[0K", ind_res);
     match &acid_child["parent"] {
         Value::String(s) => {
-            //            println!("parent {} in acidanthera_config\x1B[0K", s);
             println!(
-                "{}\x1B[0K",
+                "\n{}\x1B[0K",
                 match &resources.acidanthera[s]["versions"][0]["links"]["release"] {
                     Value::String(s) => style(s).green().to_string(),
                     _ => panic!("not String!"),
                 }
-
             );
             let p = match &acid_child["path"] {
                 Value::String(s) => s,
@@ -249,8 +252,9 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
                 println!("inside path {}\x1B[0K", style(p).green());
             }
         }
-        _ => println!("{}\x1B[0K", style("false").red().to_string()),
+        _ => println!("{}", style("false").red().to_string()),
     }
+    println!("\x1B[2K");
 }
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {

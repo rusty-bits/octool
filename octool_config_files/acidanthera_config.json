@@ -215,8 +215,8 @@
     "versions": [
       {
         "links": {
-          "debug": "https://github.com/dortania/Getting-Started-With-ACPI/.git",
-          "release": "https://github.com/dortania/Getting-Started-With-ACPI/.git"
+          "debug": "https://github.com/dortania/Getting-Started-With-ACPI.git",
+          "release": "https://github.com/dortania/Getting-Started-With-ACPI.git"
         }
       }
     ]
@@ -289,8 +289,8 @@
     "versions": [
       {
         "links": {
-          "debug": "https://github.com/acidanthera/OcBinaryData/.git",
-          "release": "https://github.com/acidanthera/OcBinaryData/.git"
+          "debug": "https://github.com/acidanthera/OcBinaryData.git",
+          "release": "https://github.com/acidanthera/OcBinaryData.git"
         }
       }
     ]

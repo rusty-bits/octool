@@ -44,17 +44,23 @@ impl Position {
 
 pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
     write!(&*term, "\x1B[3H").unwrap();
+    let rows = term.size().0;
+    let mut row: u16 = 3;
     let list = list.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
-        display_value(k, position, list.get(k).unwrap(), &term, i, 0).unwrap();
+        if row < rows {
+            row += display_value(k, position, list.get(k).unwrap(), &term, i, 0).unwrap();
+        }
     }
     display_footer(position, term);
     display_header(position, term);
     write!(&*term, "\x1B[u").unwrap();
 }
 
-pub fn display_footer(position: &mut Position, term: &Term) {
+pub fn display_footer(_position: &mut Position, term: &Term) {
+    write!(&*term, "\x1B[0J").unwrap();
+    /*
     write!(
         &*term,
         "\x1B[0J\r\n\nDebug stuff:\r\n{:?} {:?} {} {:?}\r\n",
@@ -65,20 +71,27 @@ pub fn display_footer(position: &mut Position, term: &Term) {
     write!(&*term, "{:?}\r\n", t).unwrap();
     let t = term.size();
     write!(&*term, "{:?}\r\n", t).unwrap();
+    */
+    write!(
+        &*term,
+        "\x1B[{}H{} info of highlighted item  {} save config.plist  {} quit",
+        term.size().0,
+        style('i').reverse(),
+        style('s').reverse(),
+        style('q').reverse()
+    )
+    .unwrap();
 }
 
 pub fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
     write!(
         &*term,
-        "\x1B[H\x1B[0K{}  <{}>\r\n\x1B[0K  {}",
+        "\x1B[H\x1B[0K{}\r\n\x1B[0K  {}",
         position.file_name,
-        position.sec_key[position.depth],
         match position.item_clone {
             Value::Array(_) | Value::Dictionary(_) => {
                 tmp.push_str(&style("right").reverse().to_string());
-                tmp.push_str(" or ");
-                tmp.push_str(&style("l").reverse().to_string());
                 tmp.push_str(" to expand");
                 &tmp
             }
@@ -99,11 +112,12 @@ pub fn display_value(
     term: &Term,
     item_num: usize,
     d: usize,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<u16, Box<dyn Error>> {
     let mut live_item = false;
     let mut save_curs_pos = String::new();
     let mut key_style = String::new();
     let mut pre_key = '>';
+    let mut row: u16 = 1;
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section_num[d] == item_num {
         position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
@@ -138,7 +152,7 @@ pub fn display_value(
                 let mut key = String::new();
                 for i in 0..v.len() {
                     get_array_key(&mut key, &v[i], i);
-                    display_value(&key, position, &v[i], term, i, d + 1)?;
+                    row += display_value(&key, position, &v[i], term, i, d + 1)?;
                 }
             }
         }
@@ -197,7 +211,7 @@ pub fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
-                    display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1)?;
+                    row += display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1)?;
                 }
             }
         }
@@ -220,7 +234,7 @@ pub fn display_value(
         }
         _ => panic!("Can't handle this type"),
     }
-    Ok(())
+    Ok(row)
 }
 
 pub fn get_lossy_string(v: &Vec<u8>) -> String {
@@ -243,7 +257,7 @@ pub fn get_lossy_string(v: &Vec<u8>) -> String {
 fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
     match v {
         Value::Dictionary(d) => {
-            for k in ["Name", "Path", "BundlePath", "Comment"] {
+            for k in ["Path", "BundlePath", "Name", "Comment"] {
                 if d.contains_key(k) {
                     *key = d.get(k).unwrap().clone().into_string().unwrap();
                     break; // stop after first match

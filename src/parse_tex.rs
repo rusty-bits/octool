@@ -134,7 +134,7 @@ fn parse_line(line: &str) -> String {
                     build_key = false;
                     match key.as_str() {
                         "textbackslash" => ret.push('\\'),
-                        "item" => ret.push_str("+ "),
+                        "item" => ret.push_str("• "),
                         "" => ret.push(' '),
                         _ => (),
                     }

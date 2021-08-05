@@ -10,6 +10,12 @@ pub fn edit_value(
     term: &Term,
     space: bool,
 ) -> Result<(), Box<dyn Error>> {
+    write!(
+        &*term,
+        "\x1B[H\x1B[0K {} save changes   {} cancel changes",
+        style("enter").reverse(),
+        style("esc").reverse()
+    )?;
     term.show_cursor()?;
     for i in 0..position.depth + 1 {
         match val {

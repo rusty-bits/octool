@@ -3,99 +3,16 @@ mod edit;
 mod parse_tex;
 mod res;
 
-use serde_json;
-
-use console::{Key, Term, style};
+use console::{style, Key, Term};
 use plist::Value;
-use std::fs::File;
-use std::io::{BufReader, Read, Write};
-use std::path::Path;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, error::Error};
 
-use sha2::Digest;
-
-use draw::{update_screen, Position};
-use edit::edit_value;
-use res::show_res_path;
-use res::Resources;
-
-fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
-    let out = Command::new(command).args(args).status()?;
-    Ok(out.code().unwrap())
-}
-
-fn get_file_unzip(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
-    std::fs::create_dir_all(path.parent().unwrap())?;
-
-    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])? != 0 {
-        panic!("failed to get {:?}", path);
-    }
-    if status(
-        "unzip",
-        &[
-            "-o",
-            "-q",
-            path.to_str().unwrap(),
-            "-d",
-            path.parent().unwrap().to_str().unwrap(),
-        ],
-    )? != 0
-    {
-        panic!("failed to unzip {:?}", path);
-    }
-
-    print!("downloaded + unzipped\r\n");
-    Ok(())
-}
-
-fn clone_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>> {
-    if path.exists() {
-        print!(
-            "found {:?}, checking for updates\r\n",
-            path.parent().unwrap()
-        );
-        if status(
-            "git",
-            &["-C", path.parent().unwrap().to_str().unwrap(), "pull"],
-        )? != 0
-        {
-            panic!("failed to update {:?}", path);
-        }
-    } else {
-        print!(
-            "{:?} not found\r\n Cloning from {:?}\r\n",
-            path.parent().unwrap(),
-            url
-        );
-        if status(
-            "git",
-            &[
-                "-C",
-                "octool_config_files",
-                "clone",
-                "--depth",
-                "1",
-                "--branch",
-                branch,
-                url,
-            ],
-        )? != 0
-        {
-            panic!("failed to clone {:?}", url);
-        }
-    };
-    Ok(())
-}
-
-fn get_serde(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("\r\nloading {} ... ", path);
-    let file = File::open(Path::new(path))?;
-    let buf = BufReader::new(file);
-    let v = serde_json::from_reader(buf)?;
-    println!("done");
-    Ok(v)
-}
+use crate::draw::{update_screen, Position};
+use crate::edit::edit_value;
+use crate::res::Resources;
 
 fn on_resource(position: &Position) -> bool {
     if position.depth != 2 {
@@ -106,30 +23,36 @@ fn on_resource(position: &Position) -> bool {
         match sec_sub.as_str() {
             "ACPIAdd" => true,
             "KernelAdd" => true,
+            "MiscTools" => true,
             "UEFIDrivers" => true,
             _ => false,
         }
     }
 }
 
-fn do_stuff() -> Result<(), Box<dyn Error>> {
+fn process(config_file: &PathBuf) -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
-    term.clear_screen()?;
+    //    term.clear_screen()?;
     term.hide_cursor()?;
 
     let mut resources = Resources {
         acidanthera: serde_json::Value::Bool(false),
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
-        config: plist::Value::Boolean(false),
+        config_plist: plist::Value::Boolean(false),
+        working_dir: env::current_dir()?,
+        open_core_pkg: PathBuf::new(),
     };
 
-    resources.octool_config = get_serde("octool_config_files/octool_config.json")?;
+    resources.config_plist = Value::from_file(&config_file)
+        .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
+
+    resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(&term, "build_version set to {}\r\n", build_version)?;
 
-    resources.acidanthera = get_serde("octool_config_files/acidanthera_config.json")?;
+    resources.acidanthera = res::get_serde_json("octool_config_files/acidanthera_config.json")?;
 
     write!(&term, "\r\nchecking for acidanthera OpenCorePkg\r\n")?;
     let path = Path::new(
@@ -141,7 +64,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let branch = resources.octool_config["opencorepkg_branch"]
         .as_str()
         .unwrap();
-    clone_pull(url, path, branch)?;
+    res::clone_or_pull(url, path, branch)?;
 
     write!(
         &term,
@@ -158,89 +81,56 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
     let branch = resources.octool_config["dortania_config_branch"]
         .as_str()
         .unwrap();
-    clone_pull(url, path, branch)?;
+    res::clone_or_pull(url, path, branch)?;
 
-    resources.dortania = get_serde(path.parent().unwrap().join("config.json").to_str().unwrap())?;
+    resources.dortania =
+        res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
-    let url = resources.dortania["OpenCorePkg"]["versions"][0]["links"][build_version]
-        .as_str()
-        .unwrap();
-    let hash = resources.dortania["OpenCorePkg"]["versions"][0]["hashes"][build_version]["sha256"]
-        .as_str()
-        .unwrap();
-    write!(
-        &term,
-        "\r\nchecking for dortania {} version\r\n{:?}\r\n",
-        build_version, url
-    )?;
+    let path = res::update_local_res("OpenCorePkg", &resources.dortania, build_version)?;
 
-    let path = Path::new("./resources");
-    let dir = Path::new(url).file_stem().unwrap();
-    let file_name = Path::new(url).file_name().unwrap();
-    let path = path.join(dir).join(file_name);
-
-    match File::open(&path) {
-        Ok(mut f) => {
-            let mut data = Vec::new();
-            f.read_to_end(&mut data).unwrap();
-            let sum = format!("{:x}", sha2::Sha256::digest(&data));
-            write!(&term, "remote hash {}\r\nlocal sum   {}\r\n", hash, sum)?;
-            if sum != hash {
-                write!(&term, "new version found, downloading\r\n")?;
-                get_file_unzip(url, &path)?;
-            } else {
-                write!(&term, "Already up to date.\r\n")?;
-            }
-        }
-        Err(e) => match e.kind() {
-            std::io::ErrorKind::NotFound => {
-                write!(
-                    &term,
-                    "{:?} not found, downloading from\r\n{}\r\n",
-                    dir, url
-                )?;
-                get_file_unzip(url, &path)?;
-            }
-            _ => panic!("{}", e),
-        },
-    }
-
-    let open_core_pkg = path.parent().unwrap();
-
-    let file = env::args()
-        .nth(1)
-        .unwrap_or("octool_config_files/OpenCorePkg/Docs/Sample.plist".to_string());
-
-    resources.config =
-        Value::from_file(&file).expect(format!("Didn't find plist at {}", file).as_str());
+    resources.open_core_pkg = path.parent().unwrap().to_path_buf();
 
     write!(
         &term,
-        "\r\nChecking input config.plist with latest acidanthera/ocvalidate\r\n"
+        "\r\nChecking {:?} with latest acidanthera/ocvalidate\r\n",
+        config_file
     )?;
-    let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
-        .arg(file.clone())
+
+    let _status = Command::new(resources.open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
+        .arg(config_file.clone())
         .status()?;
 
     write!(&term, "\r\ndone with init, any key to continue\r\n")?;
     let _ = term.read_key();
 
     let mut position = Position {
-        file_name: file.to_owned(),
+        file_name: config_file.to_str().unwrap().to_string(),
         section_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),
-        item_clone: resources.config.clone(),
-        sec_length: [resources.config.as_dictionary().unwrap().keys().len(), 0, 0, 0, 0],
+        item_clone: resources.config_plist.clone(),
+        sec_length: [
+            resources.config_plist.as_dictionary().unwrap().keys().len(),
+            0,
+            0,
+            0,
+            0,
+        ],
     };
 
-    update_screen(&mut position, &resources.config, &term);
+    update_screen(&mut position, &resources.config_plist, &term);
     let mut showing_info = false;
 
     loop {
         let key = term.read_key()?;
         match key {
-            Key::Escape | Key::Char('q') => break,
+            Key::Char('q') => {
+                if showing_info {
+                    showing_info = false;
+                } else {
+                    break;
+                }
+            }
             Key::ArrowUp | Key::Char('k') => position.up(),
             Key::ArrowDown | Key::Char('j') => position.down(),
             Key::ArrowLeft | Key::Char('h') => position.left(),
@@ -249,12 +139,14 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             Key::End | Key::Char('b') => {
                 position.section_num[position.depth] = position.sec_length[position.depth] - 1
             }
-            Key::Char(' ') => edit_value(&position, &mut resources.config, &term, true)?,
-            Key::Enter | Key::Tab => edit_value(&position, &mut resources.config, &term, false)?,
+            Key::Char(' ') => edit_value(&position, &mut resources.config_plist, &term, true)?,
+            Key::Enter | Key::Tab => {
+                edit_value(&position, &mut resources.config_plist, &term, false)?
+            }
             Key::Char('i') => {
                 if !showing_info {
                     if on_resource(&position) {
-                        show_res_path(&resources, &position);
+                        res::show_res_path(&resources, &position);
                         showing_info = true;
                     } else {
                         showing_info = parse_tex::show_info(&position, &term);
@@ -266,8 +158,8 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             }
             Key::Char('s') => {
                 write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\nChecking test_out.plist with acidanthera/ocvalidate\r\n")?;
-                resources.config.to_file_xml("test_out.plist")?;
-                let _status = Command::new(open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
+                resources.config_plist.to_file_xml("test_out.plist")?;
+                let _status = Command::new(resources.open_core_pkg.join("Utilities/ocvalidate/ocvalidate"))
                     .arg("test_out.plist")
                     .status()?;
                 break;
@@ -279,7 +171,7 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
             showing_info = false;
         }
         if !showing_info {
-            update_screen(&mut position, &resources.config, &term);
+            update_screen(&mut position, &resources.config_plist, &term);
         }
     }
     term.show_cursor()?;
@@ -290,7 +182,20 @@ fn do_stuff() -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
-    match do_stuff() {
+    print!("\x1B[2J\x1B[H");
+    let mut config_file = Path::new(&match env::args().nth(1) {
+        Some(s) => s,
+        None => "INPUT/config.plist".to_string(),
+    })
+    .to_owned();
+
+    if !config_file.exists() {
+        println!("Did not find config at {:?}", config_file);
+        println!("Using OpenCorePkg/Docs/Sample.plist");
+        config_file = Path::new("octool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
+    }
+
+    match process(&config_file) {
         Ok(()) => (),
         Err(e) => print!("\r\n{:?}\r\n", e),
     }

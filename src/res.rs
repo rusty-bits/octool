@@ -18,7 +18,7 @@ pub struct Resources {
     pub open_core_pkg: PathBuf,
 }
 
-pub fn update_local_res(
+pub fn get_or_update_local_res(
     res: &str,
     resources: &Value,
     build_version: &str,
@@ -29,12 +29,16 @@ pub fn update_local_res(
     let hash = resources[res]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
         .unwrap();
-    println!("\nchecking {} binaries\n{:?}", build_version, url);
+    println!(
+        "\n\x1B[32mchecking local copy of\x1B[0m {} binaries",
+        build_version
+    );
 
     let path = Path::new("resources");
     let dir = Path::new(url).file_stem().unwrap();
     let file_name = Path::new(url).file_name().unwrap();
     let path = path.join(dir).join(file_name);
+    println!("local {:?}\x1B[0K", path);
     match File::open(&path) {
         Ok(mut f) => {
             let mut data = Vec::new();
@@ -42,15 +46,18 @@ pub fn update_local_res(
             let sum = format!("{:x}", sha2::Sha256::digest(&data));
             println!("remote hash {}\n  local sum {}", hash, sum);
             if sum != hash {
-                println!("new version found, downloading");
+                println!("\x1B[31mnew version found, downloading\x1B[0m");
                 get_file_and_unzip(url, hash, &path)?;
             } else {
-                println!("Already up to date.");
+                println!("\x1B[32mAlready up to date.\x1B[0m");
             }
         }
         Err(e) => match e.kind() {
             std::io::ErrorKind::NotFound => {
-                println!("{:?} not found, downloading from\n{}", dir, url);
+                println!(
+                    "{:?} \x1B[31mnot found, downloading from\x1B[0m\n{}",
+                    dir, url
+                );
                 println!("remote hash {}", hash);
                 get_file_and_unzip(url, hash, &path)?;
             }
@@ -92,15 +99,13 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
     {
         panic!("failed to unzip {:?}", path);
     }
-
-    print!("downloaded + unzipped\r\n");
     Ok(())
 }
 
 pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>> {
     if path.exists() {
         print!(
-            "found {:?}, checking for updates\r\n",
+            "\x1B[32mfound\x1B[0m {:?}, checking for updates\r\n",
             path.parent().unwrap()
         );
         if status(
@@ -112,7 +117,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         }
     } else {
         print!(
-            "{:?} not found\r\n Cloning from {:?}\r\n",
+            "{:?} \x1B[31mnot found\x1B[0m\r\n Cloning from {:?}\r\n",
             path.parent().unwrap(),
             url
         );
@@ -138,7 +143,8 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
 
 pub fn show_res_path(resources: &Resources, position: &Position) {
     let full_res: String;
-    if position.sec_key[0].as_str() == "UEFI" && position.sec_key[1].as_str() == "Drivers" {
+    let section = position.sec_key[0].as_str();
+    if section == "UEFI" {
         full_res = resources
             .config_plist
             .as_dictionary()
@@ -159,66 +165,40 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     } else {
         full_res = position.sec_key[position.depth].clone();
     }
-    let mut ind_res = full_res.split('/').collect::<Vec<&str>>().last().unwrap().to_string();
+    let mut ind_res = full_res
+        .split('/')
+        .collect::<Vec<&str>>()
+        .last()
+        .unwrap()
+        .to_string();
     if ind_res.starts_with('#') {
         ind_res.remove(0);
     }
     let ind_res = &ind_res;
     let stem: Vec<&str> = ind_res.split('.').collect();
 
-    println!("\nlocal\x1B[0K");
+    println!("\n{}", style("the first found resource will be added to the OUTPUT/EFI").underlined());
+    println!("local\x1B[0K");
 
-    println!(
-        "inside {:?} INPUT dir?\x1B[0K {}",
-        resources.working_dir,
-        match Path::new("INPUT").join(ind_res).exists() {
-            true => style("true").green(),
-            false => style("false").red(),
-        }
-    );
+    res_exists(&resources.working_dir, "INPUT", ind_res);
 
     let open_core_pkg = &resources.open_core_pkg;
-    let acpi_path = resources.octool_config["acpi_path"].as_str().unwrap();
-    println!(
-        "inside {:?} AcpiSamples dir?\x1B[0K {}",
-        open_core_pkg,
-        match Path::new(open_core_pkg)
-            .join(acpi_path)
-            .join(ind_res)
-            .exists()
-        {
-            true => style("true").green(),
-            false => style("false").red(),
-        }
-    );
 
-    let drivers_path = resources.octool_config["drivers_path"].as_str().unwrap();
-    println!(
-        "inside {:?} Drivers dir?\x1B[0K {}",
-        open_core_pkg,
-        match Path::new(&open_core_pkg)
-            .join(drivers_path)
-            .join(ind_res)
-            .exists()
-        {
-            true => style("true").green(),
-            false => style("false").red(),
+    match section {
+        "ACPI" => {
+            let path = resources.octool_config["acpi_path"].as_str().unwrap();
+            res_exists(open_core_pkg, path, &ind_res);
         }
-    );
-
-    let tools_path = resources.octool_config["tools_path"].as_str().unwrap();
-    println!(
-        "inside {:?} Tools dir?\x1B[0K {}",
-        open_core_pkg,
-        match Path::new(&open_core_pkg)
-            .join(tools_path)
-            .join(ind_res)
-            .exists()
-        {
-            true => style("true").green(),
-            false => style("false").red(),
+        "Misc" => {
+            let path = resources.octool_config["tools_path"].as_str().unwrap();
+            res_exists(open_core_pkg, path, &ind_res);
         }
-    );
+        "UEFI" => {
+            let path = resources.octool_config["drivers_path"].as_str().unwrap();
+            res_exists(open_core_pkg, path, &ind_res);
+        }
+        _ => (),
+    }
 
     println!("\x1B[2K\nremote\x1B[0K");
     print!("{} in root of dortania_config \x1B[0K", stem[0]);
@@ -226,10 +206,10 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         "{}\x1B[0K",
         match &resources.dortania[stem[0]]["versions"][0]["links"]["release"] {
             Value::String(s) => {
-                println!();
+                let _ = get_or_update_local_res(&stem[0], &resources.dortania, "release");
                 style(s).green().to_string()
             }
-            _ => style("false, will check parent of acidanthera resource").red().to_string(),
+            _ => style("false").red().to_string(),
         }
     );
 
@@ -249,7 +229,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
                 _ => "",
             };
             if p.len() > 0 {
-                println!("inside path {}\x1B[0K", style(p).green());
+                println!("in path {}\x1B[0K", style(p).green());
             }
         }
         _ => println!("{}", style("false").red().to_string()),
@@ -258,10 +238,22 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 }
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("\r\nloading {} ... ", path);
+    print!("\r\n\x1B[32mloading {}\x1B[0m ... ", path);
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
-    println!("done");
+    println!("\x1B[32mdone\x1B[0m");
     Ok(v)
+}
+
+fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) {
+    let path = open_core_pkg.join(path);
+    println!(
+        "inside {:?} dir?\x1B[0K {}",
+        path,
+        match path.join(ind_res).exists() {
+            true => style("true").green(),
+            false => style("false").red(),
+        }
+    );
 }

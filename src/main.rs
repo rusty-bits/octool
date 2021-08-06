@@ -47,7 +47,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
-    write!(&term, "build_version set to {}\r\n", build_version)?;
+    write!(&term, "\x1B[32mbuild_version set to\x1B[0m {}\r\n", build_version)?;
 
     write!(&term, "\r\nchecking acidanthera OpenCorePkg source\r\n")?;
     let path = Path::new(
@@ -86,7 +86,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     resources.dortania =
         res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
-    let path = res::update_local_res("OpenCorePkg", &resources.dortania, build_version)?;
+    let path = res::get_or_update_local_res("OpenCorePkg", &resources.dortania, build_version)?;
 
     resources.open_core_pkg = path.parent().unwrap().to_path_buf();
 
@@ -104,7 +104,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     .arg(config_plist.clone())
     .status()?;
 
-    write!(&term, "\r\ndone with init, any key to continue\r\n")?;
+    write!(&term, "\r\n\x1B[32mdone with init, any key to continue\x1B[0m\r\n")?;
     let _ = term.read_key();
 
     let mut position = Position {
@@ -204,7 +204,7 @@ fn main() {
     .to_owned();
 
     if !config_file.exists() {
-        println!("Did not find config at {:?}", config_file);
+        println!("\x1B[31mDid not find config at\x1B[0m {:?}", config_file);
         println!("Using OpenCorePkg/Docs/Sample.plist");
         config_file = Path::new("octool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
@@ -214,3 +214,4 @@ fn main() {
         Err(e) => print!("\r\n{:?}\r\n", e),
     }
 }
+

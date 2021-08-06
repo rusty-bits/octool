@@ -43,9 +43,11 @@ impl Position {
 }
 
 pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
+    display_footer(term);
+
     write!(&*term, "\x1B[3H").unwrap();
-    let rows = term.size().0;
-    let mut row: u16 = 3;
+    let rows = term.size().0 as i32;
+    let mut row = 4;
     let list = list.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
@@ -53,37 +55,42 @@ pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
             row += display_value(k, position, list.get(k).unwrap(), &term, i, 0).unwrap();
         }
     }
-    display_footer(position, term);
+
+    let mut blanks = rows - row;
+    if blanks < 0 {
+        blanks = 0;
+    }
+    blanks += 1;
+
+    write!(&*term, "{}", "\x1B[0K\r\n".repeat(blanks as usize)).unwrap();
+
     display_header(position, term);
     write!(&*term, "\x1B[u").unwrap();
 }
 
-pub fn display_footer(_position: &mut Position, term: &Term) {
-    write!(&*term, "\x1B[0J").unwrap();
-    /*
+fn display_footer(term: &Term) {
     write!(
         &*term,
-        "\x1B[0J\r\n\nDebug stuff:\r\n{:?} {:?} {} {:?}\r\n",
-        position.section_num, position.sec_length, position.depth, position.sec_key
-    )
-    .unwrap();
-    let t = term.features();
-    write!(&*term, "{:?}\r\n", t).unwrap();
-    let t = term.size();
-    write!(&*term, "{:?}\r\n", t).unwrap();
-    */
-    write!(
-        &*term,
-        "\x1B[{}H{} info of highlighted item  {} save config.plist  {} quit",
+        "\x1B[{}H{} info of selected {} save {} quit",
         term.size().0,
         style('i').reverse(),
         style('s').reverse(),
         style('q').reverse()
     )
     .unwrap();
+    write!(
+        &*term,
+        "    {}{}boolean {}data {}integer {}string\x1B[0K",
+        style(' ').green().reverse(),
+        style(' ').red().reverse(),
+        style(' ').magenta().reverse(),
+        style(' ').blue().reverse(),
+        style(' ').reverse(),
+    )
+    .unwrap();
 }
 
-pub fn display_header(position: &mut Position, term: &Term) {
+fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
     write!(
         &*term,
@@ -98,26 +105,27 @@ pub fn display_header(position: &mut Position, term: &Term) {
             Value::Integer(_) => "enter/tab to edit",
             Value::String(_) => "enter/tab to edit",
             Value::Boolean(_) => "\x1B[7mspace\x1B[0m to toggle",
-            Value::Data(_) => "enter/tab to edit,  \x1B[7mtab\x1B[0m to switch between hex and string",
+            Value::Data(_) =>
+                "enter/tab to edit,  \x1B[7mtab\x1B[0m to switch between hex and string",
             _ => "XXX",
         }
     )
     .unwrap();
 }
 
-pub fn display_value(
+fn display_value(
     key: &String,
     position: &mut Position,
     plist_value: &Value,
     term: &Term,
     item_num: usize,
     d: usize,
-) -> Result<u16, Box<dyn Error>> {
+) -> Result<i32, Box<dyn Error>> {
     let mut live_item = false;
     let mut save_curs_pos = String::new();
     let mut key_style = String::new();
     let mut pre_key = '>';
-    let mut row: u16 = 1;
+    let mut row = 1;
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section_num[d] == item_num {
         position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;

@@ -49,7 +49,6 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         resource_sections: vec![],
     };
 
-
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(
@@ -57,8 +56,13 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
         build_version
     )?;
-    position.resource_sections = serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
-    write!(&term, "\x1B[32mplist resource sections\x1B[0m {:?}\r\n", position.resource_sections)?;
+    position.resource_sections =
+        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    write!(
+        &term,
+        "\x1B[32mplist resource sections\x1B[0m {:?}\r\n",
+        position.resource_sections
+    )?;
 
     write!(
         &term,
@@ -110,13 +114,20 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         config_plist
     )?;
 
-    let _status = Command::new(
+    if res::status(
         resources
             .open_core_pkg
-            .join("Utilities/ocvalidate/ocvalidate"),
-    )
-    .arg(config_plist.clone())
-    .status()?;
+            .join("Utilities/ocvalidate/ocvalidate")
+            .to_str()
+            .unwrap(),
+        &[&config_plist.to_str().unwrap()],
+    )? != 0
+    {
+        write!(
+            &term,
+            "\x1B[31mWARNING: Error(s) found in config.plist!\x1B[0m\r\n"
+        )?;
+    }
 
     position.file_name = config_plist.to_str().unwrap().to_owned();
     position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
@@ -160,10 +171,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
             }
             Key::Char('i') => {
                 if !showing_info {
-                    if on_resource(
-                        &position,
-                        &position.resource_sections,
-                    ) {
+                    if on_resource(&position, &position.resource_sections) {
                         res::show_res_path(&resources, &position);
                         showing_info = true;
                     } else {

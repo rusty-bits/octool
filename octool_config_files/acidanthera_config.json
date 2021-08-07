@@ -385,10 +385,10 @@
     ]
   },
   "VoodooPS2Controller.kext": {
-    "parent": "VoodooPS2Controller",
+    "parent": "VoodooPS2",
     "path": ""
   },
-  "VoodooPS2Controller": {
+  "VoodooPS2": {
     "requiresRes": "VoodooInput",
     "versions": [
       {
@@ -409,15 +409,15 @@
     ]
   },
   "VoodooPS2Keyboard.kext": {
-    "parent": "VoodooPS2Controller",
+    "parent": "VoodooPS2",
     "path": "VoodooPS2Controller.kext/Contents/PlugIns"
   },
   "VoodooPS2Mouse.kext": {
-    "parent": "VoodooPS2Controller",
+    "parent": "VoodooPS2",
     "path": "VoodooPS2Controller.kext/Contents/PlugIns"
   },
   "VoodooPS2Trackpad.kext": {
-    "parent": "VoodooPS2Controller",
+    "parent": "VoodooPS2",
     "path": "VoodooPS2Controller.kext/Contents/PlugIns"
   },
   "VoodooI2C.kext": {

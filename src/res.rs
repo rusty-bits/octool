@@ -238,7 +238,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 }
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("\r\n\x1B[32mloading {}\x1B[0m ... ", path);
+    print!("\r\n\x1B[32mloading\x1B[0m {} ... ", path);
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;

@@ -47,9 +47,16 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
-    write!(&term, "\x1B[32mbuild_version set to\x1B[0m {}\r\n", build_version)?;
+    write!(
+        &term,
+        "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        build_version
+    )?;
 
-    write!(&term, "\r\nchecking acidanthera OpenCorePkg source\r\n")?;
+    write!(
+        &term,
+        "\r\n\x1B[32mchecking\x1B[0m acidanthera OpenCorePkg source\r\n"
+    )?;
     let path = Path::new(
         resources.octool_config["opencorepkg_path"]
             .as_str()
@@ -68,7 +75,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     write!(
         &term,
-        "\r\nchecking dortania/build_repo/config.json\r\n"
+        "\r\n\x1B[32mchecking\x1B[0m dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -104,7 +111,10 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     .arg(config_plist.clone())
     .status()?;
 
-    write!(&term, "\r\n\x1B[32mdone with init, any key to continue\x1B[0m\r\n")?;
+    write!(
+        &term,
+        "\r\n\x1B[32mdone with init, any key to continue\x1B[0m\r\n"
+    )?;
     let _ = term.read_key();
 
     let mut position = Position {
@@ -144,9 +154,9 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 position.section_num[position.depth] = position.sec_length[position.depth] - 1
             }
             Key::Char(' ') => {
-                if showing_info {
-                    showing_info = false;
-                } else {
+                if !showing_info {
+                    //                   showing_info = false;
+                    //               } else {
                     edit_value(&position, &mut resources.config_plist, &term, true)?;
                 }
             }
@@ -181,7 +191,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
             _ => (),
         }
-        if key != Key::Char('i') {
+        if key != Key::Char('i') && key != Key::Char(' ') {
             showing_info = false;
         }
         if !showing_info {
@@ -214,4 +224,3 @@ fn main() {
         Err(e) => print!("\r\n{:?}\r\n", e),
     }
 }
-

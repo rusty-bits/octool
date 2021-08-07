@@ -74,7 +74,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
         if row == rows {
             write!(&*term, "{} ...\x1B[G", style("more").reverse()).unwrap();
             match term.read_key().unwrap() {
-                console::Key::Char('q') => {
+                console::Key::Char('q') | console::Key::Escape => {
                     showing_info = false;
                     break;
                 }

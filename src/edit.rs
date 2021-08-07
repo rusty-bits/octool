@@ -76,7 +76,7 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
         let tmp_val = hex::decode(tmp_val).unwrap();
         write!(
             &*term,
-            "\x1B[u\x1B[G{}\x1B[u{}\x1B[0K\x1B[E{}\x1B[0K\x1B[u\x1B[B{}\x1B[u",
+            "\x1B8\x1B[G{}\x1B8{}\x1B[0K\x1B[E{}\x1B[0K\x1B8\x1B[B{}\x1B8",
             style("as hex").magenta(),
             hex_str_with_style(edit_hex.clone()),
             style("as string").magenta(),
@@ -85,14 +85,14 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
         if hexedit {
             write!(
                 &*term,
-                "\x1B[G{}\x1B[u{}",
+                "\x1B[G{}\x1B8{}",
                 style("as hex").reverse().magenta(),
                 "\x1B[C".repeat(pos)
             )?;
         } else {
             write!(
                 &*term,
-                "\x1B[E{}\x1B[u\x1B[B{}",
+                "\x1B[E{}\x1B8\x1B[B{}",
                 style("as string").reverse().magenta(),
                 "\x1B[C".repeat(pos / 2)
             )
@@ -180,7 +180,7 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
 fn edit_int(val: &mut Integer, term: &Term) {
     let mut new = val.to_string();
     loop {
-        write!(&*term, "\x1B[u{}\x1B[0K", new).unwrap();
+        write!(&*term, "\x1B8{}\x1B[0K", new).unwrap();
         let key = term.read_key().unwrap();
         match key {
             Key::Enter => {
@@ -211,8 +211,8 @@ fn edit_string(val: &mut String, term: &Term) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
     loop {
-        write!(&*term, "\x1B[u{}\x1B[0K", new)?;
-        write!(&*term, "\x1B[u{}", "\x1B[C".repeat(pos))?;
+        write!(&*term, "\x1B8{}\x1B[0K", new)?;
+        write!(&*term, "\x1B8{}", "\x1B[C".repeat(pos))?;
         let key = term.read_key()?;
         match key {
             Key::Enter => {

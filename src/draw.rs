@@ -65,15 +65,14 @@ pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
     write!(&*term, "{}", "\x1B[0K\r\n".repeat(blanks as usize)).unwrap();
 
     display_header(position, term);
-    write!(&*term, "\x1B[u").unwrap();
+    write!(&*term, "\x1B8").unwrap();
 }
 
 fn display_footer(term: &Term) {
     write!(
         &*term,
-        "\x1B[{}H{} info of selected {} save {} quit",
+        "\x1B[{}H {} save {} quit",
         term.size().0,
-        style('i').reverse(),
         style('s').reverse(),
         style('q').reverse()
     )
@@ -94,23 +93,27 @@ fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
     write!(
         &*term,
-        "\x1B[H\x1B[0K{}\r\n\x1B[0K  {}",
+        "\x1B[H\x1B[0K{}   \x1B[7mi\x1B[0m {} info if available\r\n\x1B[0K  {}",
         position.file_name,
+        style(&position.sec_key[position.depth]).underlined(),
         match position.item_clone {
             Value::Array(_) | Value::Dictionary(_) => {
-                tmp.push_str(&style("right").reverse().to_string());
+                tmp.push_str("\x1B[7mright\x1B[0m");
                 tmp.push_str(" to expand");
                 &tmp
             }
-            Value::Integer(_) => "enter/tab to edit",
-            Value::String(_) => "enter/tab to edit",
+            Value::Integer(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
+            Value::String(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
             Value::Boolean(_) => "\x1B[7mspace\x1B[0m to toggle",
             Value::Data(_) =>
-                "enter/tab to edit,  \x1B[7mtab\x1B[0m to switch between hex and string",
-            _ => "XXX",
+                "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit,  \x1B[7mtab\x1B[0m to switch hex/string",
+            _ => "XXXunknownXXX",
         }
     )
     .unwrap();
+    if position.depth > 0 {
+        write!(&*term, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
+    }
 }
 
 fn display_value(
@@ -135,7 +138,7 @@ fn display_value(
         if d == position.depth {
             live_item = true;
             position.item_clone = plist_value.clone();
-            save_curs_pos = "\x1B[s".to_string(); // save cursor position
+            save_curs_pos = "\x1B7".to_string(); // save cursor position
         }
     }
     match plist_value {

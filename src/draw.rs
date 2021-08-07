@@ -12,6 +12,7 @@ pub struct Position {
     pub sec_key: [String; 5],
     pub item_clone: Value,
     pub sec_length: [usize; 5],
+    pub resource_sections: Vec<String>,
 }
 
 impl Position {
@@ -42,13 +43,13 @@ impl Position {
     }
 }
 
-pub fn update_screen(position: &mut Position, list: &Value, term: &Term) {
+pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
     display_footer(term);
 
     write!(&*term, "\x1B[3H").unwrap();
     let rows = term.size().0 as i32;
     let mut row = 4;
-    let list = list.as_dictionary().unwrap();
+    let list = plist.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         if row < rows {
@@ -111,6 +112,16 @@ fn display_header(position: &mut Position, term: &Term) {
         }
     )
     .unwrap();
+    if position.depth == 2 {
+        let mut sec = position.sec_key[0].clone();
+        sec.push_str(&position.sec_key[1]);
+        if position
+            .resource_sections
+            .contains(&sec)
+        {
+            write!(&*term, " \x1B[7mspace\x1B[0m to toggle").unwrap();
+        }
+    }
     if position.depth > 0 {
         write!(&*term, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
     }

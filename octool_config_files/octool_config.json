@@ -5,7 +5,12 @@
         "acpi_path": "Docs/AcpiSamples/Binaries",
         "drivers_path": "X64/EFI/OC/Drivers",
         "tools_path": "X64/EFI/OC/Tools",
-        "resource_sections": "ACPIAdd KernelAdd MiscTools UEFIDrivers",
+        "resource_sections": [
+                "ACPIAdd",
+                "KernelAdd",
+                "MiscTools",
+                "UEFIDrivers"
+        ],
         "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
         "opencorepkg_branch": "master",
         "opencorepkg_path": "octool_config_files/OpenCorePkg/.git",

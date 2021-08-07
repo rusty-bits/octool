@@ -14,19 +14,13 @@ use crate::draw::{update_screen, Position};
 use crate::edit::edit_value;
 use crate::res::Resources;
 
-fn on_resource(position: &Position) -> bool {
+fn on_resource(position: &Position, sections: &Vec<String>) -> bool {
     if position.depth != 2 {
         false
     } else {
         let mut sec_sub = position.sec_key[0].clone();
         sec_sub.push_str(&position.sec_key[1]);
-        match sec_sub.as_str() {
-            "ACPIAdd" => true,
-            "KernelAdd" => true,
-            "MiscTools" => true,
-            "UEFIDrivers" => true,
-            _ => false,
-        }
+        sections.contains(&sec_sub)
     }
 }
 
@@ -45,6 +39,17 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         open_core_pkg: PathBuf::new(),
     };
 
+    let mut position = Position {
+        file_name: String::new(),
+        section_num: [0; 5],
+        depth: 0,
+        sec_key: Default::default(),
+        item_clone: plist::Value::Boolean(false),
+        sec_length: [0; 5],
+        resource_sections: vec![],
+    };
+
+
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
     let build_version = resources.octool_config["build_version"].as_str().unwrap();
     write!(
@@ -52,6 +57,8 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
         build_version
     )?;
+    position.resource_sections = serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    write!(&term, "\x1B[32mplist resource sections\x1B[0m {:?}\r\n", position.resource_sections)?;
 
     write!(
         &term,
@@ -111,26 +118,14 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     .arg(config_plist.clone())
     .status()?;
 
+    position.file_name = config_plist.to_str().unwrap().to_owned();
+    position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
+
     write!(
         &term,
         "\r\n\x1B[32mdone with init, any key to continue\x1B[0m\r\n"
     )?;
     let _ = term.read_key();
-
-    let mut position = Position {
-        file_name: config_plist.to_str().unwrap().to_string(),
-        section_num: [0; 5],
-        depth: 0,
-        sec_key: Default::default(),
-        item_clone: resources.config_plist.clone(),
-        sec_length: [
-            resources.config_plist.as_dictionary().unwrap().keys().len(),
-            0,
-            0,
-            0,
-            0,
-        ],
-    };
 
     update_screen(&mut position, &resources.config_plist, &term);
     let mut showing_info = false;
@@ -165,7 +160,10 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
             }
             Key::Char('i') => {
                 if !showing_info {
-                    if on_resource(&position) {
+                    if on_resource(
+                        &position,
+                        &position.resource_sections,
+                    ) {
                         res::show_res_path(&resources, &position);
                         showing_info = true;
                     } else {

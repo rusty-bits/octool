@@ -104,6 +104,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     resources.dortania =
         res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap())?;
 
+    write!(&term, "\r\n")?;
     let path = res::get_or_update_local_res("OpenCorePkg", &resources.dortania, build_version)?;
 
     resources.open_core_pkg = path.parent().unwrap().to_path_buf();

@@ -30,7 +30,7 @@ pub fn get_or_update_local_res(
         .as_str()
         .unwrap();
     println!(
-        "\x1B[32mchecking local copy of\x1B[0m {} binaries\x1B[0K",
+        "\x1B[32mchecking\x1B[0m local copy of {} binaries\x1B[0K",
         build_version
     );
 

@@ -290,6 +290,13 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
                 *key = i.to_string();
             }
 
+            if key.len() > 42 {
+                let mut temp = String::new();
+                temp.push_str(&key[0..7]);
+                temp.push('…');
+                temp.push_str(&key[key.len()-29..]);
+                *key = temp;
+            }
             match d.get("Enabled") {
                 Some(Value::Boolean(b)) => {
                     if *b {

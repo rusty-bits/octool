@@ -3,7 +3,7 @@ use console::style;
 use serde_json::Value;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -36,14 +36,13 @@ pub fn get_or_update_local_res(
 
     let path = Path::new("resources");
     let dir = Path::new(url).file_stem().unwrap();
+    let sum_file = path.join(dir).join("sum256");
     let file_name = Path::new(url).file_name().unwrap();
     let path = path.join(dir).join(file_name);
-    println!("local {:?}\x1B[0K", path);
-    match File::open(&path) {
-        Ok(mut f) => {
-            let mut data = Vec::new();
-            f.read_to_end(&mut data).unwrap();
-            let sum = format!("{:x}", sha2::Sha256::digest(&data));
+    match File::open(&sum_file) {
+        Ok(mut sum_file) => {
+            let mut sum = String::new();
+            sum_file.read_to_string(&mut sum)?;
             println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
             if sum != hash {
                 println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
@@ -55,7 +54,7 @@ pub fn get_or_update_local_res(
         Err(e) => match e.kind() {
             std::io::ErrorKind::NotFound => {
                 println!(
-                    "{:?} \x1B[31mnot found, downloading from\x1B[0m\x1B[0K\n{}\x1B[0K",
+                    "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
                     dir, url
                 );
                 println!("remote hash {}\x1B[0K", hash);
@@ -85,7 +84,12 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
     println!("  local sum {}\x1B[0K", sum);
     if sum != hash {
         panic!("Sum of {:?} does not match {}", path, hash);
+    } else {
+        let sum_file = path.parent().unwrap().join("sum256");
+        let mut sum_file = File::create(sum_file)?;
+        sum_file.write_all(sum.as_bytes())?;
     }
+
     if status(
         "unzip",
         &[
@@ -178,7 +182,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     let stem: Vec<&str> = ind_res.split('.').collect();
 
     println!(
-        "\x1B[0K\n{}\x1B[0K",
+        "\n{}\x1B[0K",
         style("the first found resource will be added to the OUTPUT/EFI").underlined()
     );
     println!("local\x1B[0K");
@@ -213,25 +217,23 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             let _ = get_or_update_local_res(&stem[0], &resources.dortania, "release");
             println!("{}\x1B[0K", style(url).green().to_string());
         }
-        _ => {
-            print!(
-                "\x1B[31mfalse\x1B[0m\nroot not found in dortania config, trying {:?} \x1B[0K",
-                parent
-            );
-            match &parent {
-                Value::String(par) => {
-                    match &resources.dortania[par]["versions"][0]["links"]["release"] {
-                        Value::String(url) => {
-                            println!("{}", style("true").green().to_string());
-                            let _ = get_or_update_local_res(par, &resources.dortania, "release");
-                            println!("{}\x1B[0K", style(url).green().to_string());
-                        }
-                        _ => println!("\x1B[31mfalse\x1B[0m\n{} not found\x1B[0K", par),
+        _ => match &parent {
+            Value::String(par) => {
+                print!(
+                    "\x1B[31mfalse\x1B[0m\nnot in dortania config, trying {} \x1B[0K",
+                    par
+                );
+                match &resources.dortania[par]["versions"][0]["links"]["release"] {
+                    Value::String(url) => {
+                        println!("{}", style("true").green().to_string());
+                        let _ = get_or_update_local_res(par, &resources.dortania, "release");
+                        println!("{}\x1B[0K", style(url).green().to_string());
                     }
+                    _ => println!("\x1B[31mfalse\x1B[0m\n{} not found\x1B[0K", par),
                 }
-                _ => println!("err\nnot a String to try\x1B[0K"),
             }
-        }
+            _ => println!("\x1B[31mfalse\x1B[0m"),
+        },
     }
 
     print!("\x1B[0K\n{} in acidanthera_config \x1B[0K", ind_res);
@@ -240,7 +242,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             match &resources.acidanthera[par]["versions"][0]["links"]["release"] {
                 Value::String(url) => {
                     println!("{}\x1B[0K", style("true").green().to_string());
-//                    let _ = get_or_update_local_res(par, &resources.acidanthera, "release");
+                    //                    let _ = get_or_update_local_res(par, &resources.acidanthera, "release");
                     println!("{}\x1B[0K", style(url).green().to_string());
                 }
                 _ => panic!("not String!"),

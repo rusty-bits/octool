@@ -110,7 +110,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     write!(
         &term,
-        "\r\nChecking {:?} with latest acidanthera/ocvalidate\r\n",
+        "\r\n\x1B[32mValidating\x1B[0m {:?} with latest acidanthera/ocvalidate\r\n",
         config_plist
     )?;
 
@@ -183,7 +183,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 }
             }
             Key::Char('s') => {
-                write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\nChecking test_out.plist with acidanthera/ocvalidate\r\n")?;
+                write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidatinig\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
                 resources.config_plist.to_file_xml("test_out.plist")?;
                 let _status = Command::new(
                     resources

@@ -34,6 +34,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         acidanthera: serde_json::Value::Bool(false),
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
+        parents: serde_json::Value::Bool(false),
         config_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
@@ -103,9 +104,11 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 
     resources.dortania =
         res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap())?;
+    resources.parents =
+        res::get_serde_json("octool_config_files/parents.json")?;
 
     write!(&term, "\r\n")?;
-    let path = res::get_or_update_local_res("OpenCorePkg", &resources.dortania, build_version)?;
+    let path = res::get_or_update_local_parent("OpenCorePkg", &resources.dortania, build_version)?;
 
     resources.open_core_pkg = path.parent().unwrap().to_path_buf();
 

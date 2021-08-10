@@ -13,22 +13,23 @@ pub struct Resources {
     pub acidanthera: Value,
     pub dortania: Value,
     pub octool_config: Value,
+    pub parents: Value,
     pub config_plist: plist::Value,
     pub working_dir: PathBuf,
     pub open_core_pkg: PathBuf,
 }
 
-pub fn get_or_update_local_res(
-    res: &str,
+pub fn get_or_update_local_parent(
+    parent: &str,
     resources: &Value,
     build_version: &str,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let url = resources[res]["versions"][0]["links"][build_version]
+    let url = resources[parent]["versions"][0]["links"][build_version]
         .as_str()
         .unwrap();
-    let hash = resources[res]["versions"][0]["hashes"][build_version]["sha256"]
+    let hash = resources[parent]["versions"][0]["hashes"][build_version]["sha256"]
         .as_str()
-        .unwrap();
+        .unwrap_or("");
     println!(
         "\x1B[32mchecking\x1B[0m local copy of {} binaries\x1B[0K",
         build_version
@@ -36,32 +37,43 @@ pub fn get_or_update_local_res(
 
     let path = Path::new("resources");
     let dir = Path::new(url).file_stem().unwrap();
-    let sum_file = path.join(dir).join("sum256");
     let file_name = Path::new(url).file_name().unwrap();
+    let sum_file = path.join(dir).join("sum256");
+    let git_file = path.join(dir).join(".git");
     let path = path.join(dir).join(file_name);
-    match File::open(&sum_file) {
-        Ok(mut sum_file) => {
-            let mut sum = String::new();
-            sum_file.read_to_string(&mut sum)?;
-            println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
-            if sum != hash {
-                println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
-                get_file_and_unzip(url, hash, &path)?;
-            } else {
-                println!("\x1B[32mAlready up to date.\x1B[0m\x1B[0K");
+
+    match url.split('.').last().unwrap() {
+        "zip" => {
+            match File::open(&sum_file) {
+                Ok(mut sum_file) => {
+                    let mut sum = String::new();
+                    sum_file.read_to_string(&mut sum)?;
+                    println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
+                    if sum != hash {
+                        println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
+                        get_file_and_unzip(url, hash, &path)?;
+                    } else {
+                        println!("\x1B[32mAlready up to date.\x1B[0m\x1B[0K");
+                    }
+                }
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        println!(
+                            "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
+                            dir, url
+                        );
+                        println!("remote hash {}\x1B[0K", hash);
+                        get_file_and_unzip(url, hash, &path)?;
+                    }
+                    _ => panic!("{}", e),
+                },
             }
         }
-        Err(e) => match e.kind() {
-            std::io::ErrorKind::NotFound => {
-                println!(
-                    "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
-                    dir, url
-                );
-                println!("remote hash {}\x1B[0K", hash);
-                get_file_and_unzip(url, hash, &path)?;
-            }
-            _ => panic!("{}", e),
-        },
+        "git" => {
+            let branch = resources[parent]["branch"].as_str().unwrap_or("master");
+            clone_or_pull(url, &git_file, branch)?;
+        }
+        _ => panic!("unknown parent type"),
     }
     Ok(path)
 }
@@ -129,7 +141,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
             "git",
             &[
                 "-C",
-                "octool_config_files",
+                path.to_str().unwrap().split('/').next().unwrap(),
                 "clone",
                 "--depth",
                 "1",
@@ -149,23 +161,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     let full_res: String;
     let section = position.sec_key[0].as_str();
     if section == "UEFI" {
-        full_res = resources
-            .config_plist
-            .as_dictionary()
-            .unwrap()
-            .get("UEFI")
-            .unwrap()
-            .as_dictionary()
-            .unwrap()
-            .get("Drivers")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .get(position.sec_key[2].parse::<usize>().unwrap())
-            .unwrap()
-            .as_string()
-            .unwrap()
-            .to_string();
+        full_res = position.item_clone.as_string().unwrap().to_string();
     } else {
         full_res = position.sec_key[position.depth].clone();
     }
@@ -178,8 +174,9 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     if ind_res.starts_with('#') {
         ind_res.remove(0);
     }
-    let ind_res = &ind_res;
-    let stem: Vec<&str> = ind_res.split('.').collect();
+    //    let ind_res = &ind_res;
+    //    let stem = ind_res.split('.').next().unwrap();
+    let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
 
     println!(
         "\n{}\x1B[0K",
@@ -187,7 +184,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     );
     println!("local\x1B[0K");
 
-    res_exists(&resources.working_dir, "INPUT", ind_res);
+    res_exists(&resources.working_dir, "INPUT", &ind_res);
 
     let open_core_pkg = &resources.open_core_pkg;
 
@@ -207,55 +204,27 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         _ => (),
     }
 
-    let acid_child = resources.acidanthera[ind_res].clone();
-    let parent = &acid_child["parent"];
+    //    let acid_child = resources.acidanthera[&ind_res].clone();
+    //    let parent = &acid_child["parent"];
     println!("\x1B[2K\nremote\x1B[0K");
-    print!("{} in root of dortania_config \x1B[0K", stem[0]);
-    match &resources.dortania[stem[0]]["versions"][0]["links"]["release"] {
+    print!("{} in dortania_config \x1B[0K", parent);
+    match &resources.dortania[parent]["versions"][0]["links"]["release"] {
         Value::String(url) => {
             println!("{}", style("true").green().to_string());
-            let _ = get_or_update_local_res(&stem[0], &resources.dortania, "release");
+            let _ = get_or_update_local_parent(parent, &resources.dortania, "release");
             println!("{}\x1B[0K", style(url).green().to_string());
         }
-        _ => match &parent {
-            Value::String(par) => {
-                print!(
-                    "\x1B[31mfalse\x1B[0m\nnot in dortania config, trying {} \x1B[0K",
-                    par
-                );
-                match &resources.dortania[par]["versions"][0]["links"]["release"] {
-                    Value::String(url) => {
-                        println!("{}", style("true").green().to_string());
-                        let _ = get_or_update_local_res(par, &resources.dortania, "release");
-                        println!("{}\x1B[0K", style(url).green().to_string());
-                    }
-                    _ => println!("\x1B[31mfalse\x1B[0m\n{} not found\x1B[0K", par),
-                }
-            }
-            _ => println!("\x1B[31mfalse\x1B[0m"),
-        },
+        _ => println!("\x1B[31mfalse\x1B[0m"),
     }
 
-    print!("\x1B[0K\n{} in acidanthera_config \x1B[0K", ind_res);
-    match parent {
-        Value::String(par) => {
-            match &resources.acidanthera[par]["versions"][0]["links"]["release"] {
-                Value::String(url) => {
-                    println!("{}\x1B[0K", style("true").green().to_string());
-                    //                    let _ = get_or_update_local_res(par, &resources.acidanthera, "release");
-                    println!("{}\x1B[0K", style(url).green().to_string());
-                }
-                _ => panic!("not String!"),
-            }
-            let p = match &acid_child["path"] {
-                Value::String(s) => s,
-                _ => "",
-            };
-            if p.len() > 0 {
-                println!("in path {}\x1B[0K", style(p).green());
-            }
+    print!("\x1B[0K\n{} in acidanthera_config \x1B[0K", parent);
+    match &resources.acidanthera[parent]["versions"][0]["links"]["release"] {
+        Value::String(url) => {
+            println!("{}\x1B[0K", style("true").green().to_string());
+            let _ = get_or_update_local_parent(parent, &resources.acidanthera, "release");
+            println!("{}\x1B[0K", style(url).green().to_string());
         }
-        _ => println!("{}", style("false").red().to_string()),
+        _ => println!("\x1B[31mfalse\x1B[0m"),
     }
     println!("\x1B[2K");
 }

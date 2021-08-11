@@ -18,157 +18,6 @@
       }
     ]
   },
-  "AcpiTest.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "AcpiTestApp.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "AudioDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "BootKicker.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "BOOTx64.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/BOOT"
-  },
-  "ChipTune.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "CleanNvram.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "CrScreenshotDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "CryptoTest.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "CryptoTestApp.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "DataHubTest.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "DataHubTestApp.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "GdbSyms.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "GopStop.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "HiiDatabase.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "KeyTester.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "MmapDump.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "NvmExpressDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenCanopy.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenControl.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "OpenCore.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC"
-  },
-  "OpenHfsPlus.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenPartitionDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenRuntime.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenUsbKbDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "OpenShell.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "PavpProvision.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "PropertyTest.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "PropertyTestApp.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "Ps2KeyboardDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "Ps2MouseDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "ResetSystem.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "RtcRw.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "Shell.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "SmbiosTest.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "SmbiosTestApp.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "UsbMouseDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "VerifyMemOpt.efi": {
-    "parent": "OpenCorePkg"
-  },
-  "VerifyMsrE2.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Tools"
-  },
-  "XhciDxe.efi": {
-    "parent": "OpenCorePkg",
-    "path": "X64/EFI/OC/Drivers"
-  },
-  "BrightnessKeys.kext": {
-    "parent": "BrightnessKeys",
-    "path": ""
-  },
   "BrightnessKeys": {
     "versions": [
       {
@@ -187,10 +36,6 @@
         }
       }
     ]
-  },
-  "FeatureUnlock.kext": {
-    "parent": "FeatureUnlock",
-    "path": ""
   },
   "FeatureUnlock": {
     "versions": [
@@ -221,70 +66,6 @@
       }
     ]
   },
-  "SSDT-AWAC.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-CPUR.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-EC-DESKTOP.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-EC-LAPTOP.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-EC-USBX-DESKTOP.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-EC-USBX-LAPTOP.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-IMEI-S.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-IMEI.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-PLUG-DRTNIA.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-PMC.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-PNLF-CFL.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-PNLF.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-RHUB.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-RTC0-RANGE-HEDT.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-UNC.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
-  "SSDT-XOSI.aml": {
-    "parent": "Getting-Started-With-ACPI",
-    "path": "raw/master/extra-files/compiled"
-  },
   "OcBinaryData": {
     "versions": [
       {
@@ -294,30 +75,6 @@
         }
       }
     ]
-  },
-  "ExFatDxe.efi": {
-    "parent": "OcBinaryData",
-    "path": "raw/master/Drivers"
-  },
-  "ExFatDxeLegacy.efi": {
-    "parent": "OcBinaryData",
-    "path": "raw/master/Drivers"
-  },
-  "HfsPlus.efi": {
-    "parent": "OcBinaryData",
-    "path": "raw/master/Drivers"
-  },
-  "HfsPlus32.efi": {
-    "parent": "OcBinaryData",
-    "path": "raw/master/Drivers"
-  },
-  "HfsPlusLegacy.efi": {
-    "parent": "OcBinaryData",
-    "path": "raw/master/Drivers"
-  },
-  "WhateverGreen.kext": {
-    "parent": "WhateverGreen",
-    "path": ""
   },
   "WhateverGreen": {
     "versions": [
@@ -338,10 +95,6 @@
       }
     ]
   },
-  "VoodooInput.kext": {
-    "parent": "VoodooInput",
-    "path": ""
-  },
   "VoodooInput": {
     "versions": [
       {
@@ -361,10 +114,6 @@
       }
     ]
   },
-  "CpuTscSync.kext": {
-    "parent": "CpuTscSync",
-    "path": ""
-  },
   "CpuTscSync": {
     "versions": [
       {
@@ -383,10 +132,6 @@
         }
       }
     ]
-  },
-  "VoodooPS2Controller.kext": {
-    "parent": "VoodooPS2",
-    "path": ""
   },
   "VoodooPS2": {
     "requiresRes": "VoodooInput",
@@ -408,22 +153,6 @@
       }
     ]
   },
-  "VoodooPS2Keyboard.kext": {
-    "parent": "VoodooPS2",
-    "path": "VoodooPS2Controller.kext/Contents/PlugIns"
-  },
-  "VoodooPS2Mouse.kext": {
-    "parent": "VoodooPS2",
-    "path": "VoodooPS2Controller.kext/Contents/PlugIns"
-  },
-  "VoodooPS2Trackpad.kext": {
-    "parent": "VoodooPS2",
-    "path": "VoodooPS2Controller.kext/Contents/PlugIns"
-  },
-  "VoodooI2C.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
   "VoodooI2C": {
     "versions": [
       {
@@ -443,38 +172,6 @@
       }
     ]
   },
-  "VoodooGPIO.kext": {
-    "parent": "VoodooI2C",
-    "path": "VoodooI2C.kext/Contents/PlugIns"
-  },
-  "VoodooI2CServices.kext": {
-    "parent": "VoodooI2C",
-    "path": "VoodooI2C.kext/Contents/PlugIns"
-  },
-  "VoodooI2CAtmelMXT.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
-  "VoodooI2CELAN.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
-  "VoodooI2CFTE.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
-  "VoodooI2CHID.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
-  "VoodooI2CSynaptics.kext": {
-    "parent": "VoodooI2C",
-    "path": ""
-  },
-  "IntelMausi.kext": {
-    "parent": "IntelMausi",
-    "path": ""
-  },
   "IntelMausi": {
     "versions": [
       {
@@ -493,18 +190,6 @@
         }
       }
     ]
-  },
-  "AirPortBrcm4360_Injector.kext": {
-    "parent": "AirportBrcmFixup",
-    "path": "AirportBrcmFixup.kext/Contents/PlugIns"
-  },
-  "AirPortBrcmNIC_Injector.kext": {
-    "parent": "AirportBrcmFixup",
-    "path": "AirportBrcmFixup.kext/Contents/PlugIns"
-  },
-  "AirportBrcmFixup.kext": {
-    "parent": "AirportBrcmFixup",
-    "path": ""
   },
   "AirportBrcmFixup": {
     "versions": [
@@ -544,55 +229,6 @@
       }
     ]
   },
-  "BlueToolFixup.kext": {
-          "buildScheme": "BlueToolFixup",
-          "parent": "BrcmPatchRAM",
-          "path": ""
-  },
-  "BrcmBluetoothInjector.kext": {
-    "buildScheme": "BrcmBluetoothInjector",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmFirmwareData.kext": {
-    "buildScheme": "BrcmFirmwareData",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmFirmwareRepo.kext": {
-    "buildScheme": "BrcmFirmwareRepo",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmNonPatchRAM.kext": {
-    "buildScheme": "BrcmNonPatchRAM",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmNonPatchRAM2.kext": {
-    "buildScheme": "BrcmNonPatchRAM2",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmPatchRAM.kext": {
-    "buildScheme": "BrcmPatchRAM",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmPatchRAM2.kext": {
-    "buildScheme": "BrcmPatchRAM2",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "BrcmPatchRAM3.kext": {
-    "buildScheme": "BrcmPatchRAM3",
-    "parent": "BrcmPatchRAM",
-    "path": ""
-  },
-  "HibernationFixup.kext": {
-    "parent": "HibernationFixup",
-    "path": ""
-  },
   "HibernationFixup": {
     "versions": [
       {
@@ -611,10 +247,6 @@
         }
       }
     ]
-  },
-  "AppleALC.kext": {
-    "parent": "AppleALC",
-    "path": ""
   },
   "AppleALC": {
     "versions": [
@@ -635,10 +267,6 @@
       }
     ]
   },
-  "CPUFriend.kext": {
-    "parent": "CPUFriend",
-    "path": ""
-  },
   "CPUFriend": {
     "versions": [
       {
@@ -657,10 +285,6 @@
         }
       }
     ]
-  },
-  "VirtualSMC.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
   },
   "VirtualSMC": {
     "versions": [
@@ -681,30 +305,6 @@
       }
     ]
   },
-  "SMCBatteryManager.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
-  },
-  "SMCDellSensors.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
-  },
-  "SMCLightSensor.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
-  },
-  "SMCProcessor.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
-  },
-  "SMCSuperIO.kext": {
-    "parent": "VirtualSMC",
-    "path": "Kexts"
-  },
-  "Lilu.kext": {
-    "parent": "Lilu",
-    "path": ""
-  },
   "Lilu": {
     "versions": [
       {
@@ -724,100 +324,81 @@
       }
     ]
   },
-  "MacHyperVSupport.kext": {
-          "parent": "MacHyperVSupport",
-          "path": ""
-  },
   "MacHyperVSupport": {
-          "versions": [
-                  {
-                          "version": "0.5",
-                          "hashes": {
-                                  "debug": {
-                                          "sha256": "f82b40a57becb0c4b6ab13463d9b7646145c4a6f3e478705e005c049acfd23d4"
-                                  },
-                                  "release": {
-                                          "sha256": "3487bfaf583352fd55a00af4b216897e775de3bf124c1cdebb1549f517636a5f"
-                                  }
-                          },
-                          "links": {
-                                  "debug": "https://github.com/acidanthera/MacHyperVSupport/releases/download/0.5/MacHyperVSupport-0.5-DEBUG.zip",
-                                  "release": "https://github.com/acidanthera/MacHyperVSupport/releases/download/0.5/MacHyperVSupport-0.5-RELEASE.zip"
-                          }
-                  }
-          ]
-  },
-  "RestrictEvents.kext": {
-          "parent": "RestrictEvents",
-          "path": ""
+    "versions": [
+      {
+        "version": "0.5",
+        "hashes": {
+          "debug": {
+            "sha256": "f82b40a57becb0c4b6ab13463d9b7646145c4a6f3e478705e005c049acfd23d4"
+          },
+          "release": {
+            "sha256": "3487bfaf583352fd55a00af4b216897e775de3bf124c1cdebb1549f517636a5f"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/acidanthera/MacHyperVSupport/releases/download/0.5/MacHyperVSupport-0.5-DEBUG.zip",
+          "release": "https://github.com/acidanthera/MacHyperVSupport/releases/download/0.5/MacHyperVSupport-0.5-RELEASE.zip"
+        }
+      }
+    ]
   },
   "RestrictEvents": {
-          "versions": [
-                  {
-                          "version": "1.0.3",
-                          "hashes": {
-                                  "debug": {
-                                          "sha256": "27e86ea8007d70e2aca814089ba0f3940548ef17dc08178c90a7a9c53e52b3e0"
-                                  },
-                                  "release": {
-                                          "sha256": "565de0ab1c0a7dee44ec1dc72914ebeb8ffd7cfb6b34e15f572466a587e09da3"
-                                  }
-                          },
-                          "links": {
-                                  "debug": "https://github.com/acidanthera/RestrictEvents/releases/download/1.0.3/RestrictEvents-1.0.3-DEBUG.zip",
-                                  "release": "https://github.com/acidanthera/RestrictEvents/releases/download/1.0.3/RestrictEvents-1.0.3-RELEASE.zip"
-                          }
-                  }
-          ]
-  },
-  "SidecarFixup.kext": {
-          "parent": "SidecarFixup",
-          "path": ""
+    "versions": [
+      {
+        "version": "1.0.3",
+        "hashes": {
+          "debug": {
+            "sha256": "27e86ea8007d70e2aca814089ba0f3940548ef17dc08178c90a7a9c53e52b3e0"
+          },
+          "release": {
+            "sha256": "565de0ab1c0a7dee44ec1dc72914ebeb8ffd7cfb6b34e15f572466a587e09da3"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/acidanthera/RestrictEvents/releases/download/1.0.3/RestrictEvents-1.0.3-DEBUG.zip",
+          "release": "https://github.com/acidanthera/RestrictEvents/releases/download/1.0.3/RestrictEvents-1.0.3-RELEASE.zip"
+        }
+      }
+    ]
   },
   "SidecarFixup": {
-          "versions": [
-                  {
-                          "version": "1.0.2",
-                          "hashes": {
-                                  "debug": {
-                                          "sha256": "847907f3ddb7d2062a5dad4c16ab1f7752b33f4b85232c6d837666d690005212"
-                                  },
-                                  "release": {
-                                          "sha256": "24f4a68fff83228bb9f7771f9292212dd8a4f6559b250dd7a9f4472a6d5eeba6"
-                                  }
-                          },
-                          "links": {
-                                  "debug": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-DEBUG.zip",
-                                  "release": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-RELEASE.zip"
-                          }
-                  }
-          ]
-  },
-  "UEFIGraphicsFB.kext": {
-          "parent": "UEFIGraphicsFB",
-          "path": ""
+    "versions": [
+      {
+        "version": "1.0.2",
+        "hashes": {
+          "debug": {
+            "sha256": "847907f3ddb7d2062a5dad4c16ab1f7752b33f4b85232c6d837666d690005212"
+          },
+          "release": {
+            "sha256": "24f4a68fff83228bb9f7771f9292212dd8a4f6559b250dd7a9f4472a6d5eeba6"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-DEBUG.zip",
+          "release": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-RELEASE.zip"
+        }
+      }
+    ]
   },
   "UEFIGraphicsFB": {
-          "versions": [
-                  {
-                          "version": "1.0.0",
-                          "hashes": {
-                                  "debug": {
-                                          "sha256": "e9135e1779386a9a4f63b85699aa6222fcd3835fa143a5d13ad7a9c7e4bdebde"
-                                  },
-                                  "release": {
-                                          "sha256": "829ffe48ecf8326d5699762633f252172d95af42cb28e7fa6ab96c74e4d3a6d9"
-                                  }
-                          },
-                          "links": {
-                                  "debug": "https://github.com/acidanthera/UEFIGraphicsFB/releases/download/1.0.0/UEFIGraphicsFB-1.0.0-DEBUG.zip",
-                                  "release": "https://github.com/acidanthera/UEFIGraphicsFB/releases/download/1.0.0/UEFIGraphicsFB-1.0.0-RELEASE.zip"
-                          }
-                  }
-          ]
-  },
-  "RTCMemoryFixup.kext": {
-    "parent": "RTCMemoryFixup"
+    "versions": [
+      {
+        "version": "1.0.0",
+        "hashes": {
+          "debug": {
+            "sha256": "e9135e1779386a9a4f63b85699aa6222fcd3835fa143a5d13ad7a9c7e4bdebde"
+          },
+          "release": {
+            "sha256": "829ffe48ecf8326d5699762633f252172d95af42cb28e7fa6ab96c74e4d3a6d9"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/acidanthera/UEFIGraphicsFB/releases/download/1.0.0/UEFIGraphicsFB-1.0.0-DEBUG.zip",
+          "release": "https://github.com/acidanthera/UEFIGraphicsFB/releases/download/1.0.0/UEFIGraphicsFB-1.0.0-RELEASE.zip"
+        }
+      }
+    ]
   },
   "RTCMemoryFixup": {
     "versions": [
@@ -838,9 +419,6 @@
       }
     ]
   },
-  "NVMeFix.kext": {
-    "parent": "NVMeFix"
-  },
   "NVMeFix": {
     "versions": [
       {
@@ -859,9 +437,6 @@
         }
       }
     ]
-  },
-  "DebugEnhancer.kext": {
-    "parent": "DebugEnhancer"
   },
   "DebugEnhancer": {
     "versions": [

@@ -48,14 +48,15 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         item_clone: plist::Value::Boolean(false),
         sec_length: [0; 5],
         resource_sections: vec![],
+        build_type: "release".to_string(),
     };
 
     resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
-    let build_version = resources.octool_config["build_version"].as_str().unwrap();
+    position.build_type = resources.octool_config["build_version"].as_str().unwrap().to_string();
     write!(
         &term,
         "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
-        build_version
+        position.build_type
     )?;
     position.resource_sections =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
@@ -108,9 +109,12 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         res::get_serde_json("octool_config_files/parents.json")?;
 
     write!(&term, "\r\n")?;
-    let path = res::get_or_update_local_parent("OpenCorePkg", &resources.dortania, build_version)?;
+    let path = res::get_or_update_local_parent("OpenCorePkg", &resources.dortania, &position.build_type)?;
 
-    resources.open_core_pkg = path.parent().unwrap().to_path_buf();
+    match path {
+        Some(p) => resources.open_core_pkg = p.parent().unwrap().to_path_buf(),
+        _ => panic!("no OpenCorePkg found"),
+    }
 
     write!(
         &term,
@@ -154,6 +158,10 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 } else {
                     break;
                 }
+            }
+            Key::Char('p') => {
+                res::print_parents(&resources);
+                let _ = term.read_key();
             }
             Key::ArrowUp | Key::Char('k') => position.up(),
             Key::ArrowDown | Key::Char('j') => position.down(),

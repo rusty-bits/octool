@@ -13,6 +13,7 @@ pub struct Position {
     pub item_clone: Value,
     pub sec_length: [usize; 5],
     pub resource_sections: Vec<String>,
+    pub build_type: String,
 }
 
 impl Position {

@@ -251,9 +251,9 @@
     "path": ""
   },
   "BlueToolFixup.kext": {
-          "buildScheme": "BlueToolFixup",
-          "parent": "BrcmPatchRAM",
-          "path": ""
+    "buildScheme": "BlueToolFixup",
+    "parent": "BrcmPatchRAM",
+    "path": ""
   },
   "BrcmBluetoothInjector.kext": {
     "buildScheme": "BrcmBluetoothInjector",
@@ -336,20 +336,20 @@
     "path": ""
   },
   "MacHyperVSupport.kext": {
-          "parent": "MacHyperVSupport",
-          "path": ""
+    "parent": "MacHyperVSupport",
+    "path": ""
   },
   "RestrictEvents.kext": {
-          "parent": "RestrictEvents",
-          "path": ""
+    "parent": "RestrictEvents",
+    "path": ""
   },
   "SidecarFixup.kext": {
-          "parent": "SidecarFixup",
-          "path": ""
+    "parent": "SidecarFixup",
+    "path": ""
   },
   "UEFIGraphicsFB.kext": {
-          "parent": "UEFIGraphicsFB",
-          "path": ""
+    "parent": "UEFIGraphicsFB",
+    "path": ""
   },
   "RTCMemoryFixup.kext": {
     "parent": "RTCMemoryFixup"

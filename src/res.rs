@@ -1,6 +1,7 @@
 use crate::draw::Position;
 use console::style;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
@@ -22,17 +23,17 @@ pub struct Resources {
 pub fn get_or_update_local_parent(
     parent: &str,
     resources: &Value,
-    build_version: &str,
-) -> Result<PathBuf, Box<dyn Error>> {
-    let url = resources[parent]["versions"][0]["links"][build_version]
+    build_type: &str,
+) -> Result<Option<PathBuf>, Box<dyn Error>> {
+    let url = resources[parent]["versions"][0]["links"][build_type]
         .as_str()
         .unwrap();
-    let hash = resources[parent]["versions"][0]["hashes"][build_version]["sha256"]
+    let hash = resources[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
     println!(
         "\x1B[32mchecking\x1B[0m local copy of {} binaries\x1B[0K",
-        build_version
+        build_type
     );
 
     let path = Path::new("resources");
@@ -43,39 +44,37 @@ pub fn get_or_update_local_parent(
     let path = path.join(dir).join(file_name);
 
     match url.split('.').last().unwrap() {
-        "zip" => {
-            match File::open(&sum_file) {
-                Ok(mut sum_file) => {
-                    let mut sum = String::new();
-                    sum_file.read_to_string(&mut sum)?;
-                    println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
-                    if sum != hash {
-                        println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
-                        get_file_and_unzip(url, hash, &path)?;
-                    } else {
-                        println!("\x1B[32mAlready up to date.\x1B[0m\x1B[0K");
-                    }
+        "zip" => match File::open(&sum_file) {
+            Ok(mut sum_file) => {
+                let mut sum = String::new();
+                sum_file.read_to_string(&mut sum)?;
+                println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
+                if sum != hash {
+                    println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
+                    get_file_and_unzip(url, hash, &path)?;
+                } else {
+                    println!("Already up to date.\x1B[0K");
                 }
-                Err(e) => match e.kind() {
-                    std::io::ErrorKind::NotFound => {
-                        println!(
-                            "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
-                            dir, url
-                        );
-                        println!("remote hash {}\x1B[0K", hash);
-                        get_file_and_unzip(url, hash, &path)?;
-                    }
-                    _ => panic!("{}", e),
-                },
             }
-        }
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    println!(
+                        "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
+                        dir, url
+                    );
+                    println!("remote hash {}\x1B[0K", hash);
+                    get_file_and_unzip(url, hash, &path)?;
+                }
+                _ => panic!("{}", e),
+            },
+        },
         "git" => {
             let branch = resources[parent]["branch"].as_str().unwrap_or("master");
             clone_or_pull(url, &git_file, branch)?;
         }
         _ => panic!("unknown parent type"),
     }
-    Ok(path)
+    Ok(Some(path))
 }
 
 pub fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
@@ -159,6 +158,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
 
 pub fn show_res_path(resources: &Resources, position: &Position) {
     let full_res: String;
+    let mut res_path: Option<PathBuf>;
     let section = position.sec_key[0].as_str();
     if section == "UEFI" {
         full_res = position.item_clone.as_string().unwrap().to_string();
@@ -184,22 +184,28 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     );
     println!("local\x1B[0K");
 
-    res_exists(&resources.working_dir, "INPUT", &ind_res);
+    res_path = res_exists(&resources.working_dir, "INPUT", &ind_res);
 
     let open_core_pkg = &resources.open_core_pkg;
 
     match section {
         "ACPI" => {
             let path = resources.octool_config["acpi_path"].as_str().unwrap();
-            res_exists(open_core_pkg, path, &ind_res);
+            if res_path == None {
+                res_path = res_exists(open_core_pkg, path, &ind_res);
+            }
         }
         "Misc" => {
             let path = resources.octool_config["tools_path"].as_str().unwrap();
-            res_exists(open_core_pkg, path, &ind_res);
+            if res_path == None {
+                res_path = res_exists(open_core_pkg, path, &ind_res);
+            }
         }
         "UEFI" => {
             let path = resources.octool_config["drivers_path"].as_str().unwrap();
-            res_exists(open_core_pkg, path, &ind_res);
+            if res_path == None {
+                res_path = res_exists(open_core_pkg, path, &ind_res);
+            }
         }
         _ => (),
     }
@@ -207,26 +213,36 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     //    let acid_child = resources.acidanthera[&ind_res].clone();
     //    let parent = &acid_child["parent"];
     println!("\x1B[2K\nremote\x1B[0K");
-    print!("{} in dortania_config \x1B[0K", parent);
-    match &resources.dortania[parent]["versions"][0]["links"]["release"] {
+    print!("{} in Dortania Builds? \x1B[0K", parent);
+    match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
         Value::String(url) => {
             println!("{}", style("true").green().to_string());
-            let _ = get_or_update_local_parent(parent, &resources.dortania, "release");
             println!("{}\x1B[0K", style(url).green().to_string());
+            if res_path == None {
+             res_path = get_or_update_local_parent(parent, &resources.dortania, &position.build_type).unwrap();
+            }
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
     }
 
-    print!("\x1B[0K\n{} in acidanthera_config \x1B[0K", parent);
-    match &resources.acidanthera[parent]["versions"][0]["links"]["release"] {
+    print!("\x1B[0K\n{} in Acidanthera Releases? \x1B[0K", parent);
+    match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
         Value::String(url) => {
             println!("{}\x1B[0K", style("true").green().to_string());
-            let _ = get_or_update_local_parent(parent, &resources.acidanthera, "release");
             println!("{}\x1B[0K", style(url).green().to_string());
+            if res_path == None {
+             res_path = get_or_update_local_parent(parent, &resources.acidanthera, &position.build_type).unwrap();
+            }
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
     }
     println!("\x1B[2K");
+    match res_path {
+        None => println!("No local resource found\x1B[0K"),
+        Some(p) => {
+            let _ = status("find", &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res]);
+        }
+    }
 }
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
@@ -238,14 +254,31 @@ pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     Ok(v)
 }
 
-fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) {
-    let path = open_core_pkg.join(path);
-    println!(
-        "inside {:?} dir?\x1B[0K {}",
-        path,
-        match path.join(ind_res).exists() {
-            true => style("true").green(),
-            false => style("false").red(),
-        }
-    );
+fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) -> Option<PathBuf> {
+    let path = open_core_pkg.join(path).join(ind_res);
+    if path.exists() {
+        println!("inside {:?} dir?\x1B[0K {}", path.parent().unwrap(), style("true").green());
+        Some(path)
+    } else {
+        println!("inside {:?} dir?\x1B[0K {}", path.parent().unwrap(), style("false").red());
+        None
+    }
+}
+
+pub fn print_parents(resources: &Resources) {
+    let m: HashMap<String, Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
+    for (name, val) in m {
+        println!(
+            "name: {} {:?}",
+            name, val["versions"][0]["links"]["release"]
+        );
+    }
+    let m: HashMap<String, Value> =
+        serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
+    for (name, val) in m {
+        println!(
+            "name: {} {:?}",
+            name, val["versions"][0]["links"]["release"]
+        );
+    }
 }

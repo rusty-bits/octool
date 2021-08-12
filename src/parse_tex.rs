@@ -9,7 +9,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
     let mut row = 0;
 
     let contents =
-        fs::read_to_string("octool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
+        fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
     let mut sec_search = "\\section{".to_string();
     sec_search.push_str(&position.sec_key[0]);

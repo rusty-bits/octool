@@ -56,16 +56,6 @@
       }
     ]
   },
-  "Getting-Started-With-ACPI": {
-    "versions": [
-      {
-        "links": {
-          "debug": "https://github.com/dortania/Getting-Started-With-ACPI.git",
-          "release": "https://github.com/dortania/Getting-Started-With-ACPI.git"
-        }
-      }
-    ]
-  },
   "OcBinaryData": {
     "versions": [
       {

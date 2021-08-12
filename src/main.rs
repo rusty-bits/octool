@@ -35,6 +35,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
         parents: serde_json::Value::Bool(false),
+        other: res::get_serde_json("tool_config_files/other.json")?,
         config_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
@@ -51,7 +52,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
         build_type: "release".to_string(),
     };
 
-    resources.octool_config = res::get_serde_json("octool_config_files/octool_config.json")?;
+    resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json")?;
     position.build_type = resources.octool_config["build_version"].as_str().unwrap().to_string();
     write!(
         &term,
@@ -84,7 +85,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     resources.config_plist = Value::from_file(&config_plist)
         .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
 
-    resources.acidanthera = res::get_serde_json("octool_config_files/acidanthera_config.json")?;
+    resources.acidanthera = res::get_serde_json("tool_config_files/acidanthera_config.json")?;
 
     write!(
         &term,
@@ -106,7 +107,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     resources.dortania =
         res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap())?;
     resources.parents =
-        res::get_serde_json("octool_config_files/parents.json")?;
+        res::get_serde_json("tool_config_files/parents.json")?;
 
     write!(&term, "\r\n")?;
     let path = res::get_or_update_local_parent("OpenCorePkg", &resources.dortania, &position.build_type)?;
@@ -129,7 +130,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
             .to_str()
             .unwrap(),
         &[&config_plist.to_str().unwrap()],
-    )? != 0
+    )?.status.code().unwrap() != 0
     {
         write!(
             &term,
@@ -234,7 +235,7 @@ fn main() {
     if !config_file.exists() {
         println!("\x1B[31mDid not find config at\x1B[0m {:?}", config_file);
         println!("Using OpenCorePkg/Docs/Sample.plist");
-        config_file = Path::new("octool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
+        config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
 
     match process(&config_file) {

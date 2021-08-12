@@ -6,7 +6,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 
 use sha2::Digest;
 
@@ -15,6 +15,7 @@ pub struct Resources {
     pub dortania: Value,
     pub octool_config: Value,
     pub parents: Value,
+    pub other: Value,
     pub config_plist: plist::Value,
     pub working_dir: PathBuf,
     pub open_core_pkg: PathBuf,
@@ -37,7 +38,10 @@ pub fn get_or_update_local_parent(
     );
 
     let path = Path::new("resources");
-    let dir = Path::new(url).file_stem().unwrap();
+    let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
+    if dir.ends_with(".kext") {
+        dir = &dir[0..dir.len()-5];
+    }
     let file_name = Path::new(url).file_name().unwrap();
     let sum_file = path.join(dir).join("sum256");
     let git_file = path.join(dir).join(".git");
@@ -77,15 +81,15 @@ pub fn get_or_update_local_parent(
     Ok(Some(path))
 }
 
-pub fn status(command: &str, args: &[&str]) -> Result<i32, Box<dyn Error>> {
-    let out = Command::new(command).args(args).status()?;
-    Ok(out.code().unwrap())
+pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
+    let out = Command::new(command).args(args).output()?;
+    Ok(out)
 }
 
 fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
-    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])? != 0 {
+    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?.status.code().unwrap() != 0  {
         panic!("failed to get {:?}", path);
     }
     let mut f = File::open(path)?;
@@ -110,7 +114,7 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
             "-d",
             path.parent().unwrap().to_str().unwrap(),
         ],
-    )? != 0
+    )?.status.code().unwrap() != 0
     {
         panic!("failed to unzip {:?}", path);
     }
@@ -126,7 +130,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         if status(
             "git",
             &["-C", path.parent().unwrap().to_str().unwrap(), "pull"],
-        )? != 0
+        )?.status.code().unwrap() != 0
         {
             panic!("failed to update {:?}", path);
         }
@@ -148,7 +152,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
                 branch,
                 url,
             ],
-        )? != 0
+        )?.status.code().unwrap() != 0
         {
             panic!("failed to clone {:?}", url);
         }
@@ -182,7 +186,6 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         "\n{}\x1B[0K",
         style("the first found resource will be added to the OUTPUT/EFI").underlined()
     );
-    println!("local\x1B[0K");
 
     res_path = res_exists(&resources.working_dir, "INPUT", &ind_res);
 
@@ -210,9 +213,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         _ => (),
     }
 
-    //    let acid_child = resources.acidanthera[&ind_res].clone();
-    //    let parent = &acid_child["parent"];
-    println!("\x1B[2K\nremote\x1B[0K");
+    println!("\x1B[2K");
     print!("{} in Dortania Builds? \x1B[0K", parent);
     match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
         Value::String(url) => {
@@ -236,11 +237,30 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
     }
+
+    print!("\x1B[0K\n{} in other? \x1B[0K", parent);
+    match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
+        Value::String(url) => {
+            println!("{}\x1B[0K", style("true").green().to_string());
+            println!("{}\x1B[0K", style(url).green().to_string());
+            if res_path == None {
+             res_path = get_or_update_local_parent(parent, &resources.other, &position.build_type).unwrap();
+            }
+        }
+        _ => println!("\x1B[31mfalse\x1B[0m"),
+    }
+
     println!("\x1B[2K");
     match res_path {
         None => println!("No local resource found\x1B[0K"),
         Some(p) => {
-            let _ = status("find", &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res]);
+            println!("local path to resource\x1B[0K");
+            let out = status("find", &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res]).unwrap();
+            println!("{}", String::from_utf8(out.stdout)
+                     .unwrap()
+                     .lines()
+                     .last()
+                     .unwrap());
         }
     }
 }

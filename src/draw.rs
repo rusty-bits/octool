@@ -93,11 +93,16 @@ fn display_footer(term: &Term) {
 
 fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
+    let mut info = position.sec_key[position.depth].clone();
+    if info.len() > 20 {
+        info = info[0..17].to_string();
+        info.push_str("...");
+    }
     write!(
         &*term,
         "\x1B[H\x1B[0K{}   \x1B[7mi\x1B[0m {} info if available\r\n\x1B[0K  {}",
         position.file_name,
-        style(&position.sec_key[position.depth]).underlined(),
+        style(&info).underlined(),
         match position.item_clone {
             Value::Array(_) | Value::Dictionary(_) => {
                 tmp.push_str("\x1B[7mright\x1B[0m");

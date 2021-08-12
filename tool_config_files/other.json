@@ -1,0 +1,30 @@
+{
+  "Getting-Started-With-ACPI": {
+    "versions": [
+      {
+        "links": {
+          "debug": "https://github.com/dortania/Getting-Started-With-ACPI.git",
+          "release": "https://github.com/dortania/Getting-Started-With-ACPI.git"
+        }
+      }
+    ]
+  },
+  "AppleMCEReporterDisabler": {
+    "versions": [
+      {
+        "links": {
+          "debug": "https://github.com/acidanthera/bugtracker/files/3703498/AppleMCEReporterDisabler.kext.zip",
+          "release": "https://github.com/acidanthera/bugtracker/files/3703498/AppleMCEReporterDisabler.kext.zip"
+        },
+        "hashes": {
+          "debug": {
+            "sha256": "470417c4958dd6ecb982182140a6b76cf85f847c15f1b0f6f59617d5abcc5f76"
+          },
+          "release": {
+            "sha256": "470417c4958dd6ecb982182140a6b76cf85f847c15f1b0f6f59617d5abcc5f76"
+          }
+        }
+      }
+    ]
+  }
+}

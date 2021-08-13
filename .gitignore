@@ -5,3 +5,4 @@ test_out.plist
 tool_config_files/OpenCorePkg
 tool_config_files/build-repo
 INPUT/*
+OUTPUT/

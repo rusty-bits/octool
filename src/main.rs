@@ -1,3 +1,4 @@
+mod build;
 mod draw;
 mod edit;
 mod parse_tex;
@@ -10,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, error::Error};
 
+use crate::build::build_output;
 use crate::draw::{update_screen, Position};
 use crate::edit::edit_value;
 use crate::res::Resources;
@@ -185,7 +187,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
             Key::Char('i') => {
                 if !showing_info {
                     if on_resource(&position, &position.resource_sections) {
-                        res::show_res_path(&resources, &position);
+                        let _ = res::show_res_path(&resources, &position);
                         showing_info = true;
                     } else {
                         showing_info = parse_tex::show_info(&position, &term);
@@ -217,6 +219,10 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
             update_screen(&mut position, &resources.config_plist, &term);
         }
     }
+
+    build_output(&resources)?;
+
+
     term.show_cursor()?;
 
     write!(&term, "\n\r\x1B[0J")?;

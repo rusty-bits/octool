@@ -26,9 +26,13 @@ pub fn get_or_update_local_parent(
     resources: &Value,
     build_type: &str,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
+    println!("parent {:?}", parent);
     let url = resources[parent]["versions"][0]["links"][build_type]
         .as_str()
-        .unwrap();
+        .unwrap_or("");
+    if url == "" {
+        return Ok(None)
+    }
     let hash = resources[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
@@ -40,7 +44,7 @@ pub fn get_or_update_local_parent(
     let path = Path::new("resources");
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
     if dir.ends_with(".kext") {
-        dir = &dir[0..dir.len()-5];
+        dir = &dir[0..dir.len() - 5];
     }
     let file_name = Path::new(url).file_name().unwrap();
     let sum_file = path.join(dir).join("sum256");
@@ -89,7 +93,12 @@ pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
 fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
-    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?.status.code().unwrap() != 0  {
+    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?
+        .status
+        .code()
+        .unwrap()
+        != 0
+    {
         panic!("failed to get {:?}", path);
     }
     let mut f = File::open(path)?;
@@ -114,7 +123,11 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
             "-d",
             path.parent().unwrap().to_str().unwrap(),
         ],
-    )?.status.code().unwrap() != 0
+    )?
+    .status
+    .code()
+    .unwrap()
+        != 0
     {
         panic!("failed to unzip {:?}", path);
     }
@@ -130,7 +143,11 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         if status(
             "git",
             &["-C", path.parent().unwrap().to_str().unwrap(), "pull"],
-        )?.status.code().unwrap() != 0
+        )?
+        .status
+        .code()
+        .unwrap()
+            != 0
         {
             panic!("failed to update {:?}", path);
         }
@@ -152,7 +169,11 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
                 branch,
                 url,
             ],
-        )?.status.code().unwrap() != 0
+        )?
+        .status
+        .code()
+        .unwrap()
+            != 0
         {
             panic!("failed to clone {:?}", url);
         }
@@ -191,26 +212,21 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 
     let open_core_pkg = &resources.open_core_pkg;
 
-    match section {
-        "ACPI" => {
-            let path = resources.octool_config["acpi_path"].as_str().unwrap();
-            if res_path == None {
-                res_path = res_exists(open_core_pkg, path, &ind_res);
+    if res_path == None {
+        let path;
+        match section {
+            "ACPI" => {
+                path = resources.octool_config["acpi_path"].as_str().unwrap();
             }
-        }
-        "Misc" => {
-            let path = resources.octool_config["tools_path"].as_str().unwrap();
-            if res_path == None {
-                res_path = res_exists(open_core_pkg, path, &ind_res);
+            "Misc" => {
+                path = resources.octool_config["tools_path"].as_str().unwrap();
             }
-        }
-        "UEFI" => {
-            let path = resources.octool_config["drivers_path"].as_str().unwrap();
-            if res_path == None {
-                res_path = res_exists(open_core_pkg, path, &ind_res);
+            "UEFI" => {
+                path = resources.octool_config["drivers_path"].as_str().unwrap();
             }
+            _ => path = "",
         }
-        _ => (),
+        res_path = res_exists(open_core_pkg, path, &ind_res);
     }
 
     println!("\x1B[2K");
@@ -220,7 +236,9 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             println!("{}", style("true").green().to_string());
             println!("{}\x1B[0K", style(url).green().to_string());
             if res_path == None {
-             res_path = get_or_update_local_parent(parent, &resources.dortania, &position.build_type).unwrap();
+                res_path =
+                    get_or_update_local_parent(parent, &resources.dortania, &position.build_type)
+                        .unwrap();
             }
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
@@ -232,7 +250,12 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             println!("{}\x1B[0K", style("true").green().to_string());
             println!("{}\x1B[0K", style(url).green().to_string());
             if res_path == None {
-             res_path = get_or_update_local_parent(parent, &resources.acidanthera, &position.build_type).unwrap();
+                res_path = get_or_update_local_parent(
+                    parent,
+                    &resources.acidanthera,
+                    &position.build_type,
+                )
+                .unwrap();
             }
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
@@ -244,7 +267,9 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             println!("{}\x1B[0K", style("true").green().to_string());
             println!("{}\x1B[0K", style(url).green().to_string());
             if res_path == None {
-             res_path = get_or_update_local_parent(parent, &resources.other, &position.build_type).unwrap();
+                res_path =
+                    get_or_update_local_parent(parent, &resources.other, &position.build_type)
+                        .unwrap();
             }
         }
         _ => println!("\x1B[31mfalse\x1B[0m"),
@@ -255,12 +280,20 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         None => println!("No local resource found\x1B[0K"),
         Some(p) => {
             println!("local path to resource\x1B[0K");
-            let out = status("find", &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res]).unwrap();
-            println!("{}", String::from_utf8(out.stdout)
-                     .unwrap()
-                     .lines()
-                     .last()
-                     .unwrap());
+            let out = status(
+                "find",
+                &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
+            )
+            .unwrap();
+            println!(
+                "{}",
+                String::from_utf8(out.stdout)
+                    .unwrap()
+                    .lines()
+                    .last()
+                    .unwrap()
+                    .to_owned()
+            );
         }
     }
 }
@@ -277,10 +310,18 @@ pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
 fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) -> Option<PathBuf> {
     let path = open_core_pkg.join(path).join(ind_res);
     if path.exists() {
-        println!("inside {:?} dir?\x1B[0K {}", path.parent().unwrap(), style("true").green());
+        println!(
+            "inside {:?} dir?\x1B[0K {}",
+            path.parent().unwrap(),
+            style("true").green()
+        );
         Some(path)
     } else {
-        println!("inside {:?} dir?\x1B[0K {}", path.parent().unwrap(), style("false").red());
+        println!(
+            "inside {:?} dir?\x1B[0K {}",
+            path.parent().unwrap(),
+            style("false").red()
+        );
         None
     }
 }
@@ -300,5 +341,70 @@ pub fn print_parents(resources: &Resources) {
             "name: {} {:?}",
             name, val["versions"][0]["links"]["release"]
         );
+    }
+}
+
+pub fn get_res_path(
+    resources: &Resources,
+    ind_res: &str,
+    section: &str,
+    build_type: &str,
+) -> String {
+    let mut res_path: Option<PathBuf>;
+    let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
+    let mut path = resources.working_dir.join("INPUT").join(ind_res);
+    if path.exists() {
+        res_path = Some(path.clone());
+    } else {
+        res_path = None;
+    }
+    let open_core_pkg = &resources.open_core_pkg;
+    if res_path == None {
+        match section {
+            "ACPI" => {
+                path = open_core_pkg
+                    .join(resources.octool_config["acpi_path"].as_str().unwrap())
+                    .join(&ind_res)
+            }
+            "Misc" => {
+                path = open_core_pkg
+                    .join(resources.octool_config["tools_path"].as_str().unwrap())
+                    .join(&ind_res);
+            }
+            "UEFI" => {
+                path = open_core_pkg
+                    .join(resources.octool_config["drivers_path"].as_str().unwrap())
+                    .join(&ind_res);
+            }
+            _ => (),
+        }
+        if path.exists() {
+            res_path = Some(path);
+        }
+    }
+    if res_path == None {
+        res_path = get_or_update_local_parent(parent, &resources.dortania, build_type).unwrap();
+    }
+    if res_path == None {
+        res_path = get_or_update_local_parent(parent, &resources.acidanthera, build_type).unwrap();
+    }
+    if res_path == None {
+        res_path = get_or_update_local_parent(parent, &resources.other, build_type).unwrap();
+    }
+    match res_path {
+        None => panic!("didn't find resource"),
+        Some(p) => {
+            let out = status(
+                "find",
+                &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
+            )
+            .unwrap();
+            String::from_utf8(out.stdout)
+                .unwrap()
+                .lines()
+                .last()
+                .unwrap()
+                .to_owned()
+        }
     }
 }

@@ -12,7 +12,6 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     let mut options = CopyOptions::new();
     options.overwrite = true;
     copy(&resources.open_core_pkg.join("X64/EFI"), "OUTPUT", &options)?;
-    copy("resources/OcBinaryData/Resources", "OUTPUT/EFI/OC", &options)?;
     fs_extra::dir::remove("OUTPUT/EFI/OC/Drivers")?;
     fs_extra::dir::remove("OUTPUT/EFI/OC/Tools")?;
     std::fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
@@ -96,6 +95,7 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     from_paths.dedup();
 
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
+    copy("resources/OcBinaryData/Resources", "OUTPUT/EFI/OC", &options)?;
 
     Ok(())
 }

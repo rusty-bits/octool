@@ -26,7 +26,6 @@ pub fn get_or_update_local_parent(
     resources: &Value,
     build_type: &str,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
-    println!("parent {:?}", parent);
     let url = resources[parent]["versions"][0]["links"][build_type]
         .as_str()
         .unwrap_or("");

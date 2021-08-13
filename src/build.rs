@@ -1,5 +1,4 @@
-//use crate::res::status;
-use crate::res::{self, Resources};
+use crate::res::{get_res_path, Resources};
 
 use fs_extra::copy_items;
 use fs_extra::dir::{copy, CopyOptions};
@@ -30,12 +29,11 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         let kext = val.as_dictionary().unwrap();
         if kext["Enabled"].as_boolean().unwrap() {
             let r = kext["Path"].as_string().unwrap().split('/').next().unwrap();
-            from_paths.push(res::get_res_path(&resources, r, "ACPI", "release"));
+            from_paths.push(get_res_path(&resources, r, "ACPI", "release"));
         }
     }
     from_paths.sort();
     from_paths.dedup();
-
     copy_items(&from_paths, "OUTPUT/EFI/OC/ACPI", &options)?;
 
     let mut from_paths = Vec::new();
@@ -53,12 +51,11 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
                 .split('/')
                 .next()
                 .unwrap();
-            from_paths.push(res::get_res_path(&resources, r, "Kernel", "release"));
+            from_paths.push(get_res_path(&resources, r, "Kernel", "release"));
         }
     }
     from_paths.sort();
     from_paths.dedup();
-
     copy_items(&from_paths, "OUTPUT/EFI/OC/Kexts", &options)?;
 
     let mut from_paths = Vec::new();
@@ -71,12 +68,11 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         let kext = val.as_dictionary().unwrap();
         if kext["Enabled"].as_boolean().unwrap() {
             let r = kext["Path"].as_string().unwrap().split('/').next().unwrap();
-            from_paths.push(res::get_res_path(&resources, r, "Misc", "release"));
+            from_paths.push(get_res_path(&resources, r, "Misc", "release"));
         }
     }
     from_paths.sort();
     from_paths.dedup();
-
     copy_items(&from_paths, "OUTPUT/EFI/OC/Tools", &options)?;
 
     let mut from_paths = Vec::new();
@@ -88,14 +84,13 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     for val in drivers {
         let driver = val.as_string().unwrap().to_string();
         if !driver.starts_with('#') {
-            from_paths.push(res::get_res_path(&resources, &driver, "UEFI", "release"));
+            from_paths.push(get_res_path(&resources, &driver, "UEFI", "release"));
         }
     }
     from_paths.sort();
     from_paths.dedup();
-
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
-    copy("resources/OcBinaryData/Resources", "OUTPUT/EFI/OC", &options)?;
 
+    copy("resources/OcBinaryData/Resources", "OUTPUT/EFI/OC", &options)?;
     Ok(())
 }

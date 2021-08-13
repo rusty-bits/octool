@@ -30,14 +30,14 @@ pub fn get_or_update_local_parent(
         .as_str()
         .unwrap_or("");
     if url == "" {
-        return Ok(None)
+        return Ok(None);
     }
     let hash = resources[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
     println!(
-        "\x1B[32mchecking\x1B[0m local copy of {} binaries\x1B[0K",
-        build_type
+        "\x1B[32mchecking\x1B[0m local [{}] {}\x1B[0K",
+        build_type, parent
     );
 
     let path = Path::new("resources");
@@ -139,16 +139,19 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
             "\x1B[32mfound\x1B[0m {:?}, checking for updates\x1B[0K",
             path.parent().unwrap()
         );
-        if status(
+        let out = status(
             "git",
-            &["-C", path.parent().unwrap().to_str().unwrap(), "pull"],
-        )?
-        .status
-        .code()
-        .unwrap()
-            != 0
-        {
+            &[
+                "-C",
+                path.parent().unwrap().to_str().unwrap(),
+                "pull",
+            ],
+        )?;
+
+        if out.status.code().unwrap() != 0 {
             panic!("failed to update {:?}", path);
+        } else {
+            println!("{}\x1B[0K", String::from_utf8(out.stdout)?);
         }
     } else {
         println!(
@@ -156,7 +159,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
             path.parent().unwrap(),
             url
         );
-        if status(
+        let out = status(
             "git",
             &[
                 "-C",
@@ -168,13 +171,12 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
                 branch,
                 url,
             ],
-        )?
-        .status
-        .code()
-        .unwrap()
-            != 0
-        {
+        )?;
+
+        if out.status.code().unwrap() != 0 {
             panic!("failed to clone {:?}", url);
+        } else {
+            println!("{}\x1B[0K", String::from_utf8(out.stdout)?);
         }
     };
     Ok(())
@@ -298,11 +300,11 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 }
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("\x1B[0K\n\x1B[32mloading\x1B[0m {} ... ", path);
+    print!("\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K", path);
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
-    println!("\x1B[32mdone\x1B[0m\x1B[0K");
+    println!("\x1B[32mdone\x1B[0m");
     Ok(v)
 }
 

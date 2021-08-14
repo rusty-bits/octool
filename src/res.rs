@@ -355,7 +355,7 @@ pub fn get_res_path(
     ind_res: &str,
     section: &str,
     build_type: &str,
-) -> String {
+) -> Option<String> {
     let mut res_path: Option<PathBuf>;
     let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
@@ -398,19 +398,21 @@ pub fn get_res_path(
         res_path = get_or_update_local_parent(parent, &resources.other, build_type).unwrap();
     }
     match res_path {
-        None => panic!("didn't find resource"),
+        None => None,
         Some(p) => {
             let out = status(
                 "find",
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
             )
             .unwrap();
-            String::from_utf8(out.stdout)
-                .unwrap()
-                .lines()
-                .last()
-                .unwrap()
-                .to_owned()
+            Some(
+                String::from_utf8(out.stdout)
+                    .unwrap()
+                    .lines()
+                    .last()
+                    .unwrap()
+                    .to_owned(),
+            )
         }
     }
 }

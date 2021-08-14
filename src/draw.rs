@@ -73,10 +73,11 @@ pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
 fn display_footer(term: &Term) {
     write!(
         &*term,
-        "\x1B[{}H {} save {} quit",
+        "\x1B[{}H {} save {} quit {} Go build EFI",
         term.size().0,
         style('s').reverse(),
-        style('q').reverse()
+        style('q').reverse(),
+        style('G').reverse()
     )
     .unwrap();
     write!(
@@ -101,7 +102,7 @@ fn display_header(position: &mut Position, term: &Term) {
     write!(
         &*term,
         "\x1B[H\x1B[0K{}   \x1B[7mi\x1B[0m {} info if available\r\n\x1B[0K  {}",
-        position.file_name,
+        style(&position.file_name).green(),
         style(&info).underlined(),
         match position.item_clone {
             Value::Array(_) | Value::Dictionary(_) => {

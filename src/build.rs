@@ -21,23 +21,28 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
 
+    println!("\x1B[32mCopying\x1B[0m enabled ACPI files ...");
     let mut from_paths = Vec::new();
-    let kexts = resources.config_plist.as_dictionary().unwrap()["ACPI"]
+    let acpis = resources.config_plist.as_dictionary().unwrap()["ACPI"]
         .as_dictionary()
         .unwrap()["Add"]
         .as_array()
         .unwrap();
-    for val in kexts {
-        let kext = val.as_dictionary().unwrap();
-        if kext["Enabled"].as_boolean().unwrap() {
-            let r = kext["Path"].as_string().unwrap().split('/').next().unwrap();
-            from_paths.push(get_res_path(&resources, r, "ACPI", "release"));
+    for val in acpis {
+        let acpi = val.as_dictionary().unwrap();
+        if acpi["Enabled"].as_boolean().unwrap() {
+            let r = acpi["Path"].as_string().unwrap().split('/').next().unwrap();
+            match get_res_path(&resources, r, "ACPI", "release") {
+                Some(res) => from_paths.push(res),
+                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+            }
         }
     }
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/ACPI", &options)?;
 
+    println!("\n\x1B[32mCopying\x1B[0m enabled Kexts ...");
     let mut from_paths = Vec::new();
     let kexts = resources.config_plist.as_dictionary().unwrap()["Kernel"]
         .as_dictionary()
@@ -53,30 +58,38 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
                 .split('/')
                 .next()
                 .unwrap();
-            from_paths.push(get_res_path(&resources, r, "Kernel", "release"));
+            match get_res_path(&resources, r, "Kernel", "release") {
+                Some(res) => from_paths.push(res),
+                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+            }
         }
     }
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Kexts", &options)?;
 
+    println!("\n\x1B[32mCopying\x1B[0m enabled Tools ...");
     let mut from_paths = Vec::new();
-    let kexts = resources.config_plist.as_dictionary().unwrap()["Misc"]
+    let tools = resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
         .unwrap()["Tools"]
         .as_array()
         .unwrap();
-    for val in kexts {
-        let kext = val.as_dictionary().unwrap();
-        if kext["Enabled"].as_boolean().unwrap() {
-            let r = kext["Path"].as_string().unwrap().split('/').next().unwrap();
-            from_paths.push(get_res_path(&resources, r, "Misc", "release"));
+    for val in tools {
+        let tool = val.as_dictionary().unwrap();
+        if tool["Enabled"].as_boolean().unwrap() {
+            let r = tool["Path"].as_string().unwrap().split('/').next().unwrap();
+            match get_res_path(&resources, r, "Misc", "release") {
+                Some(res) => from_paths.push(res),
+                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+            }
         }
     }
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Tools", &options)?;
 
+    println!("\n\x1B[32mCopying\x1B[0m enabled Drivers ...");
     let mut from_paths = Vec::new();
     let drivers = resources.config_plist.as_dictionary().unwrap()["UEFI"]
         .as_dictionary()
@@ -89,7 +102,10 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
             if &driver == "OpenCanopy.efi" {
                 has_open_canopy = true;
             }
-            from_paths.push(get_res_path(&resources, &driver, "UEFI", "release"));
+            match get_res_path(&resources, &driver, "UEFI", "release") {
+                Some(res) => from_paths.push(res),
+                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", &driver),
+            }
         }
     }
     from_paths.sort();
@@ -97,6 +113,8 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
 
     if has_open_canopy {
+        println!("\x1B[32mFound\x1B[0m OpenCanopy.efi in UEFI->Drivers");
+        println!("\x1B[32mCopying\x1B[0m resources from OcBinaryData");
         copy(
             "resources/OcBinaryData/Resources",
             "OUTPUT/EFI/OC",
@@ -111,32 +129,13 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         .as_string()
         .unwrap()
     {
+        "Basic" => {
+            println!("\n\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic");
+            compute_vault_plist(resources)?;
+        }
         "Secure" => {
-            println!("found Misc->Security->Vault set to Secure");
-            print!("\x1B[32mComputing\x1B[0m vault.plist ... ");
-            io::stdout().flush()?;
-            let _ = status(
-                &resources
-                    .open_core_pkg
-                    .join("Utilities/CreateVault/create_vault.sh")
-                    .to_str()
-                    .unwrap(),
-                &["OUTPUT/EFI/OC/."],
-            );
-            let _ = status(
-                &resources
-                    .open_core_pkg
-                    .join("Utilities/CreateVault/RsaTool")
-                    .to_str()
-                    .unwrap(),
-                &[
-                    "-sign",
-                    "OUTPUT/EFI/OC/vault.plist",
-                    "OUTPUT/EFI/OC/vault.sig",
-                    "OUTPUT/EFI/OC/vault.pub",
-                ],
-            );
-            println!("\x1B[32mdone\x1B[0m");
+            println!("\n\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure");
+            compute_vault_plist(resources)?;
             print!("\x1b[32mSigning\x1B[0m OpenCore.efi ... ");
             io::stdout().flush()?;
             let out = status("strings", &["-a", "-t", "d", "OUTPUT/EFI/OC/OpenCore.efi"])?;
@@ -165,13 +164,33 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         }
         _ => (),
     }
-    /*
-    517104
-    resources/OpenCore-0.7.3-RELEASE/Utilities/CreateVault/create_vault.sh OUTPUT/EFI/OC/.
-    resources/OpenCore-0.7.3-RELEASE/Utilities/CreateVault/RsaTool -sign OUTPUT/EFI/OC/vault.plist OUTPUT/EFI/OC/vault.sig OUTPUT/EFI/OC/vault.pub
-    off=$(($(strings -a -t d OUTPUT/EFI/OC/OpenCore.efi | grep "=BEGIN OC VAULT=" | cut -f1 -d' ')+16))
-    dd of=OUTPUT/EFI/OC/OpenCore.efi if=OUTPUT/EFI/OC/vault.pub bs=1 seek=$off count=528 conv=notrunc
-    rm OUTPUT/EFI/OC/vault.pub
-    */
+    Ok(())
+}
+
+fn compute_vault_plist(resources: &Resources) -> Result<(), Box<dyn Error>> {
+    print!("\x1B[32mComputing\x1B[0m vault.plist ... ");
+    io::stdout().flush()?;
+    let _ = status(
+        &resources
+            .open_core_pkg
+            .join("Utilities/CreateVault/create_vault.sh")
+            .to_str()
+            .unwrap(),
+        &["OUTPUT/EFI/OC/."],
+    );
+    let _ = status(
+        &resources
+            .open_core_pkg
+            .join("Utilities/CreateVault/RsaTool")
+            .to_str()
+            .unwrap(),
+        &[
+            "-sign",
+            "OUTPUT/EFI/OC/vault.plist",
+            "OUTPUT/EFI/OC/vault.sig",
+            "OUTPUT/EFI/OC/vault.pub",
+        ],
+    );
+    println!("\x1B[32mdone\x1B[0m");
     Ok(())
 }

@@ -74,7 +74,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                         break;
                     }
                 }
-                Key::Char('g') => {
+                Key::Char('G') => {
                     term.clear_screen()?;
                     build_output(&resources)?;
                     println!("\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist");
@@ -116,8 +116,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                         }
                         write!(
                             &term,
-                            "{}{}\x1B[0K",
-                            style("(END)").reverse(),
+                            "{}\x1B[0K",
                             style(" ".repeat(70)).underlined()
                         )?;
                     } else {

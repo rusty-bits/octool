@@ -69,12 +69,15 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
     }
 
     let mut itemize = 0;
+    let mut hit_bottom = false;
 
     for line in lines {
         if row == rows {
+            hit_bottom = true;
             write!(&*term, "{} ...\x1B[G", style("more").reverse()).unwrap();
             match term.read_key().unwrap() {
                 console::Key::Char('q') | console::Key::Escape => {
+                    hit_bottom = false;
                     showing_info = false;
                     break;
                 }
@@ -106,6 +109,17 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
         }
         write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
         row += 1;
+    }
+    if hit_bottom {
+        write!(&*term, "{}  q to close\x1B[0J", style("(END)").reverse()).unwrap();
+        while showing_info {
+            match term.read_key().unwrap() {
+                console::Key::Char('q') => {
+                    showing_info = false;
+                }
+                _ => write!(&*term, "\x07").unwrap(),
+            }
+        }
     }
     showing_info
 }

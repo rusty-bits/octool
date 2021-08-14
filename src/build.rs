@@ -1,12 +1,14 @@
-use crate::res::{get_res_path, Resources};
+use crate::res::{get_res_path, status, Resources};
 
 use fs_extra::copy_items;
 use fs_extra::dir::{copy, CopyOptions};
 use std::error::Error;
+use std::io::{self, Write};
 
 pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     fs_extra::dir::remove("OUTPUT")?;
     std::fs::create_dir_all("OUTPUT/EFI")?;
+    let mut has_open_canopy = false;
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
@@ -84,6 +86,9 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     for val in drivers {
         let driver = val.as_string().unwrap().to_string();
         if !driver.starts_with('#') {
+            if &driver == "OpenCanopy.efi" {
+                has_open_canopy = true;
+            }
             from_paths.push(get_res_path(&resources, &driver, "UEFI", "release"));
         }
     }
@@ -91,6 +96,82 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
 
-    copy("resources/OcBinaryData/Resources", "OUTPUT/EFI/OC", &options)?;
+    if has_open_canopy {
+        copy(
+            "resources/OcBinaryData/Resources",
+            "OUTPUT/EFI/OC",
+            &options,
+        )?;
+    }
+    match resources.config_plist.as_dictionary().unwrap()["Misc"]
+        .as_dictionary()
+        .unwrap()["Security"]
+        .as_dictionary()
+        .unwrap()["Vault"]
+        .as_string()
+        .unwrap()
+    {
+        "Secure" => {
+            println!("found Misc->Security->Vault set to Secure");
+            print!("\x1B[32mComputing\x1B[0m vault.plist ... ");
+            io::stdout().flush()?;
+            let _ = status(
+                &resources
+                    .open_core_pkg
+                    .join("Utilities/CreateVault/create_vault.sh")
+                    .to_str()
+                    .unwrap(),
+                &["OUTPUT/EFI/OC/."],
+            );
+            let _ = status(
+                &resources
+                    .open_core_pkg
+                    .join("Utilities/CreateVault/RsaTool")
+                    .to_str()
+                    .unwrap(),
+                &[
+                    "-sign",
+                    "OUTPUT/EFI/OC/vault.plist",
+                    "OUTPUT/EFI/OC/vault.sig",
+                    "OUTPUT/EFI/OC/vault.pub",
+                ],
+            );
+            println!("\x1B[32mdone\x1B[0m");
+            print!("\x1b[32mSigning\x1B[0m OpenCore.efi ... ");
+            io::stdout().flush()?;
+            let out = status("strings", &["-a", "-t", "d", "OUTPUT/EFI/OC/OpenCore.efi"])?;
+            let mut offset = 0;
+            for line in String::from_utf8(out.stdout).unwrap().lines() {
+                let (off, s) = line.split_once(' ').unwrap();
+                if s == "=BEGIN OC VAULT=" {
+                    offset = off.parse::<i32>().unwrap() + 16;
+                }
+            }
+            let mut seek = "seek=".to_string();
+            seek.push_str(&offset.to_string());
+            let _ = status(
+                "dd",
+                &[
+                    "of=OUTPUT/EFI/OC/OpenCore.efi",
+                    "if=OUTPUT/EFI/OC/vault.pub",
+                    "bs=1",
+                    &seek,
+                    "count=528",
+                    "conv=notrunc",
+                ],
+            );
+            std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
+            println!("\x1B[32mdone\x1B[0m");
+        }
+        _ => (),
+    }
+    /*
+    517104
+    resources/OpenCore-0.7.3-RELEASE/Utilities/CreateVault/create_vault.sh OUTPUT/EFI/OC/.
+    resources/OpenCore-0.7.3-RELEASE/Utilities/CreateVault/RsaTool -sign OUTPUT/EFI/OC/vault.plist OUTPUT/EFI/OC/vault.sig OUTPUT/EFI/OC/vault.pub
+    off=$(($(strings -a -t d OUTPUT/EFI/OC/OpenCore.efi | grep "=BEGIN OC VAULT=" | cut -f1 -d' ')+16))
+    dd of=OUTPUT/EFI/OC/OpenCore.efi if=OUTPUT/EFI/OC/vault.pub bs=1 seek=$off count=528 conv=notrunc
+    rm OUTPUT/EFI/OC/vault.pub
+    */
     Ok(())
 }

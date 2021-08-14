@@ -74,7 +74,16 @@ pub fn init(
         "\n\x1B[32mValidating\x1B[0m {:?} with latest acidanthera/ocvalidate",
         config_plist
     );
+    validate_plist(&config_plist, &resources)?;
 
+
+    position.file_name = config_plist.to_str().unwrap().to_owned();
+    position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
+
+    Ok(())
+}
+
+pub fn validate_plist(config_plist: &PathBuf, resources: &Resources) -> Result<(), Box<dyn Error>> {
     let out = res::status(
         resources
             .open_core_pkg
@@ -88,9 +97,5 @@ pub fn init(
         println!("\x1B[31mWARNING: Error(s) found in config.plist!\x1B[0m");
         println!("{}", String::from_utf8(out.stderr).unwrap());
     }
-
-    position.file_name = config_plist.to_str().unwrap().to_owned();
-    position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
-
     Ok(())
 }

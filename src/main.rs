@@ -56,7 +56,9 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     };
 
     init(&config_plist, &mut resources, &mut position)?;
-    println!("\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any key to continue\x1B[0m");
+    println!(
+        "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m"
+    );
 
     if term.read_key()? != Key::Char('q') {
         update_screen(&mut position, &resources.config_plist, &term);
@@ -75,13 +77,11 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 Key::Char('g') => {
                     term.clear_screen()?;
                     build_output(&resources)?;
-                    let _status = Command::new(
-                        resources
-                            .open_core_pkg
-                            .join("Utilities/ocvalidate/ocvalidate"),
-                    )
-                    .arg("OUTPUT/EFI/OC/config.plist")
-                    .status()?;
+                    println!("\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist");
+                    init::validate_plist(
+                        &Path::new("OUTPUT/EFI/OC/config.plist").to_path_buf(),
+                        &resources,
+                    )?;
                     break;
                 }
                 Key::Char('p') => {
@@ -114,7 +114,12 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                         } else {
                             showing_info = parse_tex::show_info(&position, &term);
                         }
-                        write!(&term, "{}\x1B[0K", style(" ".repeat(70)).underlined())?;
+                        write!(
+                            &term,
+                            "{}{}\x1B[0K",
+                            style("(END)").reverse(),
+                            style(" ".repeat(70)).underlined()
+                        )?;
                     } else {
                         showing_info = false;
                     }

@@ -142,6 +142,8 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         let out = status(
             "git",
             &[
+                "-c",
+                "color.ui=always",
                 "-C",
                 path.parent().unwrap().to_str().unwrap(),
                 "pull",
@@ -162,6 +164,8 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         let out = status(
             "git",
             &[
+                "-c",
+                "color.ui=always",
                 "-C",
                 path.to_str().unwrap().split('/').next().unwrap(),
                 "clone",
@@ -301,6 +305,7 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
 
 pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     print!("\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K", path);
+    std::io::stdout().flush()?;
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;

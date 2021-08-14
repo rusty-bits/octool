@@ -76,12 +76,17 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 }
                 Key::Char('G') => {
                     term.clear_screen()?;
-                    build_output(&resources)?;
-                    println!("\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist");
-                    init::validate_plist(
+                    let build_okay = build_output(&resources)?;
+                    println!("\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist");
+                    let config_okay = init::validate_plist(
                         &Path::new("OUTPUT/EFI/OC/config.plist").to_path_buf(),
                         &resources,
                     )?;
+                    if !build_okay || !config_okay {
+                        println!("\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m");
+                    } else {
+                        println!("\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m");
+                    }
                     break;
                 }
                 Key::Char('p') => {
@@ -114,11 +119,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                         } else {
                             showing_info = parse_tex::show_info(&position, &term);
                         }
-                        write!(
-                            &term,
-                            "{}\x1B[0K",
-                            style(" ".repeat(70)).underlined()
-                        )?;
+                        write!(&term, "{}\x1B[0K", style(" ".repeat(70)).underlined())?;
                     } else {
                         showing_info = false;
                     }

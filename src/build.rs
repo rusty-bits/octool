@@ -5,10 +5,11 @@ use fs_extra::dir::{copy, CopyOptions};
 use std::error::Error;
 use std::io::{self, Write};
 
-pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
+pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     fs_extra::dir::remove("OUTPUT")?;
     std::fs::create_dir_all("OUTPUT/EFI")?;
     let mut has_open_canopy = false;
+    let mut build_okay = true;
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
@@ -34,7 +35,10 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
             let r = acpi["Path"].as_string().unwrap().split('/').next().unwrap();
             match get_res_path(&resources, r, "ACPI", "release") {
                 Some(res) => from_paths.push(res),
-                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+                None => {
+                    build_okay = false;
+                    println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r);
+                }
             }
         }
     }
@@ -60,7 +64,10 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
                 .unwrap();
             match get_res_path(&resources, r, "Kernel", "release") {
                 Some(res) => from_paths.push(res),
-                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+                None => {
+                    build_okay = false;
+                    println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r);
+                }
             }
         }
     }
@@ -81,7 +88,10 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
             let r = tool["Path"].as_string().unwrap().split('/').next().unwrap();
             match get_res_path(&resources, r, "Misc", "release") {
                 Some(res) => from_paths.push(res),
-                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r),
+                None => {
+                    build_okay = false;
+                    println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", r);
+                }
             }
         }
     }
@@ -104,7 +114,10 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
             }
             match get_res_path(&resources, &driver, "UEFI", "release") {
                 Some(res) => from_paths.push(res),
-                None => println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", &driver),
+                None => {
+                    build_okay = false;
+                    println!("\x1B[31mERROR: {} not found, skipping\x1B[0m", &driver);
+                }
             }
         }
     }
@@ -164,7 +177,7 @@ pub fn build_output(resources: &Resources) -> Result<(), Box<dyn Error>> {
         }
         _ => (),
     }
-    Ok(())
+    Ok(build_okay)
 }
 
 fn compute_vault_plist(resources: &Resources) -> Result<(), Box<dyn Error>> {

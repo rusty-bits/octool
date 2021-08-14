@@ -57,7 +57,7 @@ pub fn get_or_update_local_parent(
                 sum_file.read_to_string(&mut sum)?;
                 println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
                 if sum != hash {
-                    println!("\x1B[31mnew version found, downloading\x1B[0m\x1B[0K");
+                    println!("\x1B[32mnew version found, Downloading\x1B[0m\x1B[0K");
                     get_file_and_unzip(url, hash, &path)?;
                 } else {
                     println!("Already up to date.\x1B[0K");
@@ -66,7 +66,7 @@ pub fn get_or_update_local_parent(
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
                     println!(
-                        "{:?} \x1B[31mnot found, downloading\x1B[0m\x1B[0K\n{}\x1B[0K",
+                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K\n{}\x1B[0K",
                         dir, url
                     );
                     println!("remote hash {}\x1B[0K", hash);
@@ -85,8 +85,7 @@ pub fn get_or_update_local_parent(
 }
 
 pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
-    let out = Command::new(command).args(args).output()?;
-    Ok(out)
+    Ok(Command::new(command).args(args).output()?)
 }
 
 fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn Error>> {
@@ -157,7 +156,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         }
     } else {
         println!(
-            "{:?} \x1B[31mnot found\x1B[0m\x1B[0K\n Cloning from {:?}\x1B[0K",
+            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\n{:?}\x1B[0K",
             path.parent().unwrap(),
             url
         );
@@ -169,6 +168,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
                 "-C",
                 path.to_str().unwrap().split('/').next().unwrap(),
                 "clone",
+                "--progress",
                 "--depth",
                 "1",
                 "--branch",
@@ -180,7 +180,7 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         if out.status.code().unwrap() != 0 {
             panic!("failed to clone {:?}", url);
         } else {
-            println!("{}\x1B[0K", String::from_utf8(out.stdout)?);
+            println!("{}\x1B[0K", String::from_utf8(out.stderr)?);
         }
     };
     Ok(())
@@ -234,57 +234,63 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
         res_path = res_exists(open_core_pkg, path, &ind_res);
     }
 
-    println!("\x1B[2K");
-    print!("{} in Dortania Builds? \x1B[0K", parent);
-    match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
-        Value::String(url) => {
-            println!("{}", style("true").green().to_string());
-            println!("{}\x1B[0K", style(url).green().to_string());
-            if res_path == None {
-                res_path =
-                    get_or_update_local_parent(parent, &resources.dortania, &position.build_type)
-                        .unwrap();
+    if parent.len() > 0 {
+        println!("\x1B[2K");
+        print!("{} in Dortania Builds? \x1B[0K", parent);
+        match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
+            Value::String(url) => {
+                println!("{}", style("true").green().to_string());
+                println!("{}\x1B[0K", style(url).green().to_string());
+                if res_path == None {
+                    res_path = get_or_update_local_parent(
+                        parent,
+                        &resources.dortania,
+                        &position.build_type,
+                    )
+                    .unwrap();
+                }
             }
+            _ => println!("\x1B[31mfalse\x1B[0m"),
         }
-        _ => println!("\x1B[31mfalse\x1B[0m"),
-    }
 
-    print!("\x1B[0K\n{} in Acidanthera Releases? \x1B[0K", parent);
-    match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
-        Value::String(url) => {
-            println!("{}\x1B[0K", style("true").green().to_string());
-            println!("{}\x1B[0K", style(url).green().to_string());
-            if res_path == None {
-                res_path = get_or_update_local_parent(
-                    parent,
-                    &resources.acidanthera,
-                    &position.build_type,
-                )
-                .unwrap();
+        print!("\x1B[0K\n{} in Acidanthera Releases? \x1B[0K", parent);
+        match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
+            Value::String(url) => {
+                println!("{}\x1B[0K", style("true").green().to_string());
+                println!("{}\x1B[0K", style(url).green().to_string());
+                if res_path == None {
+                    res_path = get_or_update_local_parent(
+                        parent,
+                        &resources.acidanthera,
+                        &position.build_type,
+                    )
+                    .unwrap();
+                }
             }
+            _ => println!("\x1B[31mfalse\x1B[0m"),
         }
-        _ => println!("\x1B[31mfalse\x1B[0m"),
-    }
 
-    print!("\x1B[0K\n{} in other? \x1B[0K", parent);
-    match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
-        Value::String(url) => {
-            println!("{}\x1B[0K", style("true").green().to_string());
-            println!("{}\x1B[0K", style(url).green().to_string());
-            if res_path == None {
-                res_path =
-                    get_or_update_local_parent(parent, &resources.other, &position.build_type)
-                        .unwrap();
+        print!("\x1B[0K\n{} in other? \x1B[0K", parent);
+        match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
+            Value::String(url) => {
+                println!("{}\x1B[0K", style("true").green().to_string());
+                println!("{}\x1B[0K", style(url).green().to_string());
+                if res_path == None {
+                    res_path =
+                        get_or_update_local_parent(parent, &resources.other, &position.build_type)
+                            .unwrap();
+                }
             }
+            _ => println!("\x1B[31mfalse\x1B[0m"),
         }
-        _ => println!("\x1B[31mfalse\x1B[0m"),
+    } else {
+        println!("\x1B[33mNo parent found for resource, skipping prebuilt repos\x1B[0m\x1B[0J");
     }
-
     println!("\x1B[2K");
     match res_path {
-        None => println!("No local resource found\x1B[0K"),
+        None => println!("\x1B[31mNo local resource found\x1B[0m\x1B[0K"),
         Some(p) => {
-            println!("local path to resource\x1B[0K");
+            println!("\x1B[32mlocal path to resource\x1B[0m\x1B[0K");
             let out = status(
                 "find",
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],

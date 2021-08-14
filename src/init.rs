@@ -83,7 +83,8 @@ pub fn init(
     Ok(())
 }
 
-pub fn validate_plist(config_plist: &PathBuf, resources: &Resources) -> Result<(), Box<dyn Error>> {
+pub fn validate_plist(config_plist: &PathBuf, resources: &Resources) -> Result<bool, Box<dyn Error>> {
+    let mut config_okay = true;
     let out = res::status(
         resources
             .open_core_pkg
@@ -94,8 +95,9 @@ pub fn validate_plist(config_plist: &PathBuf, resources: &Resources) -> Result<(
     )?;
     println!("{}", String::from_utf8(out.stdout).unwrap());
     if out.status.code().unwrap() != 0 {
-        println!("\x1B[31mWARNING: Error(s) found in config.plist!\x1B[0m");
+        config_okay = false;
+        println!("\x1B[31mERROR: Problems(s) found in config.plist!\x1B[0m");
         println!("{}", String::from_utf8(out.stderr).unwrap());
     }
-    Ok(())
+    Ok(config_okay)
 }

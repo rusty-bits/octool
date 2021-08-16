@@ -11,9 +11,9 @@ pub fn init(
     position: &mut Position,
 ) -> Result<(), Box<dyn Error>> {
     resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json")?;
-    position.build_type = resources.octool_config["build_version"]
+    position.build_type = resources.octool_config["build_type"]
         .as_str()
-        .unwrap()
+        .unwrap_or("release")
         .to_string();
     println!(
         "\x1B[32mbuild_version set to\x1B[0m {}",
@@ -21,10 +21,6 @@ pub fn init(
     );
     position.resource_sections =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
-    println!(
-        "\x1B[32mplist resource sections\x1B[0m {:?}",
-        position.resource_sections
-    );
 
     println!("\n\x1B[32mchecking\x1B[0m acidanthera OpenCorePkg source");
     let path = Path::new(

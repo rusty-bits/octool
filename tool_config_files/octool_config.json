@@ -14,6 +14,11 @@
         "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
         "opencorepkg_branch": "master",
         "opencorepkg_path": "tool_config_files/OpenCorePkg/.git",
-        "build_version": "release"
+        "build_type": "release",
+        "canopy_language": "en",
+        "global_audio_files": [
+                "AXEFIAudio_Beep.mp3",
+                "AXEFIAudio_Click.mp3",
+                "AXEFIAudio_VoiceOver_Boot.mp3"
+        ]
 }
-

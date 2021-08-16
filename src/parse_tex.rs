@@ -23,7 +23,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
             sub_search.push_str(&position.sec_key[1]);
             sub_search.push_str(" Properties}\\");
         }
-        _ => return true,
+        _ => return false,
     }
     write!(&*term, "\x1B[G-\r\n").unwrap();
     row += 1;
@@ -37,7 +37,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                     break;
                 }
             }
-            None => return true,
+            None => return false,
         }
     }
 
@@ -49,7 +49,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                         break;
                     }
                 }
-                None => return true,
+                None => return false,
             }
         }
 
@@ -63,7 +63,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                         break;
                     }
                 }
-                None => return true,
+                None => return false,
             }
         }
     }

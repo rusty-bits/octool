@@ -23,16 +23,16 @@ pub struct Resources {
 
 pub fn get_or_update_local_parent(
     parent: &str,
-    resources: &Value,
+    single_resource: &Value,
     build_type: &str,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
-    let url = resources[parent]["versions"][0]["links"][build_type]
+    let url = single_resource[parent]["versions"][0]["links"][build_type]
         .as_str()
         .unwrap_or("");
     if url == "" {
         return Ok(None);
     }
-    let hash = resources[parent]["versions"][0]["hashes"][build_type]["sha256"]
+    let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
     println!(
@@ -66,8 +66,8 @@ pub fn get_or_update_local_parent(
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
                     println!(
-                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K\n{}\x1B[0K",
-                        dir, url
+                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K",
+                        dir
                     );
                     println!("remote hash {}\x1B[0K", hash);
                     get_file_and_unzip(url, hash, &path)?;
@@ -76,7 +76,7 @@ pub fn get_or_update_local_parent(
             },
         },
         "git" => {
-            let branch = resources[parent]["branch"].as_str().unwrap_or("master");
+            let branch = single_resource[parent]["branch"].as_str().unwrap_or("master");
             clone_or_pull(url, &git_file, branch)?;
         }
         _ => panic!("unknown parent type"),
@@ -204,8 +204,6 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
     if ind_res.starts_with('#') {
         ind_res.remove(0);
     }
-    //    let ind_res = &ind_res;
-    //    let stem = ind_res.split('.').next().unwrap();
     let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
 
     println!(
@@ -339,11 +337,12 @@ fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) -> Option<Path
 }
 
 pub fn print_parents(resources: &Resources) {
+    let build_type = resources.octool_config["build_type"].as_str().unwrap_or("release");
     let m: HashMap<String, Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
     for (name, val) in m {
         println!(
             "name: {} {:?}",
-            name, val["versions"][0]["links"]["release"]
+            name, val["versions"][0]["links"][build_type]
         );
     }
     let m: HashMap<String, Value> =
@@ -351,7 +350,7 @@ pub fn print_parents(resources: &Resources) {
     for (name, val) in m {
         println!(
             "name: {} {:?}",
-            name, val["versions"][0]["links"]["release"]
+            name, val["versions"][0]["links"][build_type]
         );
     }
 }
@@ -360,18 +359,18 @@ pub fn get_res_path(
     resources: &Resources,
     ind_res: &str,
     section: &str,
-    build_type: &str,
 ) -> Option<String> {
     let mut res_path: Option<PathBuf>;
     let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
+    let build_type = resources.octool_config["build_type"].as_str().unwrap_or("release");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
     if path.exists() {
         res_path = Some(path.clone());
     } else {
         res_path = None;
     }
-    let open_core_pkg = &resources.open_core_pkg;
     if res_path == None {
+    let open_core_pkg = &resources.open_core_pkg;
         match section {
             "ACPI" => {
                 path = open_core_pkg

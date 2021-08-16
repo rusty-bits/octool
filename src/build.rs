@@ -1,9 +1,11 @@
-use crate::res::{get_res_path, status, Resources};
+use crate::res::{Resources, get_or_update_local_parent, get_res_path, status};
 
 use fs_extra::copy_items;
 use fs_extra::dir::{copy, CopyOptions};
 use std::error::Error;
+use std::fs;
 use std::io::{self, Write};
+use std::path::Path;
 
 pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     fs_extra::dir::remove("OUTPUT")?;
@@ -33,7 +35,7 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
         let acpi = val.as_dictionary().unwrap();
         if acpi["Enabled"].as_boolean().unwrap() {
             let r = acpi["Path"].as_string().unwrap().split('/').next().unwrap();
-            match get_res_path(&resources, r, "ACPI", "release") {
+            match get_res_path(&resources, r, "ACPI") {
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
@@ -45,8 +47,9 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/ACPI", &options)?;
+    println!("\x1B[32mdone\x1B[0m\n");
 
-    println!("\n\x1B[32mCopying\x1B[0m enabled Kexts ...");
+    println!("\x1B[32mCopying\x1B[0m enabled Kexts ...");
     let mut from_paths = Vec::new();
     let kexts = resources.config_plist.as_dictionary().unwrap()["Kernel"]
         .as_dictionary()
@@ -62,7 +65,7 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
                 .split('/')
                 .next()
                 .unwrap();
-            match get_res_path(&resources, r, "Kernel", "release") {
+            match get_res_path(&resources, r, "Kernel") {
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
@@ -74,8 +77,9 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Kexts", &options)?;
+    println!("\x1B[32mdone\x1B[0m\n");
 
-    println!("\n\x1B[32mCopying\x1B[0m enabled Tools ...");
+    println!("\x1B[32mCopying\x1B[0m enabled Tools ...");
     let mut from_paths = Vec::new();
     let tools = resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
@@ -86,7 +90,7 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
         let tool = val.as_dictionary().unwrap();
         if tool["Enabled"].as_boolean().unwrap() {
             let r = tool["Path"].as_string().unwrap().split('/').next().unwrap();
-            match get_res_path(&resources, r, "Misc", "release") {
+            match get_res_path(&resources, r, "Misc") {
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
@@ -98,8 +102,9 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Tools", &options)?;
+    println!("\x1B[32mdone\x1B[0m\n");
 
-    println!("\n\x1B[32mCopying\x1B[0m enabled Drivers ...");
+    println!("\x1B[32mCopying\x1B[0m enabled Drivers ...");
     let mut from_paths = Vec::new();
     let drivers = resources.config_plist.as_dictionary().unwrap()["UEFI"]
         .as_dictionary()
@@ -112,7 +117,7 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
             if &driver == "OpenCanopy.efi" {
                 has_open_canopy = true;
             }
-            match get_res_path(&resources, &driver, "UEFI", "release") {
+            match get_res_path(&resources, &driver, "UEFI") {
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
@@ -124,16 +129,53 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     from_paths.sort();
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
+    println!("\x1B[32mdone\x1B[0m\n");
 
     if has_open_canopy {
         println!("\x1B[32mFound\x1B[0m OpenCanopy.efi in UEFI->Drivers");
-        println!("\x1B[32mCopying\x1B[0m resources from OcBinaryData");
-        copy(
-            "resources/OcBinaryData/Resources",
-            "OUTPUT/EFI/OC",
-            &options,
-        )?;
+        let _ = get_or_update_local_parent("OcBinaryData", &resources.acidanthera, "release")?;
+        let canopy_language = resources.octool_config["canopy_language"]
+            .as_str()
+            .unwrap_or("en");
+        let mut lang = "_".to_string();
+        lang.push_str(&canopy_language);
+        lang.push('_');
+
+        let mut entries = fs::read_dir("resources/OcBinaryData/Resources/Audio")?
+            .map(|res| res.map(|e| e.path()))
+            .collect::<Result<Vec<_>, io::Error>>()?;
+
+        entries.retain(|p| p.to_str().unwrap().contains(&lang));
+        let f = Path::new("resources/OcBinaryData/Resources/Audio");
+        for file in resources.octool_config["global_audio_files"].as_array().unwrap() {
+            entries.push(f.join(file.as_str().unwrap()));
+        }
+
+        print!(
+            "\x1B[32mCopying\x1B[0m {} Audio resources from OcBinaryData ... ",
+            entries.len()
+        );
+
+        copy_items(&entries, "OUTPUT/EFI/OC/Resources/Audio", &options)?;
+        println!("\x1B[32mdone\x1B[0m");
+
+        for res in &["Font", "Image", "Label"] {
+            let in_path = Path::new("resources/OcBinaryData/Resources");
+            let out_path = Path::new("OUTPUT/EFI/OC/Resources");
+            let entries = fs::read_dir(in_path.join(res))?
+                .map(|r| r.map(|p| p.path()))
+                .collect::<Result<Vec<_>, io::Error>>()?;
+            print!(
+                "\x1B[32mCopying\x1B[0m {} {} resources from OcBinaryData ... ",
+                entries.len(),
+                res
+            );
+            copy_items(&entries, out_path.join(res), &options)?;
+            println!("\x1B[32mdone\x1B[0m");
+        }
+        println!();
     }
+
     match resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
         .unwrap()["Security"]
@@ -143,11 +185,11 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
         .unwrap()
     {
         "Basic" => {
-            println!("\n\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic");
+            println!("\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic");
             compute_vault_plist(resources)?;
         }
         "Secure" => {
-            println!("\n\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure");
+            println!("\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure");
             compute_vault_plist(resources)?;
             print!("\x1b[32mSigning\x1B[0m OpenCore.efi ... ");
             io::stdout().flush()?;
@@ -173,7 +215,7 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
                 ],
             );
             std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
-            println!("\x1B[32mdone\x1B[0m");
+            println!("\x1B[32mdone\x1B[0m\n");
         }
         _ => (),
     }

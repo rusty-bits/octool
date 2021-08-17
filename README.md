@@ -59,3 +59,4 @@ Usage:
  - change tool configuration from inside tool, the configuration file tool_config_files/octool_config.json contains vars to set up octool, for example using either `release` or `degug` versions of resources, only copy english versions of the audio files for OpenCanopy `en`, and other settings like that  
  - add an 'Add' function to add a section to the config.plist, such as another kext or another DeviceProperty, use the latest Sample.plist or the SampleFull.plist as a template for what to add to a section  
  - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3` etc., currently octool just uses the latest build from the Dortania builds
+ - cross compile the tool for windows/linux use, currently only supports running on macOS

@@ -1,7 +1,7 @@
 w.i.p. octool written in Rust  
 
 A small project to help me learn the Rust language.  All suggestions and criticisms are welcome.  
-You can build from the included source by running `cargo build --release` or you can use the included `octool` binary, which I will try to keep current with the code.
+You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the included `octool` binary, which I will try to keep current with the code.
 
 
 octool currently takes no command line arguments except for a path to a config.plist to use if desired.

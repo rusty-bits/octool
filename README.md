@@ -1,5 +1,46 @@
-w.i.p. octool written in rust  
+w.i.p. octool written in Rust  
 
- Going to rewrite OC-tool in Rust instead of D. I like the looks of D, but too many libraries have been abandoned.  Going back to Rust.  
+A small project to help me learn the Rust language.  All suggestions and criticisms are welcome.
+
 
  If you're looking for the currently working OC-tool, [this may be the link you are looking for](https://github.com/rusty-bits/OC-tool).
+
+Here's a rundown of the current process octool uses.  
+
+At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the latest binary resources.  Thank you dhinakg, hieplpvip, and khronokernel. 
+-If it finds it locally, it check for updates, if it doesn't find it octool pulls the repo into the tool_config_files folder.
+
+Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg) in order to have the latest Sample.plist and Configuration.tex files, etc.  
+
+Then, octool pulls the latest build of the OpenCorePkg from the Dortania builds so it will have compiled tools to use such as ocvalitate.
+Lastly, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.
+If you continue, you then enter the config.plist editor...
+
+Navigation: arrow keys or standard vi keys
+          'up'/'k'            jump to top of section
+              ^                       't'
+              |                        ^
+'left'/'h' <-- --> 'right'/'l'         |
+              |                        v
+              v                       'b'
+          'down'/'j'          jump to bottom of section
+Usage:
+'i' show info of highlighted item. If item is resource such as a kext or driver, octool will show the source of the file it will place in the OUTPUT EFI folder.  If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest Acidanthera Configuration.tex file.
+
+'TAB/ENTER' will switch to edit mode for string, integer, or data fields. 'TAB' will also toggle between editing a data field as hex or as a string. 'ENTER' will save any changes made 'ESC' will discard and changes
+
+'SPACE' will toggle a boolean value between true/false - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list
+
+'D' will delete the highlighted field or section, no code in place yet asking for conformation or for undoing the deletion, also no code yet to add a child or section to the config.plist
+
+'G' go - make an OUTPUT/EFI/OC folder from the config.plist
+ - if OpenCanopy.efi is enabled it will copy the OcBinaryData Resources to OUTPUT/EFI/OC/Resources
+ - if Misc->Security->Vault is set to Basic or Secure, octool will compute the required files and sign the OpenCore.efi if needed
+ - right now, octool will ignore resources that it doesn't know about unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist to disabled for the unknown resource
+ - any file placed in the INPUT folder will take priority and will be used for the OUTPUT/EFI, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap, but I need to have octool print a message as a reminder when it uses files from INPUT
+
+'p' prints out some parent.json data for debugging
+
+'s' save a copy of the config.plist as test_out.plist (for now)
+
+'q' quit without saving

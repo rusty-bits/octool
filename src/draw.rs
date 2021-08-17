@@ -42,6 +42,17 @@ impl Position {
             self.section_num[self.depth] = 0;
         }
     }
+    pub fn delete(&mut self) {
+        if self.sec_length[self.depth] > 0 {
+            self.sec_length[self.depth] -= 1;
+        }
+        if self.section_num[self.depth] == self.sec_length[self.depth] {
+            self.up();
+        }
+        if self.sec_length[self.depth] == 0 {
+            self.left();
+        }
+    }
 }
 
 pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
@@ -122,10 +133,7 @@ fn display_header(position: &mut Position, term: &Term) {
     if position.depth == 2 {
         let mut sec = position.sec_key[0].clone();
         sec.push_str(&position.sec_key[1]);
-        if position
-            .resource_sections
-            .contains(&sec)
-        {
+        if position.resource_sections.contains(&sec) {
             write!(&*term, " \x1B[7mspace\x1B[0m to toggle").unwrap();
         }
     }

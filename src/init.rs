@@ -1,6 +1,7 @@
-use plist::Value;
 use std::error::Error;
 use std::path::{Path, PathBuf};
+
+use plist::Value;
 
 use crate::draw::Position;
 use crate::res::{self, Resources};
@@ -72,14 +73,32 @@ pub fn init(
     );
     validate_plist(&config_plist, &resources)?;
 
-
     position.file_name = config_plist.to_str().unwrap().to_owned();
     position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
+    let mut found_key = false;
+    let keys: Vec<String> = resources
+        .config_plist
+        .as_dictionary()
+        .unwrap()
+        .keys()
+        .map(|s| s.to_string())
+        .collect();
+    for (i, k) in keys.iter().enumerate() {
+        if !found_key {
+            if !k.starts_with('#') {
+                position.section_num[0] = i;
+                found_key = true;
+            }
+        }
+    }
 
     Ok(())
 }
 
-pub fn validate_plist(config_plist: &PathBuf, resources: &Resources) -> Result<bool, Box<dyn Error>> {
+pub fn validate_plist(
+    config_plist: &PathBuf,
+    resources: &Resources,
+) -> Result<bool, Box<dyn Error>> {
     let mut config_okay = true;
     let out = res::status(
         resources

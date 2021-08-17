@@ -13,7 +13,7 @@ use std::{env, error::Error};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
-use crate::edit::edit_value;
+use crate::edit::{delete_value, edit_value};
 use crate::init::init;
 use crate::res::Resources;
 
@@ -56,6 +56,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
     };
 
     init(&config_plist, &mut resources, &mut position)?;
+
     println!(
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m"
     );
@@ -110,6 +111,11 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 }
                 Key::Enter | Key::Tab => {
                     edit_value(&position, &mut resources.config_plist, &term, false)?
+                }
+                Key::Char('D') => {
+                    if delete_value(&position, &mut resources.config_plist) {
+                        position.delete();
+                    }
                 }
                 Key::Char('i') => {
                     if !showing_info {

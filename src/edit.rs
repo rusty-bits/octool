@@ -4,6 +4,43 @@ use plist::{Integer, Value};
 
 use std::{error::Error, io::Write};
 
+pub fn delete_value(position: &Position, mut val: &mut Value) -> bool {
+    let mut deleted = false;
+    for i in 0..position.depth {
+        match val {
+            Value::Dictionary(d) => {
+                let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
+                    [position.section_num[i]]
+                    .clone();
+                val = match d.get_mut(&key) {
+                    Some(k) => k,
+                    None => panic!("failure to get Value from Dict"),
+                }
+            }
+            Value::Array(a) => {
+                val = a.get_mut(position.section_num[i]).unwrap();
+            }
+            _ => (),
+        }
+    }
+    match val {
+        Value::Dictionary(d) => {
+            let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
+                [position.section_num[position.depth]]
+                .clone();
+            let _ = d.remove(&key);
+            d.sort_keys();
+            deleted = true;
+        }
+        Value::Array(a) => {
+            let _ = a.remove(position.section_num[position.depth]);
+            deleted = true;
+        }
+        _ => (),
+    }
+    deleted
+}
+
 pub fn edit_value(
     position: &Position,
     mut val: &mut Value,

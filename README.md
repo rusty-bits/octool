@@ -60,3 +60,6 @@ Usage:
  - add an 'Add' function to add a section to the config.plist, such as another kext or another DeviceProperty, use the latest Sample.plist or the SampleFull.plist as a template for what to add to a section  
  - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3` etc., currently octool just uses the latest build from the Dortania builds
  - cross compile the tool for windows/linux use, currently only supports running on macOS
+ - add a search function
+ - highlight if the kext/driver/etc exists in the known repos
+ - if run from a different directory, copy the OUTPUT/EFI to that location when done (right now it can't even be run from a different directory, it won't find it's needed config files)

@@ -6,6 +6,7 @@ mod parse_tex;
 mod res;
 
 use console::{style, Key, Term};
+use fs_extra::dir::{copy, CopyOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -17,17 +18,7 @@ use crate::edit::{delete_value, edit_value};
 use crate::init::init;
 use crate::res::Resources;
 
-fn on_resource(position: &Position, sections: &Vec<String>) -> bool {
-    if position.depth != 2 {
-        false
-    } else {
-        let mut sec_sub = position.sec_key[0].clone();
-        sec_sub.push_str(&position.sec_key[1]);
-        sections.contains(&sec_sub)
-    }
-}
-
-fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
     term.clear_screen()?;
@@ -87,6 +78,12 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                         println!("\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m");
                     } else {
                         println!("\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m");
+                        if &env::current_dir().unwrap() != current_dir {
+                            println!("Copying OUTPUT EFI folder to this directory");
+                            let mut options = CopyOptions::new();
+                            options.overwrite = true;
+                            copy("OUTPUT/EFI", current_dir, &options)?;
+                        }
                     }
                     break;
                 }
@@ -119,7 +116,7 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
                 }
                 Key::Char('i') => {
                     if !showing_info {
-                        if on_resource(&position, &position.resource_sections) {
+                        if position.is_resource() {
                             let _ = res::show_res_path(&resources, &position);
                             showing_info = true;
                         } else {
@@ -162,6 +159,17 @@ fn process(config_plist: &PathBuf) -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
+    let current_dir = env::current_dir().unwrap();
+
+    #[cfg(not(debug_assertions))]
+    {
+        let working_dir = env::current_exe().unwrap();
+        if working_dir != current_dir {
+            let working_dir = working_dir.parent().unwrap();
+            env::set_current_dir(working_dir).unwrap();
+        }
+    }
+
     print!("\x1B[2J\x1B[H");
     let mut config_file = Path::new(&match env::args().nth(1) {
         Some(s) => s,
@@ -175,7 +183,7 @@ fn main() {
         config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
 
-    match process(&config_file) {
+    match process(&config_file, &current_dir) {
         Ok(()) => (),
         Err(e) => print!("\r\n{:?}\r\n", e),
     }

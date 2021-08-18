@@ -2,18 +2,18 @@ use console::{style, Term};
 use plist::Value;
 use std::{error::Error, io::Write};
 
-use strip_ansi_escapes;
+use crate::res::has_parent;
 
 #[derive(Debug)]
 pub struct Position {
-    pub file_name: String,
-    pub section_num: [usize; 5],
-    pub depth: usize,
-    pub sec_key: [String; 5],
-    pub item_clone: Value,
-    pub sec_length: [usize; 5],
-    pub resource_sections: Vec<String>,
-    pub build_type: String,
+    pub file_name: String, // name of config.plist
+    pub section_num: [usize; 5], // selected section for each depth
+    pub depth: usize, // depth of plist we are looking at
+    pub sec_key: [String; 5], // key of selected section
+    pub item_clone: Value, // copy of highlighted item (can we get rid of this?)
+    pub sec_length: [usize; 5], // number of items in current section
+    pub resource_sections: Vec<String>, // concat name of sections that contain resources
+    pub build_type: String, // building release or debug version
 }
 
 impl Position {
@@ -53,10 +53,20 @@ impl Position {
             self.left();
         }
     }
+    /// return true if current selected item is a resource
+    pub fn is_resource(&self) -> bool {
+        if self.depth != 2 {
+            false
+        } else {
+            let mut sec_sub = self.sec_key[0].clone();
+            sec_sub.push_str(&self.sec_key[1]);
+            self.resource_sections.contains(&sec_sub)
+        }
+    }
 }
 
 pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
-    display_footer(term);
+    display_footer(term); // draw fooret first so it can be overwritten if needed
 
     write!(&*term, "\x1B[3H").unwrap();
     let rows = term.size().0 as i32;
@@ -65,7 +75,7 @@ pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         if row < rows {
-            row += display_value(k, position, list.get(k).unwrap(), &term, i, 0).unwrap();
+            row += display_value(k, None, position, list.get(k).unwrap(), &term, i, 0).unwrap();
         }
     }
 
@@ -77,7 +87,7 @@ pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
 
     write!(&*term, "{}", "\x1B[0K\r\n".repeat(blanks as usize)).unwrap();
 
-    display_header(position, term);
+    display_header(position, term); // draw header last so selected res is known
     write!(&*term, "\x1B8").unwrap();
 }
 
@@ -144,6 +154,7 @@ fn display_header(position: &mut Position, term: &Term) {
 
 fn display_value(
     key: &String,
+    key_color: Option<bool>,
     position: &mut Position,
     plist_value: &Value,
     term: &Term,
@@ -157,7 +168,8 @@ fn display_value(
     let mut row = 1;
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section_num[d] == item_num {
-        position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
+        position.sec_key[d] = key.to_string();
+        //        position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
         //            key.to_string();
         key_style.push_str("\x1B[7m");
         // current live item
@@ -188,8 +200,8 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 let mut key = String::new();
                 for i in 0..v.len() {
-                    get_array_key(&mut key, &v[i], i);
-                    row += display_value(&key, position, &v[i], term, i, d + 1)?;
+                    let color = get_array_key(&mut key, &v[i], i);
+                    row += display_value(&key, color, position, &v[i], term, i, d + 1)?;
                 }
             }
         }
@@ -240,7 +252,11 @@ fn display_value(
                 "{} {}{}\x1B[0m  [{}]{} ",
                 pre_key,
                 key_style,
-                key,
+                match key_color {
+                    Some(true) => style(key).green(),
+                    Some(false) => style(key).red(),
+                    None => style(key).white(),
+                },
                 v.len(),
                 save_curs_pos
             )
@@ -248,7 +264,7 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
-                    row += display_value(&k, position, v.get(&k).unwrap(), term, i, d + 1)?;
+                    row += display_value(&k, None, position, v.get(&k).unwrap(), term, i, d + 1)?;
                 }
             }
         }
@@ -291,7 +307,7 @@ pub fn get_lossy_string(v: &Vec<u8>) -> String {
     tmp
 }
 
-fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
+fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
     match v {
         Value::Dictionary(d) => {
             for k in ["Path", "BundlePath", "Name", "Comment"] {
@@ -307,9 +323,9 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
             match d.get("Enabled") {
                 Some(Value::Boolean(b)) => {
                     if *b {
-                        *key = style(&*key).green().to_string();
+                        return Some(true);
                     } else {
-                        *key = style(&*key).red().to_string();
+                        return Some(false);
                     }
                 }
                 _ => (),
@@ -317,6 +333,7 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) {
         }
         _ => *key = i.to_string(),
     }
+    None
 }
 
 pub fn hex_str_with_style(v: String) -> String {

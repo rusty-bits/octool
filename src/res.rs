@@ -21,6 +21,17 @@ pub struct Resources {
     pub open_core_pkg: PathBuf,
 }
 
+pub fn get_parent<'a>(res: &str, resources: &'a Resources) -> Option<&'a str> {
+    resources.parents[res]["parent"].as_str()
+}
+
+pub fn has_parent<>(res: &str, resources: &Resources) -> bool {
+    match resources.parents[res]["parent"].as_str() {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &Value,

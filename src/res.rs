@@ -21,17 +21,6 @@ pub struct Resources {
     pub open_core_pkg: PathBuf,
 }
 
-pub fn get_parent<'a>(res: &str, resources: &'a Resources) -> Option<&'a str> {
-    resources.parents[res]["parent"].as_str()
-}
-
-pub fn has_parent<>(res: &str, resources: &Resources) -> bool {
-    match resources.parents[res]["parent"].as_str() {
-        Some(_) => true,
-        None => false,
-    }
-}
-
 pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &Value,
@@ -198,24 +187,11 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
 }
 
 pub fn show_res_path(resources: &Resources, position: &Position) {
-    let full_res: String;
     let mut res_path: Option<PathBuf>;
     let section = position.sec_key[0].as_str();
-    if section == "UEFI" {
-        full_res = position.item_clone.as_string().unwrap().to_string();
-    } else {
-        full_res = position.sec_key[position.depth].clone();
-    }
-    let mut ind_res = full_res
-        .split('/')
-        .collect::<Vec<&str>>()
-        .last()
-        .unwrap()
-        .to_string();
-    if ind_res.starts_with('#') {
-        ind_res.remove(0);
-    }
-    let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
+    let mut ind_res = String::new();
+    position.res_name(&mut ind_res);
+    let parent = position.parent().unwrap_or("");
 
     println!(
         "\n{}\x1B[0K",

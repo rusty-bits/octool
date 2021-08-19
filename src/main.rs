@@ -7,7 +7,7 @@ mod res;
 
 use console::{style, Key, Term};
 use fs_extra::dir::{copy, CopyOptions};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, error::Error};
@@ -21,7 +21,7 @@ use crate::res::Resources;
 fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
-    term.clear_screen()?;
+//    term.clear_screen()?;
     term.hide_cursor()?;
 
     let mut resources = Resources {
@@ -44,9 +44,11 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
+        parents: &serde_json::Value::Bool(false),
     };
 
     init(&config_plist, &mut resources, &mut position)?;
+    position.parents = &resources.parents;
 
     println!(
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m"
@@ -57,6 +59,7 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
         let mut showing_info = false;
 
         loop {
+//            write!(&term, "dbg: {:?} {:?}", position.sec_key, position.item_clone)?;
             let key = term.read_key()?;
             match key {
                 Key::Char('q') => {
@@ -182,6 +185,7 @@ fn main() {
         println!("Using OpenCorePkg/Docs/Sample.plist");
         config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
+    io::stdout().flush().unwrap();
 
     match process(&config_file, &current_dir) {
         Ok(()) => (),

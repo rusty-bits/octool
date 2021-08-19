@@ -2,21 +2,22 @@ use console::{style, Term};
 use plist::Value;
 use std::{error::Error, io::Write};
 
-use crate::res::has_parent;
+//use crate::res::has_parent;
 
 #[derive(Debug)]
-pub struct Position {
-    pub file_name: String, // name of config.plist
-    pub section_num: [usize; 5], // selected section for each depth
-    pub depth: usize, // depth of plist we are looking at
-    pub sec_key: [String; 5], // key of selected section
-    pub item_clone: Value, // copy of highlighted item (can we get rid of this?)
-    pub sec_length: [usize; 5], // number of items in current section
+pub struct Position<'a> {
+    pub file_name: String,              // name of config.plist
+    pub section_num: [usize; 5],        // selected section for each depth
+    pub depth: usize,                   // depth of plist we are looking at
+    pub sec_key: [String; 5],           // key of selected section
+    pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
+    pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
-    pub build_type: String, // building release or debug version
+    pub build_type: String,             // building release or debug version
+    pub parents: &'a serde_json::Value,
 }
 
-impl Position {
+impl<'a> Position<'a> {
     pub fn up(&mut self) {
         if self.section_num[self.depth] > 0 {
             self.section_num[self.depth] -= 1;
@@ -61,6 +62,34 @@ impl Position {
             let mut sec_sub = self.sec_key[0].clone();
             sec_sub.push_str(&self.sec_key[1]);
             self.resource_sections.contains(&sec_sub)
+        }
+    }
+    pub fn has_parent(&self) -> bool {
+        let mut r = String::new();
+        self.res_name(&mut r);
+        match self.parents[r]["parent"].as_str() {
+            Some(_) => true,
+            None => false,
+        }
+    }
+    pub fn parent(&self) -> Option<&str> {
+        let mut r = String::new();
+        self.res_name(&mut r);
+        self.parents[r]["parent"].as_str()
+    }
+    pub fn res_name(&self, name: &mut String) {
+        if self.sec_key[0] == "UEFI" && self.sec_key[1] == "Drivers" && self.depth == 2 {
+            *name = self.item_clone.as_string().unwrap_or("").to_owned();
+        } else {
+            *name = self.sec_key[self.depth]
+                .to_owned()
+                .split('/')
+                .last()
+                .unwrap()
+                .to_string();
+        }
+        if name.starts_with('#') {
+            name.remove(0);
         }
     }
 }
@@ -115,7 +144,8 @@ fn display_footer(term: &Term) {
 
 fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
-    let mut info = position.sec_key[position.depth].clone();
+    let mut info = String::new();
+    position.res_name(&mut info);
     if info.len() > 20 {
         info = info[0..17].to_string();
         info.push_str("...");
@@ -141,9 +171,7 @@ fn display_header(position: &mut Position, term: &Term) {
     )
     .unwrap();
     if position.depth == 2 {
-        let mut sec = position.sec_key[0].clone();
-        sec.push_str(&position.sec_key[1]);
-        if position.resource_sections.contains(&sec) {
+        if position.is_resource() {
             write!(&*term, " \x1B[7mspace\x1B[0m to toggle").unwrap();
         }
     }
@@ -169,10 +197,8 @@ fn display_value(
     write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
     if position.section_num[d] == item_num {
         position.sec_key[d] = key.to_string();
-        //        position.sec_key[d] = String::from_utf8(strip_ansi_escapes::strip(&key)?)?;
-        //            key.to_string();
         key_style.push_str("\x1B[7m");
-        // current live item
+        // is current live item
         if d == position.depth {
             live_item = true;
             position.item_clone = plist_value.clone();
@@ -187,10 +213,10 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
+            write!(&*term, "{} ", pre_key)?;
             write!(
                 &*term,
-                "{} {}{}\x1B[0m  [{}]{} ",
-                pre_key,
+                "{}{}\x1B[0m  [{}]{} ",
                 key_style,
                 key,
                 v.len(),
@@ -247,10 +273,17 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
+            write!(&*term, "{} ", pre_key)?;
+            /*            if d == 2 && position.is_resource() {
+                if position.has_parent() {
+                    write!(&*term, "{} ", style("•").green())?;
+                } else {
+                    write!(&*term, "{} ", style("•").red())?;
+                }
+            }; */
             write!(
                 &*term,
-                "{} {}{}\x1B[0m  [{}]{} ",
-                pre_key,
+                "{}{}\x1B[0m  [{}]{} ",
                 key_style,
                 match key_color {
                     Some(true) => style(key).green(),
@@ -279,11 +312,15 @@ fn display_value(
             )?;
         }
         Value::String(v) => {
-            write!(
-                &*term,
-                "{}{:>2}\x1B[0m: {}{}",
-                key_style, key, save_curs_pos, v
-            )?;
+            write!(&*term, "{}{:>2}\x1B[0m: ", key_style, key)?;
+            /*            if position.is_resource() {
+                if position.has_parent(&v) {
+                    write!(&*term, "{}", style("•").green())?;
+                } else {
+                    write!(&*term, "{}", style("•").red())?;
+                }
+            } */
+            write!(&*term, "{}{}", save_curs_pos, v)?;
         }
         _ => panic!("Can't handle this type"),
     }
@@ -293,11 +330,6 @@ fn display_value(
 pub fn get_lossy_string(v: &Vec<u8>) -> String {
     let mut tmp = String::new();
     for c in v {
-        /*        if c.is_ascii() {
-            tmp.push(*c as char);
-        } else {
-            tmp.push('\u{fffd}');
-        }*/
         if c < &32 || c > &126 {
             tmp.push('\u{fffd}');
         } else {

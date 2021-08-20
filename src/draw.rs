@@ -64,14 +64,14 @@ impl<'a> Position<'a> {
             self.resource_sections.contains(&sec_sub)
         }
     }
-    pub fn has_parent(&self) -> bool {
+/*    pub fn has_parent(&self) -> bool {
         let mut r = String::new();
         self.res_name(&mut r);
         match self.parents[r]["parent"].as_str() {
             Some(_) => true,
             None => false,
         }
-    }
+    } */
     pub fn parent(&self) -> Option<&str> {
         let mut r = String::new();
         self.res_name(&mut r);

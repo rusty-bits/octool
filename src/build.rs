@@ -1,11 +1,11 @@
-use crate::res::{Resources, get_or_update_local_parent, get_res_path, status};
+use crate::res::{get_or_update_local_parent, get_res_path, status, Resources};
 
 use fs_extra::copy_items;
 use fs_extra::dir::{copy, CopyOptions};
 use std::error::Error;
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
     fs_extra::dir::remove("OUTPUT")?;
@@ -140,14 +140,18 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
         let mut lang = "_".to_string();
         lang.push_str(&canopy_language);
         lang.push('_');
-
+        let input_resources = Path::new("INPUT/Resources");
+/*
         let mut entries = fs::read_dir("resources/OcBinaryData/Resources/Audio")?
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, io::Error>>()?;
 
         entries.retain(|p| p.to_str().unwrap().contains(&lang));
         let f = Path::new("resources/OcBinaryData/Resources/Audio");
-        for file in resources.octool_config["global_audio_files"].as_array().unwrap() {
+        for file in resources.octool_config["global_audio_files"]
+            .as_array()
+            .unwrap()
+        {
             entries.push(f.join(file.as_str().unwrap()));
         }
 
@@ -158,13 +162,30 @@ pub fn build_output(resources: &Resources) -> Result<bool, Box<dyn Error>> {
 
         copy_items(&entries, "OUTPUT/EFI/OC/Resources/Audio", &options)?;
         println!("\x1B[32mdone\x1B[0m");
-
-        for res in &["Font", "Image", "Label"] {
+*/
+        for res in &["Audio", "Font", "Image", "Label"] {
             let in_path = Path::new("resources/OcBinaryData/Resources");
             let out_path = Path::new("OUTPUT/EFI/OC/Resources");
-            let entries = fs::read_dir(in_path.join(res))?
+            let mut entries = fs::read_dir(in_path.join(res))?
                 .map(|r| r.map(|p| p.path()))
                 .collect::<Result<Vec<_>, io::Error>>()?;
+            if res == &"Audio" {
+                entries.retain(|p| p.to_str().unwrap().contains(&lang));
+                let f = Path::new("resources/OcBinaryData/Resources/Audio");
+                for file in resources.octool_config["global_audio_files"]
+                    .as_array()
+                    .unwrap()
+                {
+                    entries.push(f.join(file.as_str().unwrap()));
+                }
+            }
+            if input_resources.join(res).exists() {
+                entries.push(
+                    fs::read_dir(input_resources.join(res))?
+                        .map(|r| r.map(|p| p.path()))
+                        .collect::<Result<PathBuf, io::Error>>()?,
+                );
+            }
             print!(
                 "\x1B[32mCopying\x1B[0m {} {} resources from OcBinaryData ... ",
                 entries.len(),

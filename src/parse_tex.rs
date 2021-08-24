@@ -11,8 +11,6 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
     let contents =
         fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
 
-    let mut sec_search = "\\section{".to_string();
-    sec_search.push_str(&position.sec_key[0]);
     let mut sub_search = "\\subsection{".to_string();
 
     match position.depth {
@@ -27,6 +25,9 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
     }
     write!(&*term, "\x1B[G-\r\n").unwrap();
     row += 1;
+
+    let mut sec_search = "\\section{".to_string();
+    sec_search.push_str(&position.sec_key[0]);
 
     let mut lines = contents.lines();
 

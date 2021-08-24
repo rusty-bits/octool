@@ -426,5 +426,11 @@
   },
   "AppleMCEReporterDisabler.kext": {
           "parent": "AppleMCEReporterDisabler"
+  },
+  "SmallTreeIntel82576.kext": {
+          "parent": "SmallTreeIntel82576"
+  },
+  "AtherosE2200Ethernet.kext": {
+          "parent": "AtherosEthernetE2200"
   }
 }

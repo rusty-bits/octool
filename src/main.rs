@@ -4,6 +4,7 @@ mod edit;
 mod init;
 mod parse_tex;
 mod res;
+mod snake;
 
 use console::{style, Key, Term};
 use fs_extra::dir::{copy, CopyOptions};
@@ -17,11 +18,12 @@ use crate::draw::{update_screen, Position};
 use crate::edit::{delete_value, edit_value};
 use crate::init::init;
 use crate::res::Resources;
+use crate::snake::snake;
 
 fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
     let term = Term::stdout();
     term.set_title("octool");
-//    term.clear_screen()?;
+    //    term.clear_screen()?;
     term.hide_cursor()?;
 
     let mut resources = Resources {
@@ -59,7 +61,7 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
         let mut showing_info = false;
 
         loop {
-//            write!(&term, "dbg: {:?} {:?}", position.sec_key, position.item_clone)?;
+            //            write!(&term, "dbg: {:?} {:?}", position.sec_key, position.item_clone)?;
             let key = term.read_key()?;
             match key {
                 Key::Char('q') => {
@@ -130,6 +132,7 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
                         showing_info = false;
                     }
                 }
+                Key::Char('M') => snake(&term),
                 Key::Char('s') => {
                     write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidatinig\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
                     resources.config_plist.to_file_xml("test_out.plist")?;
@@ -155,6 +158,7 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
     }
 
     term.show_cursor()?;
+    term.flush()?;
 
     write!(&term, "\n\r\x1B[0J")?;
 

@@ -1,8 +1,13 @@
 use crate::draw::{get_lossy_string, hex_str_with_style, Position};
-use console::{style, Key, Term};
 use plist::{Integer, Value};
+use termion::{color, cursor};
+use termion::event::Key;
+use termion::{input::TermRead, raw::RawTerminal, style};
 
-use std::{error::Error, io::Write};
+use std::{
+    error::Error,
+    io::{Stdout, Write},
+};
 
 pub fn delete_value(position: &Position, mut val: &mut Value) -> bool {
     let mut deleted = false;
@@ -44,16 +49,16 @@ pub fn delete_value(position: &Position, mut val: &mut Value) -> bool {
 pub fn edit_value(
     position: &Position,
     mut val: &mut Value,
-    term: &Term,
+    stdout: &mut RawTerminal<Stdout>,
     space: bool,
 ) -> Result<(), Box<dyn Error>> {
     write!(
-        &*term,
-        "\x1B[H\x1B[0K {} save changes   {} cancel changes",
-        style("enter").reverse(),
-        style("esc").reverse()
+        stdout,
+        "{}\x1B[H\x1B[0K {inv}enter{res} save changes   {inv}esc{res} cancel changes",
+        cursor::Show,
+        inv = style::Invert,
+        res = style::Reset,
     )?;
-    term.show_cursor()?;
     for i in 0..position.depth + 1 {
         match val {
             Value::Dictionary(d) => {
@@ -90,18 +95,18 @@ pub fn edit_value(
         }
     } else {
         match val {
-            Value::Integer(i) => edit_int(i, term),
-            Value::String(s) => edit_string(s, term)?,
-            Value::Data(d) => edit_data(d, term)?,
+            Value::Integer(i) => edit_int(i, stdout),
+            Value::String(s) => edit_string(s, stdout)?,
+            Value::Data(d) => edit_data(d, stdout)?,
             _ => (),
         }
     }
 
-    term.hide_cursor()?;
+    write!(stdout, "{}", cursor::Hide)?;
     Ok(())
 }
 
-fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
+fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
     let mut hexedit = true;
@@ -112,184 +117,195 @@ fn edit_data(val: &mut Vec<u8>, term: &Term) -> Result<(), Box<dyn Error>> {
         }
         let tmp_val = hex::decode(tmp_val).unwrap();
         write!(
-            &*term,
-            "\x1B8\x1B[G{}\x1B8{}\x1B[0K\x1B[E{}\x1B[0K\x1B8\x1B[B{}\x1B8",
-            style("as hex").magenta(),
+            stdout,
+            "\x1B8\x1B[G{inv}{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
             hex_str_with_style(edit_hex.clone()),
-            style("as string").magenta(),
-            get_lossy_string(&tmp_val)
+            get_lossy_string(&tmp_val),
+            mag = color::Fg(color::Magenta),
+            res = style::Reset,
+            inv = style::Invert,
         )?;
         if hexedit {
             write!(
-                &*term,
-                "\x1B[G{}\x1B8{}",
-                style("as hex").reverse().magenta(),
+                stdout,
+                "\x1B[G{}{}as hex{}\x1B8{}",
+                style::Invert, color::Fg(color::Magenta), style::Reset,
                 "\x1B[C".repeat(pos)
             )?;
         } else {
             write!(
-                &*term,
-                "\x1B[E{}\x1B8\x1B[B{}",
-                style("as string").reverse().magenta(),
+                stdout,
+                "\x1B[E{}{}as string{}\x1B8\x1B[B{}",
+                style::Invert, color::Fg(color::Magenta), style::Reset,
                 "\x1B[C".repeat(pos / 2)
             )
             .unwrap();
         }
-        let key = term.read_key()?;
+        stdout.flush()?;
+        let key = std::io::stdin().keys().next().unwrap().unwrap();
         match key {
-            Key::Enter => {
-                *val = tmp_val;
-                break;
-            }
-            Key::Backspace => {
-                if edit_hex.len() > 0 {
+                Key::Char('\n') => {
+                    *val = tmp_val;
+                    break;
+                }
+                Key::Backspace => {
+                    if edit_hex.len() > 0 {
+                        if pos > 0 {
+                            let _ = edit_hex.remove(pos - 1);
+                            pos -= 1;
+                            if !hexedit {
+                                let _ = edit_hex.remove(pos - 1);
+                                pos -= 1;
+                            }
+                        }
+                    }
+                }
+                Key::Char('\t') | Key::Up | Key::Down => {
+                    if hexedit {
+                        if edit_hex.len() % 2 == 1 {
+                            edit_hex.insert(0, '0');
+                        }
+                        if pos % 2 == 1 {
+                            pos += 1;
+                        }
+                    }
+                    hexedit = !hexedit;
+                }
+                Key::Delete => {
+                    if edit_hex.len() > 0 {
+                        if pos < edit_hex.len() {
+                            let _ = edit_hex.remove(pos);
+                            if !hexedit {
+                                let _ = edit_hex.remove(pos);
+                            }
+                        }
+                    }
+                }
+                Key::Left => {
                     if pos > 0 {
-                        let _ = edit_hex.remove(pos - 1);
                         pos -= 1;
                         if !hexedit {
-                            let _ = edit_hex.remove(pos - 1);
                             pos -= 1;
                         }
                     }
                 }
-            }
-            Key::Tab | Key::ArrowUp | Key::ArrowDown => {
-                if hexedit {
-                    if edit_hex.len() % 2 == 1 {
-                        edit_hex.insert(0, '0');
-                    }
-                    if pos % 2 == 1 {
-                        pos += 1;
-                    }
-                }
-                hexedit = !hexedit;
-            }
-            Key::Del => {
-                if edit_hex.len() > 0 {
+                Key::Right => {
                     if pos < edit_hex.len() {
-                        let _ = edit_hex.remove(pos);
+                        pos += 1;
                         if !hexedit {
-                            let _ = edit_hex.remove(pos);
-                        }
-                    }
-                }
-            }
-            Key::ArrowLeft => {
-                if pos > 0 {
-                    pos -= 1;
-                    if !hexedit {
-                        pos -= 1;
-                    }
-                }
-            }
-            Key::ArrowRight => {
-                if pos < edit_hex.len() {
-                    pos += 1;
-                    if !hexedit {
-                        pos += 1;
-                    }
-                }
-            }
-            Key::Char(c) => {
-                if hexedit {
-                    if c.is_ascii_hexdigit() {
-                        edit_hex.insert(pos, c);
-                        pos += 1;
-                    }
-                } else {
-                    if c.is_ascii() {
-                        for ic in hex::encode(vec![c as u8]).chars() {
-                            edit_hex.insert(pos, ic);
                             pos += 1;
                         }
                     }
                 }
+                Key::Char(c) => {
+                    if hexedit {
+                        if c.is_ascii_hexdigit() {
+                            edit_hex.insert(pos, c);
+                            pos += 1;
+                        }
+                    } else {
+                        if c.is_ascii() {
+                            for ic in hex::encode(vec![c as u8]).chars() {
+                                edit_hex.insert(pos, ic);
+                                pos += 1;
+                            }
+                        }
+                    }
+                }
+                Key::Home => pos = 0,
+                Key::End => pos = edit_hex.len(),
+                Key::Esc => break,
+                _ => (),
             }
-            Key::Home => pos = 0,
-            Key::End => pos = edit_hex.len(),
-            Key::Escape => break,
-            _ => (),
-        }
+//        stdout.flush()?;
     }
     Ok(())
 }
 
-fn edit_int(val: &mut Integer, term: &Term) {
+fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
     let mut new = val.to_string();
     loop {
-        write!(&*term, "\x1B8{}\x1B[0K", new).unwrap();
-        let key = term.read_key().unwrap();
+        write!(stdout, "\x1B8{}\x1B[0K", new).unwrap();
+        stdout.flush().unwrap();
+        let key = std::io::stdin().keys().next().unwrap();
         match key {
-            Key::Enter => {
-                *val = match new.parse::<i64>() {
-                    Ok(i) => Integer::from(i),
-                    _ => Integer::from(0),
-                };
-                break;
-            }
-            Key::Backspace => {
-                if new.len() > 0 {
-                    let _ = new.pop().unwrap();
+            Ok(key) => match key {
+                Key::Char('\n') => {
+                    *val = match new.parse::<i64>() {
+                        Ok(i) => Integer::from(i),
+                        _ => Integer::from(0),
+                    };
+                    break;
                 }
-            }
-            Key::Char(c @ '0'..='9') => new.push(c),
-            Key::Char('-') => {
-                if new.len() == 0 {
-                    new.push('-');
+                Key::Backspace => {
+                    if new.len() > 0 {
+                        let _ = new.pop().unwrap();
+                    }
                 }
-            }
-            Key::Escape => break,
+                Key::Char(c @ '0'..='9') => new.push(c),
+                Key::Char('-') => {
+                    if new.len() == 0 {
+                        new.push('-');
+                    }
+                }
+                Key::Esc => break,
+                _ => (),
+            },
             _ => (),
         }
     }
 }
 
-fn edit_string(val: &mut String, term: &Term) -> Result<(), Box<dyn Error>> {
+fn edit_string(val: &mut String, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
     loop {
-        write!(&*term, "\x1B8{}\x1B[0K", new)?;
-        write!(&*term, "\x1B8{}", "\x1B[C".repeat(pos))?;
-        let key = term.read_key()?;
+        write!(stdout, "\x1B8{}\x1B[0K", new)?;
+        write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
+        stdout.flush()?;
+        let key = std::io::stdin().keys().next().unwrap();
         match key {
-            Key::Enter => {
-                *val = new;
-                break;
-            }
-            Key::Backspace => {
-                if new.len() > 0 {
+            Ok(key) => match key {
+                Key::Char('\n') => {
+                    *val = new;
+                    break;
+                }
+                Key::Backspace => {
+                    if new.len() > 0 {
+                        if pos > 0 {
+                            let _ = new.remove(pos - 1);
+                            pos -= 1;
+                        }
+                    }
+                }
+                Key::Delete => {
+                    if new.len() > 0 {
+                        if pos < new.len() {
+                            let _ = new.remove(pos);
+                        }
+                    }
+                }
+                Key::Left => {
                     if pos > 0 {
-                        let _ = new.remove(pos - 1);
                         pos -= 1;
                     }
                 }
-            }
-            Key::Del => {
-                if new.len() > 0 {
+                Key::Right => {
                     if pos < new.len() {
-                        let _ = new.remove(pos);
+                        pos += 1;
                     }
                 }
-            }
-            Key::ArrowLeft => {
-                if pos > 0 {
-                    pos -= 1;
+                Key::Char(c) => {
+                    if c.is_ascii() {
+                        new.insert(pos, c);
+                        pos += 1;
+                    }
                 }
-            }
-            Key::ArrowRight => {
-                if pos < new.len() {
-                    pos += 1;
-                }
-            }
-            Key::Char(c) => {
-                if c.is_ascii() {
-                    new.insert(pos, c);
-                    pos += 1;
-                }
-            }
-            Key::Home => pos = 0,
-            Key::End => pos = new.len(),
-            Key::Escape => break,
+                Key::Home => pos = 0,
+                Key::End => pos = new.len(),
+                Key::Esc => break,
+                _ => (),
+            },
             _ => (),
         }
     }

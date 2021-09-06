@@ -1,48 +1,37 @@
-use console::{style, Key, Term};
-use std::io::Write;
-use std::sync::mpsc::{self, TryRecvError};
+use std::io::{Read, Stdout, Write};
 use std::{thread, time};
+
+use termion::raw::RawTerminal;
+use termion::{async_stdin, terminal_size};
 
 // blame mahasvan for this "secret" snake option
 
-pub fn snake(term: &Term) {
-    let (tx, rx) = mpsc::channel();
-
-    let t2 = term.clone();
-
-    thread::spawn(move || loop {
-        let key = t2.read_key().unwrap();
-        match tx.send(key) {
-            Ok(_) => (),
-            Err(_) => break,
-        }
-    });
-
+pub fn snake(stdout: &mut RawTerminal<Stdout>) {
     let mut direction = 8;
     let mut rest = 100;
     let ma = "BLAME_MAHASVAN_FOR_THIS_";
     let mut masc = ma.chars();
 
-    write!(&*term, "\x1B[2J").unwrap();
+    write!(stdout, "{}", termion::clear::All).unwrap();
 
-    let (row, col) = term.size();
+    let (col, row) = terminal_size().unwrap();
+
     let mut scr = vec![false; (row * col).into()];
     let mut sx = col / 2;
     let mut sy = row / 2;
+    let mut stdin = async_stdin();
 
+    let mut key_bytes = [0];
     loop {
-        match rx.try_recv() {
-            Ok(key) => {
-                direction = match key {
-                    Key::ArrowUp | Key::Char('k') => 8,
-                    Key::ArrowDown | Key::Char('j') => 2,
-                    Key::ArrowLeft | Key::Char('h') => 4,
-                    Key::ArrowRight | Key::Char('l') => 6,
-                    _ => 4,
-                };
-            }
-            _ => (),
-        }
+        stdin.read(&mut key_bytes).unwrap();
+
+        direction = match key_bytes[0] {
+            b'w' | b'k' => 8,
+            b's' | b'j' => 2,
+            b'a' | b'h' => 4,
+            b'd' | b'l' => 6,
+            _ => direction,
+        };
         match direction {
             8 => {
                 sy -= 1;
@@ -80,14 +69,19 @@ pub fn snake(term: &Term) {
         };
         thread::sleep(time::Duration::from_millis(rest));
         rest -= 1;
-        if rest < 20 { rest = 20 };
+        if rest < 20 {
+            rest = 20
+        };
         if scr[pos] {
-            write!(&*term, " you died! ").unwrap();
-            while rx.try_recv() == Err(TryRecvError::Empty) {}
+            write!(stdout, " you died! ").unwrap();
+            stdout.flush().unwrap();
             break;
         } else {
             scr[pos] = true;
-            write!(&*term, "\x1B[{};{}H{}", sy, sx, style(c).reverse()).unwrap();
+            write!(stdout, "\x1B[{};{}H{}", sy, sx, c).unwrap();
+            stdout.flush().unwrap();
         }
     }
+    stdin.read(&mut key_bytes).unwrap();
+    stdin.read(&mut key_bytes).unwrap();
 }

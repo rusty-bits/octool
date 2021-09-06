@@ -1,6 +1,9 @@
-use console::{style, Term};
 use plist::Value;
-use std::{error::Error, io::Write};
+use termion::{color, cursor, terminal_size};
+use termion::{raw::RawTerminal, style};
+
+use std::error::Error;
+use std::io::{Stdout, Write};
 
 //use crate::res::has_parent;
 
@@ -64,7 +67,7 @@ impl<'a> Position<'a> {
             self.resource_sections.contains(&sec_sub)
         }
     }
-/*    pub fn has_parent(&self) -> bool {
+    /*    pub fn has_parent(&self) -> bool {
         let mut r = String::new();
         self.res_name(&mut r);
         match self.parents[r]["parent"].as_str() {
@@ -94,17 +97,31 @@ impl<'a> Position<'a> {
     }
 }
 
-pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
-    display_footer(term); // draw fooret first so it can be overwritten if needed
+pub fn update_screen(
+    position: &mut Position,
+    plist: &Value,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
+    let rows: i32 = terminal_size().unwrap().1.into();
+    write!(stdout, "\x1B[{}H", rows)?;
+    write!(
+        stdout,
+        " {inv}s{res} save {inv}q{res} quit {inv}G{res} Go build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string",
+        inv = style::Invert,
+        res = style::Reset,
+        grn = color::Fg(color::Green),
+        red = color::Fg(color::Red),
+        mag = color::Fg(color::Magenta),
+        blu = color::Fg(color::Blue),
+    )?;
 
-    write!(&*term, "\x1B[3H").unwrap();
-    let rows = term.size().0 as i32;
+    write!(stdout, "\x1B[3H")?;
     let mut row = 4;
     let list = plist.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         if row < rows {
-            row += display_value(k, None, position, list.get(k).unwrap(), &term, i, 0).unwrap();
+            row += display_value(k, None, position, list.get(k).unwrap(), stdout, i, 0).unwrap();
         }
     }
 
@@ -112,37 +129,9 @@ pub fn update_screen(position: &mut Position, plist: &Value, term: &Term) {
     if blanks < 0 {
         blanks = 0;
     }
-    blanks += 1;
 
-    write!(&*term, "{}", "\x1B[0K\r\n".repeat(blanks as usize)).unwrap();
+    write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?;
 
-    display_header(position, term); // draw header last so selected res is known
-    write!(&*term, "\x1B8").unwrap();
-}
-
-fn display_footer(term: &Term) {
-    write!(
-        &*term,
-        "\x1B[{}H {} save {} quit {} Go build EFI",
-        term.size().0,
-        style('s').reverse(),
-        style('q').reverse(),
-        style('G').reverse()
-    )
-    .unwrap();
-    write!(
-        &*term,
-        "    {}{}boolean {}data {}integer {}string\x1B[0K",
-        style(' ').green().reverse(),
-        style(' ').red().reverse(),
-        style(' ').magenta().reverse(),
-        style(' ').blue().reverse(),
-        style(' ').reverse(),
-    )
-    .unwrap();
-}
-
-fn display_header(position: &mut Position, term: &Term) {
     let mut tmp = String::new();
     let mut info = String::new();
     position.res_name(&mut info);
@@ -151,10 +140,13 @@ fn display_header(position: &mut Position, term: &Term) {
         info.push_str("...");
     }
     write!(
-        &*term,
-        "\x1B[H\x1B[0K{}   \x1B[7mi\x1B[0m {} info if available\r\n\x1B[0K  {}",
-        style(&position.file_name).green(),
-        style(&info).underlined(),
+        stdout,
+        "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0m {}{}{} info if available\r\n\x1B[0K  {}",
+        color::Fg(color::Green),
+        &position.file_name,
+        style::Underline,
+        &info,
+        style::Reset,
         match position.item_clone {
             Value::Array(_) | Value::Dictionary(_) => {
                 tmp.push_str("\x1B[7mright\x1B[0m");
@@ -172,12 +164,14 @@ fn display_header(position: &mut Position, term: &Term) {
     .unwrap();
     if position.depth == 2 {
         if position.is_resource() {
-            write!(&*term, " \x1B[7mspace\x1B[0m to toggle").unwrap();
+            write!(stdout, " \x1B[7mspace\x1B[0m to toggle").unwrap();
         }
     }
     if position.depth > 0 {
-        write!(&*term, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
+        write!(stdout, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
     }
+    write!(stdout, "\x1B8").unwrap();
+    Ok(())
 }
 
 fn display_value(
@@ -185,7 +179,7 @@ fn display_value(
     key_color: Option<bool>,
     position: &mut Position,
     plist_value: &Value,
-    term: &Term,
+    stdout: &mut RawTerminal<Stdout>,
     item_num: usize,
     d: usize,
 ) -> Result<i32, Box<dyn Error>> {
@@ -194,7 +188,7 @@ fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
-    write!(&*term, "\x1B[0K\n\r{}", "    ".repeat(d))?;
+    write!(stdout, "\x1B[0K\r\n{}", "    ".repeat(d))?;
     if position.section_num[d] == item_num {
         position.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
@@ -213,40 +207,43 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
-            write!(&*term, "{} ", pre_key)?;
+            write!(stdout, "{} ", pre_key)?;
             write!(
-                &*term,
+                stdout,
                 "{}{}\x1B[0m  [{}]{} ",
                 key_style,
                 key,
                 v.len(),
-                save_curs_pos
-            )
-            .unwrap();
+                cursor::Save
+            )?;
             if position.depth > d && position.section_num[d] == item_num {
                 let mut key = String::new();
                 for i in 0..v.len() {
                     let color = get_array_key(&mut key, &v[i], i);
-                    row += display_value(&key, color, position, &v[i], term, i, d + 1)?;
+                    row += display_value(&key, color, position, &v[i], stdout, i, d + 1)?;
                 }
             }
         }
         Value::Boolean(v) => {
             match v {
                 true => write!(
-                    &*term,
-                    "{}{}: {}{}",
+                    stdout,
+                    "{}{}{}{}: {}{}",
                     key_style,
-                    style(key).green(),
+                    color::Fg(color::Green),
+                    key,
+                    style::Reset,
                     save_curs_pos,
                     v
                 )
                 .unwrap(),
                 false => write!(
-                    &*term,
-                    "{}{}: {}{}",
+                    stdout,
+                    "{}{}{}{}: {}{}",
                     key_style,
-                    style(key).red(),
+                    color::Fg(color::Red),
+                    key,
+                    style::Reset,
                     save_curs_pos,
                     v
                 )
@@ -255,15 +252,17 @@ fn display_value(
         }
         Value::Data(v) => {
             write!(
-                &*term,
-                "{}{}: <{}{}> | {}{}{}\x1B[0K",
+                stdout,
+                "{}{}{}{}: <{}{}> | {}{}{}\x1B[0K",
                 key_style,
-                style(key).magenta(),
+                color::Fg(color::Magenta),
+                key,
+                style::Reset,
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
-                style('\"').magenta(),
+                '\"',
                 get_lossy_string(v),
-                style('\"').magenta()
+                '\"'
             )?;
         }
         Value::Dictionary(v) => {
@@ -273,7 +272,7 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
-            write!(&*term, "{} ", pre_key)?;
+            write!(stdout, "{} ", pre_key)?;
             /*            if d == 2 && position.is_resource() {
                 if position.has_parent() {
                     write!(&*term, "{} ", style("•").green())?;
@@ -282,14 +281,15 @@ fn display_value(
                 }
             }; */
             write!(
-                &*term,
-                "{}{}\x1B[0m  [{}]{} ",
+                stdout,
+                "{}{}{}\x1B[0m  [{}]{} ",
                 key_style,
                 match key_color {
-                    Some(true) => style(key).green(),
-                    Some(false) => style(key).red(),
-                    None => style(key).white(),
+                    Some(true) => color::Fg(color::Green).to_string(),
+                    Some(false) => color::Fg(color::Red).to_string(),
+                    None => color::Fg(color::Reset).to_string(),
                 },
+                key,
                 v.len(),
                 save_curs_pos
             )
@@ -297,22 +297,24 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
-                    row += display_value(&k, None, position, v.get(&k).unwrap(), term, i, d + 1)?;
+                    row += display_value(&k, None, position, v.get(&k).unwrap(), stdout, i, d + 1)?;
                 }
             }
         }
         Value::Integer(v) => {
             write!(
-                &*term,
-                "{}{}: {}{}",
+                stdout,
+                "{}{}{}{}: {}{}",
                 key_style,
-                style(key).blue(),
+                color::Fg(color::Blue),
+                key,
+                style::Reset,
                 save_curs_pos,
                 v
             )?;
         }
         Value::String(v) => {
-            write!(&*term, "{}{:>2}\x1B[0m: ", key_style, key)?;
+            write!(stdout, "{}{:>2}\x1B[0m: ", key_style, key)?;
             /*            if position.is_resource() {
                 if position.has_parent(&v) {
                     write!(&*term, "{}", style("•").green())?;
@@ -320,7 +322,7 @@ fn display_value(
                     write!(&*term, "{}", style("•").red())?;
                 }
             } */
-            write!(&*term, "{}{}", save_curs_pos, v)?;
+            write!(stdout, "{}{}", save_curs_pos, v)?;
         }
         _ => panic!("Can't handle this type"),
     }
@@ -373,7 +375,8 @@ pub fn hex_str_with_style(v: String) -> String {
     let mut col = v.len() % 2;
     for c in v.chars() {
         if col > 1 {
-            hex_u.push_str(&style(c).magenta().to_string());
+            hex_u.push_str(&color::Fg(color::Magenta).to_string());
+            hex_u.push(c);
         } else {
             hex_u.push(c);
         }

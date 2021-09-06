@@ -1,15 +1,25 @@
-use console::{style, Term};
-use std::{fs, io::Write};
+use std::{
+    error::Error,
+    fs,
+    io::{Stdout, Write},
+};
+
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::RawTerminal;
+use termion::{style, terminal_size};
 
 use crate::draw::Position;
 
-pub fn show_info(position: &Position, term: &Term) -> bool {
+pub fn show_info(
+    position: &Position,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<bool, Box<dyn Error>> {
     let mut showing_info = true;
-    let (rows, _cols) = term.size();
+    let rows = terminal_size()?.1;
     let mut row = 0;
 
-    let contents =
-        fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex").unwrap();
+    let contents = fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex")?;
 
     let mut sub_search = "\\subsection{".to_string();
 
@@ -21,9 +31,9 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
             sub_search.push_str(&position.sec_key[1]);
             sub_search.push_str(" Properties}\\");
         }
-        _ => return false,
+        _ => return Ok(false),
     }
-    write!(&*term, "\x1B[G-\r\n").unwrap();
+    write!(stdout, "\r-\r\n")?;
     row += 1;
 
     let mut sec_search = "\\section{".to_string();
@@ -38,7 +48,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                     break;
                 }
             }
-            None => return false,
+            None => return Ok(false),
         }
     }
 
@@ -50,7 +60,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                         break;
                     }
                 }
-                None => return false,
+                None => return Ok(false),
             }
         }
 
@@ -64,7 +74,7 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
                         break;
                     }
                 }
-                None => return false,
+                None => return Ok(false),
             }
         }
     }
@@ -75,14 +85,15 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
     for line in lines {
         if row == rows {
             hit_bottom = true;
-            write!(&*term, "{} ...\x1B[G", style("more").reverse()).unwrap();
-            match term.read_key().unwrap() {
-                console::Key::Char('q') | console::Key::Escape => {
+            write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset)?;
+            stdout.flush()?;
+            match std::io::stdin().keys().next().unwrap().unwrap() {
+                Key::Char('q') | Key::Esc => {
                     hit_bottom = false;
                     showing_info = false;
                     break;
                 }
-                console::Key::ArrowDown => row -= 1,
+                Key::Down => row -= 1,
                 _ => row = 0,
             }
         }
@@ -108,21 +119,23 @@ pub fn show_info(position: &Position, term: &Term) -> bool {
         if line.contains("\\subsection{") {
             break;
         }
-        write!(&*term, "\x1B[2K{}", parse_line(line)).unwrap();
+        write!(stdout, "\x1B[2K{}", parse_line(line))?;
+        stdout.flush()?;
         row += 1;
     }
     if hit_bottom {
-        write!(&*term, "{}  q to close\x1B[0J", style("(END)").reverse()).unwrap();
+        write!(stdout, "{}{}  q to close\x1B[0J", style::Invert, "(END)")?;
+        stdout.flush()?;
         while showing_info {
-            match term.read_key().unwrap() {
-                console::Key::Char('q') => {
+            match std::io::stdin().keys().next().unwrap().unwrap() {
+                Key::Char('q') => {
                     showing_info = false;
                 }
-                _ => write!(&*term, "\x07").unwrap(),
+                _ => write!(stdout, "\x07")?,
             }
         }
     }
-    showing_info
+    Ok(showing_info)
 }
 
 fn parse_line(line: &str) -> String {

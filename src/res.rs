@@ -1,12 +1,13 @@
 use crate::draw::Position;
-use console::style;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader, Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+use termion::raw::RawTerminal;
+use termion::{color, style};
 
 use sha2::Digest;
 
@@ -25,6 +26,7 @@ pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &Value,
     build_type: &str,
+    stdout: &mut RawTerminal<Stdout>,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
     let url = single_resource[parent]["versions"][0]["links"][build_type]
         .as_str()
@@ -35,10 +37,11 @@ pub fn get_or_update_local_parent(
     let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
-    println!(
-        "\x1B[32mchecking\x1B[0m local [{}] {}\x1B[0K",
+    write!(
+        stdout,
+        "\x1B[32mchecking\x1B[0m local [{}] {}\x1B[0K\r\n",
         build_type, parent
-    );
+    )?;
 
     let path = Path::new("resources");
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
@@ -55,29 +58,39 @@ pub fn get_or_update_local_parent(
             Ok(mut sum_file) => {
                 let mut sum = String::new();
                 sum_file.read_to_string(&mut sum)?;
-                println!("remote hash {}\x1B[0K\n  local sum {}\x1B[0K", hash, sum);
+                write!(
+                    stdout,
+                    "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                    hash, sum
+                )?;
                 if sum != hash {
-                    println!("\x1B[32mnew version found, Downloading\x1B[0m\x1B[0K");
-                    get_file_and_unzip(url, hash, &path)?;
+                    write!(
+                        stdout,
+                        "\x1B[32mnew version found, Downloading\x1B[0m\x1B[0K\r\n"
+                    )?;
+                    get_file_and_unzip(url, hash, &path, stdout)?;
                 } else {
-                    println!("Already up to date.\x1B[0K");
+                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
                 }
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
-                    println!(
-                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K",
+                    write!(
+                        stdout,
+                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K\r\n",
                         dir
-                    );
-                    println!("remote hash {}\x1B[0K", hash);
-                    get_file_and_unzip(url, hash, &path)?;
+                    )?;
+                    write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
+                    get_file_and_unzip(url, hash, &path, stdout)?;
                 }
                 _ => panic!("{}", e),
             },
         },
         "git" => {
-            let branch = single_resource[parent]["branch"].as_str().unwrap_or("master");
-            clone_or_pull(url, &git_file, branch)?;
+            let branch = single_resource[parent]["branch"]
+                .as_str()
+                .unwrap_or("master");
+            clone_or_pull(url, &git_file, branch, stdout)?;
         }
         _ => panic!("unknown parent type"),
     }
@@ -88,7 +101,12 @@ pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
     Ok(Command::new(command).args(args).output()?)
 }
 
-fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+fn get_file_and_unzip(
+    url: &str,
+    hash: &str,
+    path: &Path,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
     if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?
@@ -103,7 +121,7 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
     let mut data = Vec::new();
     f.read_to_end(&mut data).unwrap();
     let sum = format!("{:x}", sha2::Sha256::digest(&data));
-    println!("  local sum {}\x1B[0K", sum);
+    write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
     if sum != hash {
         panic!("Sum of {:?} does not match {}", path, hash);
     } else {
@@ -132,12 +150,18 @@ fn get_file_and_unzip(url: &str, hash: &str, path: &Path) -> Result<(), Box<dyn 
     Ok(())
 }
 
-pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn Error>> {
+pub fn clone_or_pull(
+    url: &str,
+    path: &Path,
+    branch: &str,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
     if path.exists() {
-        println!(
-            "\x1B[32mfound\x1B[0m {:?}, checking for updates\x1B[0K",
+        write!(
+            stdout,
+            "\x1B[32mfound\x1B[0m {:?}, checking for updates\x1B[0K\r\n",
             path.parent().unwrap()
-        );
+        )?;
         let out = status(
             "git",
             &[
@@ -152,14 +176,17 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         if out.status.code().unwrap() != 0 {
             panic!("failed to update {:?}", path);
         } else {
-            println!("{}\x1B[0K", String::from_utf8(out.stdout)?);
+            stdout.suspend_raw_mode()?;
+            write!(stdout, "{}\x1B[0K\r\n", String::from_utf8(out.stdout)?)?;
+            stdout.activate_raw_mode()?;
         }
     } else {
-        println!(
-            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\n{:?}\x1B[0K",
+        write!(
+            stdout,
+            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\n{:?}\x1B[0K\r\n",
             path.parent().unwrap(),
             url
-        );
+        )?;
         let out = status(
             "git",
             &[
@@ -180,25 +207,30 @@ pub fn clone_or_pull(url: &str, path: &Path, branch: &str) -> Result<(), Box<dyn
         if out.status.code().unwrap() != 0 {
             panic!("failed to clone {:?}", url);
         } else {
-            println!("{}\x1B[0K", String::from_utf8(out.stderr)?);
+            stdout.suspend_raw_mode()?;
+            write!(stdout, "{}\x1B[0K", String::from_utf8(out.stderr)?)?;
+            stdout.activate_raw_mode()?;
         }
     };
     Ok(())
 }
 
-pub fn show_res_path(resources: &Resources, position: &Position) {
+pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut RawTerminal<Stdout>) {
     let mut res_path: Option<PathBuf>;
     let section = position.sec_key[0].as_str();
     let mut ind_res = String::new();
     position.res_name(&mut ind_res);
     let parent = position.parent().unwrap_or("");
 
-    println!(
-        "\n{}\x1B[0K",
-        style("the first found resource will be added to the OUTPUT/EFI").underlined()
-    );
+    write!(
+        stdout,
+        "\n{}{}\x1B[0K\r\n",
+        style::Underline,
+        "the first found resource will be added to the OUTPUT/EFI"
+    )
+    .unwrap();
 
-    res_path = res_exists(&resources.working_dir, "INPUT", &ind_res);
+    res_path = res_exists(&resources.working_dir, "INPUT", &ind_res, stdout);
 
     let open_core_pkg = &resources.open_core_pkg;
 
@@ -216,129 +248,168 @@ pub fn show_res_path(resources: &Resources, position: &Position) {
             }
             _ => path = "",
         }
-        res_path = res_exists(open_core_pkg, path, &ind_res);
+        res_path = res_exists(open_core_pkg, path, &ind_res, stdout);
     }
 
     if parent.len() > 0 {
-        println!("\x1B[2K");
-        print!("{} in Dortania Builds? \x1B[0K", parent);
+        write!(stdout, "\x1B[2K\r\n").unwrap();
+        write!(stdout, "{} in Dortania Builds? \x1B[0K", parent).unwrap();
         match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
-                println!("{}", style("true").green().to_string());
-                println!("{}\x1B[0K", style(url).green().to_string());
+                write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "{}{}\x1B[0K\r\n", color::Fg(color::Green), url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.dortania,
                         &position.build_type,
+                        stdout,
                     )
                     .unwrap();
                 }
             }
-            _ => println!("\x1B[31mfalse\x1B[0m"),
+            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
         }
 
-        print!("\x1B[0K\n{} in Acidanthera Releases? \x1B[0K", parent);
+        write!(
+            stdout,
+            "\x1B[0K\n{} in Acidanthera Releases? \x1B[0K",
+            parent
+        )
+        .unwrap();
         match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
-                println!("{}\x1B[0K", style("true").green().to_string());
-                println!("{}\x1B[0K", style(url).green().to_string());
+                write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "{}{}\x1B[0K\r\n", color::Fg(color::Green), url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.acidanthera,
                         &position.build_type,
+                        stdout,
                     )
                     .unwrap();
                 }
             }
-            _ => println!("\x1B[31mfalse\x1B[0m"),
+            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
         }
 
-        print!("\x1B[0K\n{} in other? \x1B[0K", parent);
+        write!(stdout, "\x1B[0K\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
-                println!("{}\x1B[0K", style("true").green().to_string());
-                println!("{}\x1B[0K", style(url).green().to_string());
+                write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "{}\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
-                    res_path =
-                        get_or_update_local_parent(parent, &resources.other, &position.build_type)
-                            .unwrap();
+                    res_path = get_or_update_local_parent(
+                        parent,
+                        &resources.other,
+                        &position.build_type,
+                        stdout,
+                    )
+                    .unwrap();
                 }
             }
-            _ => println!("\x1B[31mfalse\x1B[0m"),
+            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
         }
     } else {
-        println!("\x1B[33mNo parent found for resource, skipping prebuilt repos\x1B[0m\x1B[0J");
+        write!(
+            stdout,
+            "\x1B[33mNo parent found for resource, skipping prebuilt repos\x1B[0m\x1B[0J\r\n"
+        )
+        .unwrap();
     }
-    println!("\x1B[2K");
+    write!(stdout, "\x1B[2K\r\n").unwrap();
     match res_path {
-        None => println!("\x1B[31mNo local resource found\x1B[0m\x1B[0K"),
+        None => write!(stdout, "\x1B[31mNo local resource found\x1B[0m\x1B[0K\r\n").unwrap(),
         Some(p) => {
-            println!("\x1B[32mlocal path to resource\x1B[0m\x1B[0K");
+            write!(stdout, "\x1B[32mlocal path to resource\x1B[0m\x1B[0K\r\n").unwrap();
             let out = status(
                 "find",
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
             )
             .unwrap();
-            println!(
-                "{}",
+            write!(
+                stdout,
+                "{}\r\n",
                 String::from_utf8(out.stdout)
                     .unwrap()
                     .lines()
                     .last()
                     .unwrap()
                     .to_owned()
-            );
+            )
+            .unwrap();
         }
     }
 }
 
-pub fn get_serde_json(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
-    print!("\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K", path);
+pub fn get_serde_json(
+    path: &str,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    write!(
+        stdout,
+        "\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K",
+        path
+    )?;
     std::io::stdout().flush()?;
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
-    println!("\x1B[32mdone\x1B[0m");
+    write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
     Ok(v)
 }
 
-fn res_exists(open_core_pkg: &PathBuf, path: &str, ind_res: &str) -> Option<PathBuf> {
+fn res_exists(
+    open_core_pkg: &PathBuf,
+    path: &str,
+    ind_res: &str,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Option<PathBuf> {
     let path = open_core_pkg.join(path).join(ind_res);
     if path.exists() {
-        println!(
-            "inside {:?} dir?\x1B[0K {}",
+        write!(
+            stdout,
+            "inside {:?} dir?\x1B[0K {}true\r\n",
             path.parent().unwrap(),
-            style("true").green()
-        );
+            color::Fg(color::Green)
+        )
+        .unwrap();
         Some(path)
     } else {
-        println!(
-            "inside {:?} dir?\x1B[0K {}",
+        write!(
+            stdout,
+            "inside {:?} dir?\x1B[0K {}false\r\n",
             path.parent().unwrap(),
-            style("false").red()
-        );
+            color::Fg(color::Red)
+        )
+        .unwrap();
         None
     }
 }
 
-pub fn print_parents(resources: &Resources) {
-    let build_type = resources.octool_config["build_type"].as_str().unwrap_or("release");
+pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
+    let build_type = resources.octool_config["build_type"]
+        .as_str()
+        .unwrap_or("release");
     let m: HashMap<String, Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
     for (name, val) in m {
-        println!(
-            "name: {} {:?}",
+        write!(
+            stdout,
+            "name: {} {:?}\r\n",
             name, val["versions"][0]["links"][build_type]
-        );
+        )
+        .unwrap();
     }
     let m: HashMap<String, Value> =
         serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
     for (name, val) in m {
-        println!(
-            "name: {} {:?}",
+        write!(
+            stdout,
+            "name: {} {:?}\r\n",
             name, val["versions"][0]["links"][build_type]
-        );
+        )
+        .unwrap();
     }
 }
 
@@ -346,10 +417,13 @@ pub fn get_res_path(
     resources: &Resources,
     ind_res: &str,
     section: &str,
+    stdout: &mut RawTerminal<Stdout>,
 ) -> Option<String> {
     let mut res_path: Option<PathBuf>;
     let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
-    let build_type = resources.octool_config["build_type"].as_str().unwrap_or("release");
+    let build_type = resources.octool_config["build_type"]
+        .as_str()
+        .unwrap_or("release");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
     if path.exists() {
         res_path = Some(path.clone());
@@ -357,7 +431,7 @@ pub fn get_res_path(
         res_path = None;
     }
     if res_path == None {
-    let open_core_pkg = &resources.open_core_pkg;
+        let open_core_pkg = &resources.open_core_pkg;
         match section {
             "ACPI" => {
                 path = open_core_pkg
@@ -381,13 +455,16 @@ pub fn get_res_path(
         }
     }
     if res_path == None {
-        res_path = get_or_update_local_parent(parent, &resources.dortania, build_type).unwrap();
+        res_path =
+            get_or_update_local_parent(parent, &resources.dortania, build_type, stdout).unwrap();
     }
     if res_path == None {
-        res_path = get_or_update_local_parent(parent, &resources.acidanthera, build_type).unwrap();
+        res_path =
+            get_or_update_local_parent(parent, &resources.acidanthera, build_type, stdout).unwrap();
     }
     if res_path == None {
-        res_path = get_or_update_local_parent(parent, &resources.other, build_type).unwrap();
+        res_path =
+            get_or_update_local_parent(parent, &resources.other, build_type, stdout).unwrap();
     }
     match res_path {
         None => None,

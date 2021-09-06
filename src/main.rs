@@ -6,12 +6,13 @@ mod parse_tex;
 mod res;
 mod snake;
 
-use console::{style, Key, Term};
 use fs_extra::dir::{copy, CopyOptions};
-use std::io::{self, Write};
+use std::io::{stdin, stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::{env, error::Error};
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::{IntoRawMode, RawTerminal};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
@@ -20,18 +21,18 @@ use crate::init::init;
 use crate::res::Resources;
 use crate::snake::snake;
 
-fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
-    let term = Term::stdout();
-    term.set_title("octool");
-    //    term.clear_screen()?;
-    term.hide_cursor()?;
-
+fn process(
+    config_plist: &PathBuf,
+    current_dir: &PathBuf,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
+    let stdin = stdin();
     let mut resources = Resources {
         acidanthera: serde_json::Value::Bool(false),
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
         parents: serde_json::Value::Bool(false),
-        other: res::get_serde_json("tool_config_files/other.json")?,
+        other: res::get_serde_json("tool_config_files/other.json", stdout)?,
         config_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
@@ -49,21 +50,21 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
         parents: &serde_json::Value::Bool(false),
     };
 
-    init(&config_plist, &mut resources, &mut position)?;
+    init(&config_plist, &mut resources, &mut position, stdout)?;
     position.parents = &resources.parents;
 
-    println!(
-        "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m"
-    );
+    writeln!(
+        stdout,
+        "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
+    )?;
+    let key = std::io::stdin().keys().next().unwrap().unwrap();
 
-    if term.read_key()? != Key::Char('q') {
-        update_screen(&mut position, &resources.config_plist, &term);
+    if key != Key::Char('q') {
+        update_screen(&mut position, &resources.config_plist, stdout)?;
+        stdout.flush().unwrap();
         let mut showing_info = false;
-
-        loop {
-            //            write!(&term, "dbg: {:?} {:?}", position.sec_key, position.item_clone)?;
-            let key = term.read_key()?;
-            match key {
+        for key in stdin.keys() {
+            match key.unwrap() {
                 Key::Char('q') => {
                     if showing_info {
                         showing_info = false;
@@ -72,19 +73,23 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
                     }
                 }
                 Key::Char('G') => {
-                    term.clear_screen()?;
-                    let build_okay = build_output(&resources)?;
-                    println!("\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist");
+                    //                        term.clear_screen()?;
+                    let build_okay = build_output(&resources, stdout)?;
+                    writeln!(
+                        stdout,
+                        "\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist\r"
+                    )?;
                     let config_okay = init::validate_plist(
                         &Path::new("OUTPUT/EFI/OC/config.plist").to_path_buf(),
                         &resources,
+                        stdout,
                     )?;
                     if !build_okay || !config_okay {
-                        println!("\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m");
+                        writeln!(stdout, "\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m\r")?;
                     } else {
-                        println!("\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m");
+                        writeln!(stdout, "\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m\r")?;
                         if &env::current_dir().unwrap() != current_dir {
-                            println!("Copying OUTPUT EFI folder to this directory");
+                            writeln!(stdout, "Copying OUTPUT EFI folder to this directory\r")?;
                             let mut options = CopyOptions::new();
                             options.overwrite = true;
                             copy("OUTPUT/EFI", current_dir, &options)?;
@@ -93,13 +98,13 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
                     break;
                 }
                 Key::Char('p') => {
-                    res::print_parents(&resources);
-                    let _ = term.read_key();
+                    res::print_parents(&resources, stdout);
+                    //                        let _ = term.read_key();
                 }
-                Key::ArrowUp | Key::Char('k') => position.up(),
-                Key::ArrowDown | Key::Char('j') => position.down(),
-                Key::ArrowLeft | Key::Char('h') => position.left(),
-                Key::ArrowRight | Key::Char('l') => position.right(),
+                Key::Up | Key::Char('k') => position.up(),
+                Key::Down | Key::Char('j') => position.down(),
+                Key::Left | Key::Char('h') => position.left(),
+                Key::Right | Key::Char('l') => position.right(),
                 Key::Home | Key::Char('t') => position.section_num[position.depth] = 0,
                 Key::End | Key::Char('b') => {
                     position.section_num[position.depth] = position.sec_length[position.depth] - 1
@@ -108,11 +113,11 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
                     if !showing_info {
                         //                   showing_info = false;
                         //               } else {
-                        edit_value(&position, &mut resources.config_plist, &term, true)?;
+                        edit_value(&position, &mut resources.config_plist, stdout, true)?;
                     }
                 }
-                Key::Enter | Key::Tab => {
-                    edit_value(&position, &mut resources.config_plist, &term, false)?
+                Key::Char('\n') | Key::Char('\t') => {
+                    edit_value(&position, &mut resources.config_plist, stdout, false)?
                 }
                 Key::Char('D') => {
                     if delete_value(&position, &mut resources.config_plist) {
@@ -122,53 +127,54 @@ fn process(config_plist: &PathBuf, current_dir: &PathBuf) -> Result<(), Box<dyn 
                 Key::Char('i') => {
                     if !showing_info {
                         if position.is_resource() {
-                            let _ = res::show_res_path(&resources, &position);
+                            let _ = res::show_res_path(&resources, &position, stdout);
                             showing_info = true;
                         } else {
-                            showing_info = parse_tex::show_info(&position, &term);
+                            showing_info = parse_tex::show_info(&position, stdout)?;
                         }
-                        write!(&term, "{}\x1B[0K", style(" ".repeat(70)).underlined())?;
+                        write!(stdout, "{}\x1B[0K", " ".repeat(70))?;
                     } else {
                         showing_info = false;
                     }
                 }
-                Key::Char('M') => snake(&term),
+                Key::Char('M') => snake(stdout),
                 Key::Char('s') => {
-                    write!(&term, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidatinig\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
+                    write!(stdout, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidating\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
                     resources.config_plist.to_file_xml("test_out.plist")?;
-                    let _status = Command::new(
-                        resources
-                            .open_core_pkg
-                            .join("Utilities/ocvalidate/ocvalidate"),
-                    )
-                    .arg("test_out.plist")
-                    .status()?;
+                    let _ = init::validate_plist(
+                        &Path::new("test_out.plist").to_path_buf(),
+                        &resources,
+                        stdout,
+                    )?;
                     break;
                 }
-
                 _ => (),
             }
-            if key != Key::Char('i') && key != Key::Char(' ') {
-                showing_info = false;
-            }
+            //            if key != Key::Char('i') && key != Key::Char(' ') {
+            //                showing_info = false;
+            //            }
             if !showing_info {
-                update_screen(&mut position, &resources.config_plist, &term);
+                update_screen(&mut position, &resources.config_plist, stdout)?;
+                stdout.flush().unwrap();
             }
         }
     }
 
-    term.show_cursor()?;
-    term.flush()?;
-
-    write!(&term, "\n\r\x1B[0J")?;
+    write!(stdout, "\n\r\x1B[0J")?;
+    stdout.flush()?;
 
     Ok(())
 }
 
 fn main() {
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(stdout, "{}", termion::clear::All).unwrap();
+    write!(stdout, "{}", termion::cursor::Hide).unwrap();
+    write!(stdout, "{}", termion::cursor::Goto(1, 1)).unwrap();
+
     let current_dir = env::current_dir().unwrap();
 
-    #[cfg(not(debug_assertions))]
+    #[cfg(not(debug_assertions))] // point to octool dir no matter where tool run from
     {
         let working_dir = env::current_exe().unwrap();
         if working_dir != current_dir {
@@ -177,7 +183,6 @@ fn main() {
         }
     }
 
-    print!("\x1B[2J\x1B[H");
     let mut config_file = Path::new(&match env::args().nth(1) {
         Some(s) => s,
         None => "INPUT/config.plist".to_string(),
@@ -185,14 +190,20 @@ fn main() {
     .to_owned();
 
     if !config_file.exists() {
-        println!("\x1B[31mDid not find config at\x1B[0m {:?}", config_file);
-        println!("Using OpenCorePkg/Docs/Sample.plist");
+        write!(
+            stdout,
+            "\x1B[31mDid not find config at\x1B[0m {:?}\r\n",
+            config_file
+        )
+        .unwrap();
+        write!(stdout, "Using OpenCorePkg/Docs/Sample.plist\r\n").unwrap();
         config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
-    io::stdout().flush().unwrap();
+    stdout.flush().unwrap();
 
-    match process(&config_file, &current_dir) {
+    match process(&config_file, &current_dir, &mut stdout) {
         Ok(()) => (),
-        Err(e) => print!("\r\n{:?}\r\n", e),
+        Err(e) => write!(stdout, "\n{:?}\r\n", e).unwrap(),
     }
+    write!(stdout, "{}", termion::cursor::Show).unwrap();
 }

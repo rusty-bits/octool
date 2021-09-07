@@ -183,7 +183,7 @@ pub fn clone_or_pull(
     } else {
         write!(
             stdout,
-            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\n{:?}\x1B[0K\r\n",
+            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\r\n{:?}\x1B[0K\r\n",
             path.parent().unwrap(),
             url
         )?;
@@ -257,7 +257,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
         match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
-                write!(stdout, "{}{}\x1B[0K\r\n", color::Fg(color::Green), url).unwrap();
+                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
@@ -268,7 +268,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
+            _ => write!(stdout, "{}false\x1B[0m\r\n", color::Fg(color::Red)).unwrap(),
         }
 
         write!(
@@ -280,7 +280,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
         match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
-                write!(stdout, "{}{}\x1B[0K\r\n", color::Fg(color::Green), url).unwrap();
+                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
@@ -298,7 +298,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
         match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
-                write!(stdout, "{}\x1B[0K\r\n", url).unwrap();
+                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
@@ -309,7 +309,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
+            _ => write!(stdout, "{}false\x1B[0m\r\n", color::Fg(color::Red)).unwrap(),
         }
     } else {
         write!(

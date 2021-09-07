@@ -1,7 +1,7 @@
 use crate::draw::{get_lossy_string, hex_str_with_style, Position};
 use plist::{Integer, Value};
-use termion::{color, cursor};
 use termion::event::Key;
+use termion::{color, cursor};
 use termion::{input::TermRead, raw::RawTerminal, style};
 
 use std::{
@@ -84,13 +84,14 @@ pub fn edit_value(
                 Some(Value::Boolean(b)) => *b = !*b,
                 _ => (),
             },
-            Value::String(s) => {
+/*            Value::String(s) => {
                 if s.starts_with('#') {
                     s.remove(0);
                 } else {
                     s.insert(0, '#');
                 }
             }
+            */
             _ => (),
         }
     } else {
@@ -118,25 +119,28 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
         let tmp_val = hex::decode(tmp_val).unwrap();
         write!(
             stdout,
-            "\x1B8\x1B[G{inv}{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
+            "\x1B8\x1B[G{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
             hex_str_with_style(edit_hex.clone()),
             get_lossy_string(&tmp_val),
             mag = color::Fg(color::Magenta),
             res = style::Reset,
-            inv = style::Invert,
         )?;
         if hexedit {
             write!(
                 stdout,
                 "\x1B[G{}{}as hex{}\x1B8{}",
-                style::Invert, color::Fg(color::Magenta), style::Reset,
+                style::Invert,
+                color::Fg(color::Magenta),
+                style::Reset,
                 "\x1B[C".repeat(pos)
             )?;
         } else {
             write!(
                 stdout,
                 "\x1B[E{}{}as string{}\x1B8\x1B[B{}",
-                style::Invert, color::Fg(color::Magenta), style::Reset,
+                style::Invert,
+                color::Fg(color::Magenta),
+                style::Reset,
                 "\x1B[C".repeat(pos / 2)
             )
             .unwrap();
@@ -144,80 +148,80 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
         stdout.flush()?;
         let key = std::io::stdin().keys().next().unwrap().unwrap();
         match key {
-                Key::Char('\n') => {
-                    *val = tmp_val;
-                    break;
-                }
-                Key::Backspace => {
-                    if edit_hex.len() > 0 {
-                        if pos > 0 {
-                            let _ = edit_hex.remove(pos - 1);
-                            pos -= 1;
-                            if !hexedit {
-                                let _ = edit_hex.remove(pos - 1);
-                                pos -= 1;
-                            }
-                        }
-                    }
-                }
-                Key::Char('\t') | Key::Up | Key::Down => {
-                    if hexedit {
-                        if edit_hex.len() % 2 == 1 {
-                            edit_hex.insert(0, '0');
-                        }
-                        if pos % 2 == 1 {
-                            pos += 1;
-                        }
-                    }
-                    hexedit = !hexedit;
-                }
-                Key::Delete => {
-                    if edit_hex.len() > 0 {
-                        if pos < edit_hex.len() {
-                            let _ = edit_hex.remove(pos);
-                            if !hexedit {
-                                let _ = edit_hex.remove(pos);
-                            }
-                        }
-                    }
-                }
-                Key::Left => {
+            Key::Char('\n') => {
+                *val = tmp_val;
+                break;
+            }
+            Key::Backspace => {
+                if edit_hex.len() > 0 {
                     if pos > 0 {
+                        let _ = edit_hex.remove(pos - 1);
                         pos -= 1;
                         if !hexedit {
+                            let _ = edit_hex.remove(pos - 1);
                             pos -= 1;
                         }
                     }
                 }
-                Key::Right => {
-                    if pos < edit_hex.len() {
-                        pos += 1;
-                        if !hexedit {
-                            pos += 1;
-                        }
-                    }
-                }
-                Key::Char(c) => {
-                    if hexedit {
-                        if c.is_ascii_hexdigit() {
-                            edit_hex.insert(pos, c);
-                            pos += 1;
-                        }
-                    } else {
-                        if c.is_ascii() {
-                            for ic in hex::encode(vec![c as u8]).chars() {
-                                edit_hex.insert(pos, ic);
-                                pos += 1;
-                            }
-                        }
-                    }
-                }
-                Key::Home => pos = 0,
-                Key::End => pos = edit_hex.len(),
-                Key::Esc => break,
-                _ => (),
             }
-//        stdout.flush()?;
+            Key::Char('\t') | Key::Up | Key::Down => {
+                if hexedit {
+                    if edit_hex.len() % 2 == 1 {
+                        edit_hex.insert(0, '0');
+                    }
+                    if pos % 2 == 1 {
+                        pos += 1;
+                    }
+                }
+                hexedit = !hexedit;
+            }
+            Key::Delete => {
+                if edit_hex.len() > 0 {
+                    if pos < edit_hex.len() {
+                        let _ = edit_hex.remove(pos);
+                        if !hexedit {
+                            let _ = edit_hex.remove(pos);
+                        }
+                    }
+                }
+            }
+            Key::Left => {
+                if pos > 0 {
+                    pos -= 1;
+                    if !hexedit {
+                        pos -= 1;
+                    }
+                }
+            }
+            Key::Right => {
+                if pos < edit_hex.len() {
+                    pos += 1;
+                    if !hexedit {
+                        pos += 1;
+                    }
+                }
+            }
+            Key::Char(c) => {
+                if hexedit {
+                    if c.is_ascii_hexdigit() {
+                        edit_hex.insert(pos, c);
+                        pos += 1;
+                    }
+                } else {
+                    if c.is_ascii() {
+                        for ic in hex::encode(vec![c as u8]).chars() {
+                            edit_hex.insert(pos, ic);
+                            pos += 1;
+                        }
+                    }
+                }
+            }
+            Key::Home => pos = 0,
+            Key::End => pos = edit_hex.len(),
+            Key::Esc => break,
+            _ => (),
+        }
+        //        stdout.flush()?;
     }
     Ok(())
 }

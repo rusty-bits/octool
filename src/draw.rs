@@ -1,5 +1,5 @@
 use plist::Value;
-use termion::{color, cursor, terminal_size};
+use termion::{color, terminal_size};
 use termion::{raw::RawTerminal, style};
 
 use std::error::Error;
@@ -67,14 +67,6 @@ impl<'a> Position<'a> {
             self.resource_sections.contains(&sec_sub)
         }
     }
-    /*    pub fn has_parent(&self) -> bool {
-        let mut r = String::new();
-        self.res_name(&mut r);
-        match self.parents[r]["parent"].as_str() {
-            Some(_) => true,
-            None => false,
-        }
-    } */
     pub fn parent(&self) -> Option<&str> {
         let mut r = String::new();
         self.res_name(&mut r);
@@ -103,7 +95,7 @@ pub fn update_screen(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     let rows: i32 = terminal_size().unwrap().1.into();
-    write!(stdout, "\x1B[{}H", rows)?;
+    write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
     write!(
         stdout,
         " {inv}s{res} save {inv}q{res} quit {inv}G{res} Go build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string",
@@ -115,7 +107,7 @@ pub fn update_screen(
         blu = color::Fg(color::Blue),
     )?;
 
-    write!(stdout, "\x1B[3H")?;
+    write!(stdout, "\x1B[3H")?; // jump under header
     let mut row = 4;
     let list = plist.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
@@ -130,9 +122,9 @@ pub fn update_screen(
         blanks = 0;
     }
 
-    write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?;
+    write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?; // clear rows up to footer
 
-    let mut tmp = String::new();
+    let mut tmp = String::new(); // lastly draw the header
     let mut info = String::new();
     position.res_name(&mut info);
     if info.len() > 20 {
@@ -188,7 +180,7 @@ fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
-    write!(stdout, "\x1B[0K\r\n{}", "    ".repeat(d))?;
+    write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(d))?; // indent to section and clear rest of line
     if position.section_num[d] == item_num {
         position.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
@@ -196,7 +188,7 @@ fn display_value(
         if d == position.depth {
             live_item = true;
             position.item_clone = plist_value.clone();
-            save_curs_pos = "\x1B7".to_string(); // save cursor position
+            save_curs_pos = "\x1B7".to_string(); // save cursor position for editing and info display
         }
     }
     match plist_value {
@@ -207,14 +199,14 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
-            write!(stdout, "{} ", pre_key)?;
             write!(
                 stdout,
-                "{}{}\x1B[0m  [{}]{} ",
+                "{} {}{}\x1B[0m  [{}]{} ",
+                pre_key,
                 key_style,
                 key,
                 v.len(),
-                cursor::Save
+                save_curs_pos
             )?;
             if position.depth > d && position.section_num[d] == item_num {
                 let mut key = String::new();
@@ -272,17 +264,10 @@ fn display_value(
             if position.depth > d && position.section_num[d] == item_num {
                 pre_key = 'v';
             }
-            write!(stdout, "{} ", pre_key)?;
-            /*            if d == 2 && position.is_resource() {
-                if position.has_parent() {
-                    write!(&*term, "{} ", style("•").green())?;
-                } else {
-                    write!(&*term, "{} ", style("•").red())?;
-                }
-            }; */
             write!(
                 stdout,
-                "{}{}{}\x1B[0m  [{}]{} ",
+                "{} {}{}{}\x1B[0m  [{}]{} ",
+                pre_key,
                 key_style,
                 match key_color {
                     Some(true) => color::Fg(color::Green).to_string(),
@@ -314,15 +299,11 @@ fn display_value(
             )?;
         }
         Value::String(v) => {
-            write!(stdout, "{}{:>2}\x1B[0m: ", key_style, key)?;
-            /*            if position.is_resource() {
-                if position.has_parent(&v) {
-                    write!(&*term, "{}", style("•").green())?;
-                } else {
-                    write!(&*term, "{}", style("•").red())?;
-                }
-            } */
-            write!(stdout, "{}{}", save_curs_pos, v)?;
+            write!(
+                stdout,
+                "{}{:>2}\x1B[0m: {}{}",
+                key_style, key, save_curs_pos, v
+            )?;
         }
         _ => panic!("Can't handle this type"),
     }
@@ -377,6 +358,7 @@ pub fn hex_str_with_style(v: String) -> String {
         if col > 1 {
             hex_u.push_str(&color::Fg(color::Magenta).to_string());
             hex_u.push(c);
+            hex_u.push_str(&style::Reset.to_string());
         } else {
             hex_u.push(c);
         }

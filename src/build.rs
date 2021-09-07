@@ -2,13 +2,16 @@ use crate::res::{get_or_update_local_parent, get_res_path, status, Resources};
 
 use fs_extra::copy_items;
 use fs_extra::dir::{copy, CopyOptions};
-use termion::raw::RawTerminal;
 use std::error::Error;
 use std::fs;
 use std::io::{self, Stdout, Write};
 use std::path::{Path, PathBuf};
+use termion::raw::RawTerminal;
 
-pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> Result<bool, Box<dyn Error>> {
+pub fn build_output(
+    resources: &Resources,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<bool, Box<dyn Error>> {
     fs_extra::dir::remove("OUTPUT")?;
     std::fs::create_dir_all("OUTPUT/EFI")?;
     let mut has_open_canopy = false;
@@ -25,7 +28,7 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
 
-    write!(stdout, "\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n")?;
+    write!(stdout, "\x1B[0J\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n")?;
     let mut from_paths = Vec::new();
     let acpis = resources.config_plist.as_dictionary().unwrap()["ACPI"]
         .as_dictionary()
@@ -40,7 +43,11 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
-                    write!(stdout, "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n", r)?;
+                    write!(
+                        stdout,
+                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                        r
+                    )?;
                 }
             }
         }
@@ -70,7 +77,11 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
-                    write!(stdout, "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n", r)?;
+                    write!(
+                        stdout,
+                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                        r
+                    )?;
                 }
             }
         }
@@ -95,7 +106,11 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
-                    write!(stdout, "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n", r)?;
+                    write!(
+                        stdout,
+                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                        r
+                    )?;
                 }
             }
         }
@@ -113,16 +128,21 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
         .as_array()
         .unwrap();
     for val in drivers {
-        let driver = val.as_string().unwrap().to_string();
-        if !driver.starts_with('#') {
-            if &driver == "OpenCanopy.efi" {
+        let driver = val.as_dictionary().unwrap();
+        if driver["Enabled"].as_boolean().unwrap() {
+            let r = driver["Path"].as_string().unwrap().split('/').next().unwrap();
+            if r == "OpenCanopy.efi" {
                 has_open_canopy = true;
             }
-            match get_res_path(&resources, &driver, "UEFI", stdout) {
+            match get_res_path(&resources, r, "UEFI", stdout) {
                 Some(res) => from_paths.push(res),
                 None => {
                     build_okay = false;
-                    write!(stdout, "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n", &driver)?;
+                    write!(
+                        stdout,
+                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                        r
+                    )?;
                 }
             }
         }
@@ -133,8 +153,12 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
 
     if has_open_canopy {
-        write!(stdout, "\x1B[32mFound\x1B[0m OpenCanopy.efi in UEFI->Drivers\r\n")?;
-        let _ = get_or_update_local_parent("OcBinaryData", &resources.acidanthera, "release", stdout)?;
+        write!(
+            stdout,
+            "\x1B[32mFound\x1B[0m OpenCanopy.efi in UEFI->Drivers\r\n"
+        )?;
+        let _ =
+            get_or_update_local_parent("OcBinaryData", &resources.acidanthera, "release", stdout)?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()
             .unwrap_or("en");
@@ -142,28 +166,28 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
         lang.push_str(&canopy_language);
         lang.push('_');
         let input_resources = Path::new("INPUT/Resources");
-/*
-        let mut entries = fs::read_dir("resources/OcBinaryData/Resources/Audio")?
-            .map(|res| res.map(|e| e.path()))
-            .collect::<Result<Vec<_>, io::Error>>()?;
+        /*
+                let mut entries = fs::read_dir("resources/OcBinaryData/Resources/Audio")?
+                    .map(|res| res.map(|e| e.path()))
+                    .collect::<Result<Vec<_>, io::Error>>()?;
 
-        entries.retain(|p| p.to_str().unwrap().contains(&lang));
-        let f = Path::new("resources/OcBinaryData/Resources/Audio");
-        for file in resources.octool_config["global_audio_files"]
-            .as_array()
-            .unwrap()
-        {
-            entries.push(f.join(file.as_str().unwrap()));
-        }
+                entries.retain(|p| p.to_str().unwrap().contains(&lang));
+                let f = Path::new("resources/OcBinaryData/Resources/Audio");
+                for file in resources.octool_config["global_audio_files"]
+                    .as_array()
+                    .unwrap()
+                {
+                    entries.push(f.join(file.as_str().unwrap()));
+                }
 
-        print!(
-            "\x1B[32mCopying\x1B[0m {} Audio resources from OcBinaryData ... ",
-            entries.len()
-        );
+                print!(
+                    "\x1B[32mCopying\x1B[0m {} Audio resources from OcBinaryData ... ",
+                    entries.len()
+                );
 
-        copy_items(&entries, "OUTPUT/EFI/OC/Resources/Audio", &options)?;
-        println!("\x1B[32mdone\x1B[0m");
-*/
+                copy_items(&entries, "OUTPUT/EFI/OC/Resources/Audio", &options)?;
+                println!("\x1B[32mdone\x1B[0m");
+        */
         for res in &["Audio", "Font", "Image", "Label"] {
             let in_path = Path::new("resources/OcBinaryData/Resources");
             let out_path = Path::new("OUTPUT/EFI/OC/Resources");
@@ -208,11 +232,17 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
         .unwrap()
     {
         "Basic" => {
-            write!(stdout, "\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic\r\n")?;
+            write!(
+                stdout,
+                "\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic\r\n"
+            )?;
             compute_vault_plist(resources, stdout)?;
         }
         "Secure" => {
-            write!(stdout, "\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure\r\n")?;
+            write!(
+                stdout,
+                "\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure\r\n"
+            )?;
             compute_vault_plist(resources, stdout)?;
             write!(stdout, "\x1b[32mSigning\x1B[0m OpenCore.efi ... ")?;
             io::stdout().flush()?;
@@ -245,7 +275,10 @@ pub fn build_output(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> 
     Ok(build_okay)
 }
 
-fn compute_vault_plist(resources: &Resources, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
+fn compute_vault_plist(
+    resources: &Resources,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
     write!(stdout, "\x1B[32mComputing\x1B[0m vault.plist ... ")?;
     io::stdout().flush()?;
     let _ = status(

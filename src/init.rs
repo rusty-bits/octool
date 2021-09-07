@@ -12,7 +12,7 @@ pub fn init(
     config_plist: &PathBuf,
     resources: &mut Resources,
     position: &mut Position,
-    stdout: &mut RawTerminal<Stdout>
+    stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
     position.build_type = resources.octool_config["build_type"]
@@ -27,7 +27,10 @@ pub fn init(
     position.resource_sections =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
 
-    write!(stdout, "\n\x1B[32mchecking\x1B[0m acidanthera OpenCorePkg source\r\n")?;
+    write!(
+        stdout,
+        "\n\x1B[32mchecking\x1B[0m acidanthera OpenCorePkg source\r\n"
+    )?;
     let path = Path::new(
         resources.octool_config["opencorepkg_path"]
             .as_str()
@@ -42,9 +45,13 @@ pub fn init(
     resources.config_plist = Value::from_file(&config_plist)
         .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
 
-    resources.acidanthera = res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
+    resources.acidanthera =
+        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 
-    write!(stdout, "\n\x1B[32mchecking\x1B[0m dortania/build_repo/config.json\r\n")?;
+    write!(
+        stdout,
+        "\n\x1B[32mchecking\x1B[0m dortania/build_repo/config.json\r\n"
+    )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
             .as_str()
@@ -58,13 +65,19 @@ pub fn init(
         .unwrap();
     res::clone_or_pull(url, path, branch, stdout)?;
 
-    resources.dortania =
-        res::get_serde_json(path.parent().unwrap().join("config.json").to_str().unwrap(), stdout)?;
+    resources.dortania = res::get_serde_json(
+        path.parent().unwrap().join("config.json").to_str().unwrap(),
+        stdout,
+    )?;
     resources.parents = res::get_serde_json("tool_config_files/parents.json", stdout)?;
 
     write!(stdout, "\r\n")?;
-    let path =
-        res::get_or_update_local_parent("OpenCorePkg", &resources.dortania, &position.build_type, stdout)?;
+    let path = res::get_or_update_local_parent(
+        "OpenCorePkg",
+        &resources.dortania,
+        &position.build_type,
+        stdout,
+    )?;
 
     match path {
         Some(p) => resources.open_core_pkg = p.parent().unwrap().to_path_buf(),
@@ -103,7 +116,7 @@ pub fn init(
 pub fn validate_plist(
     config_plist: &PathBuf,
     resources: &Resources,
-    stdout: &mut RawTerminal<Stdout>
+    stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
     let mut config_okay = true;
     let out = res::status(
@@ -119,7 +132,10 @@ pub fn validate_plist(
     stdout.activate_raw_mode()?;
     if out.status.code().unwrap() != 0 {
         config_okay = false;
-        write!(stdout, "\x1B[31mERROR: Problems(s) found in config.plist!\x1B[0m\r\n")?;
+        write!(
+            stdout,
+            "\x1B[31mERROR: Problems(s) found in config.plist!\x1B[0m\r\n"
+        )?;
         write!(stdout, "{}\r\n", String::from_utf8(out.stderr).unwrap())?;
     }
     Ok(config_okay)

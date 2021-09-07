@@ -64,7 +64,8 @@ fn process(
         stdout.flush().unwrap();
         let mut showing_info = false;
         for key in stdin.keys() {
-            match key.unwrap() {
+            let key = key.unwrap();
+            match key {
                 Key::Char('q') => {
                     if showing_info {
                         showing_info = false;
@@ -132,12 +133,13 @@ fn process(
                         } else {
                             showing_info = parse_tex::show_info(&position, stdout)?;
                         }
-                        write!(stdout, "{}\x1B[0K", " ".repeat(70))?;
+                        write!(stdout, "{}\x1B[0K", "_".repeat(70))?;
+                        stdout.flush()?;
                     } else {
                         showing_info = false;
                     }
                 }
-                Key::Char('M') => snake(stdout),
+                Key::Char('M') => snake(stdout)?,
                 Key::Char('s') => {
                     write!(stdout, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidating\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
                     resources.config_plist.to_file_xml("test_out.plist")?;
@@ -150,9 +152,9 @@ fn process(
                 }
                 _ => (),
             }
-            //            if key != Key::Char('i') && key != Key::Char(' ') {
-            //                showing_info = false;
-            //            }
+            if key != Key::Char('i') && key != Key::Char(' ') {
+                showing_info = false;
+            }
             if !showing_info {
                 update_screen(&mut position, &resources.config_plist, stdout)?;
                 stdout.flush().unwrap();

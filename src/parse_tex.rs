@@ -125,8 +125,8 @@ pub fn show_info(
     }
     if hit_bottom {
         write!(stdout, "{}{}  q to close\x1B[0J", style::Invert, "(END)")?;
-        stdout.flush()?;
         while showing_info {
+            stdout.flush()?;
             match std::io::stdin().keys().next().unwrap().unwrap() {
                 Key::Char('q') => {
                     showing_info = false;

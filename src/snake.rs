@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io::{Read, Stdout, Write};
 use std::{thread, time};
 
@@ -6,30 +7,31 @@ use termion::{async_stdin, terminal_size};
 
 // blame mahasvan for this "secret" snake option
 
-pub fn snake(stdout: &mut RawTerminal<Stdout>) {
+pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut direction = 8;
     let mut rest = 100;
     let ma = "BLAME_MAHASVAN_FOR_THIS_";
     let mut masc = ma.chars();
 
-    write!(stdout, "{}", termion::clear::All).unwrap();
+    write!(stdout, "{}", termion::clear::All)?;
 
-    let (col, row) = terminal_size().unwrap();
+    let (col, row) = terminal_size()?;
 
     let mut scr = vec![false; (row * col).into()];
     let mut sx = col / 2;
     let mut sy = row / 2;
     let mut stdin = async_stdin();
 
-    let mut key_bytes = [0];
+    let mut key_bytes = [0, 0, 0];
     loop {
-        stdin.read(&mut key_bytes).unwrap();
-
+        if stdin.read(&mut key_bytes)? == 3 {
+            key_bytes[0] = key_bytes[2];
+        }
         direction = match key_bytes[0] {
-            b'w' | b'k' => 8,
-            b's' | b'j' => 2,
-            b'a' | b'h' => 4,
-            b'd' | b'l' => 6,
+            b'A' | b'k' => 8,
+            b'B' | b'j' => 2,
+            b'D' | b'h' => 4,
+            b'C' | b'l' => 6,
             _ => direction,
         };
         match direction {
@@ -73,15 +75,14 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) {
             rest = 20
         };
         if scr[pos] {
-            write!(stdout, " you died! ").unwrap();
-            stdout.flush().unwrap();
+            write!(stdout, " you died! ")?;
+            stdout.flush()?;
             break;
         } else {
             scr[pos] = true;
-            write!(stdout, "\x1B[{};{}H{}", sy, sx, c).unwrap();
-            stdout.flush().unwrap();
+            write!(stdout, "\x1B[{};{}H\x1B[7m{}\x1B[0m", sy, sx, c)?;
+            stdout.flush()?;
         }
     }
-    stdin.read(&mut key_bytes).unwrap();
-    stdin.read(&mut key_bytes).unwrap();
+    Ok(())
 }

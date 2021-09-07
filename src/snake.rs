@@ -77,6 +77,7 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
         if scr[pos] {
             write!(stdout, " you died! ")?;
             stdout.flush()?;
+            while stdin.read(&mut key_bytes)? == 0 {};
             break;
         } else {
             scr[pos] = true;

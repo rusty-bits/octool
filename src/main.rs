@@ -139,7 +139,10 @@ fn process(
                         showing_info = false;
                     }
                 }
-                Key::Char('M') => snake(stdout)?,
+                Key::Char('M') => {
+                    snake(stdout)?;
+                    std::io::stdin().keys().next().unwrap().unwrap();
+                }
                 Key::Char('s') => {
                     write!(stdout, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidating\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
                     resources.config_plist.to_file_xml("test_out.plist")?;

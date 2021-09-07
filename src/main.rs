@@ -100,7 +100,7 @@ fn process(
                 }
                 Key::Char('p') => {
                     res::print_parents(&resources, stdout);
-                    //                        let _ = term.read_key();
+                    std::io::stdin().keys().next().unwrap().unwrap();
                 }
                 Key::Up | Key::Char('k') => position.up(),
                 Key::Down | Key::Char('j') => position.down(),

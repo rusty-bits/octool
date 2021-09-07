@@ -224,9 +224,9 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
 
     write!(
         stdout,
-        "\n{}{}\x1B[0K\r\n",
+        "\r\n{}the first found resource will be added to the OUTPUT/EFI{}\x1B[0K\r\n",
         style::Underline,
-        "the first found resource will be added to the OUTPUT/EFI"
+        style::Reset,
     )
     .unwrap();
 
@@ -370,7 +370,7 @@ fn res_exists(
     if path.exists() {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K {}true\r\n",
+            "inside {:?} dir?\x1B[0K {}true\x1B[0m\r\n",
             path.parent().unwrap(),
             color::Fg(color::Green)
         )
@@ -379,7 +379,7 @@ fn res_exists(
     } else {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K {}false\r\n",
+            "inside {:?} dir?\x1B[0K {}false\x1B[0m\r\n",
             path.parent().unwrap(),
             color::Fg(color::Red)
         )

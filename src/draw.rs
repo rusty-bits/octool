@@ -73,19 +73,12 @@ impl<'a> Position<'a> {
         self.parents[r]["parent"].as_str()
     }
     pub fn res_name(&self, name: &mut String) {
-        if self.sec_key[0] == "UEFI" && self.sec_key[1] == "Drivers" && self.depth == 2 {
-            *name = self.item_clone.as_string().unwrap_or("").to_owned();
-        } else {
-            *name = self.sec_key[self.depth]
-                .to_owned()
-                .split('/')
-                .last()
-                .unwrap()
-                .to_string();
-        }
-        if name.starts_with('#') {
-            name.remove(0);
-        }
+        *name = self.sec_key[self.depth]
+            .to_owned()
+            .split('/')
+            .last()
+            .unwrap()
+            .to_string();
     }
 }
 

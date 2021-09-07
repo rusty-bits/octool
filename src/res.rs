@@ -15,7 +15,7 @@ pub struct Resources {
     pub acidanthera: Value,
     pub dortania: Value,
     pub octool_config: Value,
-    pub parents: Value,
+    pub resource_list: Value,
     pub other: Value,
     pub config_plist: plist::Value,
     pub working_dir: PathBuf,
@@ -420,7 +420,7 @@ pub fn get_res_path(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Option<String> {
     let mut res_path: Option<PathBuf>;
-    let parent = resources.parents[&ind_res]["parent"].as_str().unwrap_or("");
+    let parent = resources.resource_list[&ind_res]["parent"].as_str().unwrap_or("");
     let build_type = resources.octool_config["build_type"]
         .as_str()
         .unwrap_or("release");

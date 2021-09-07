@@ -1,0 +1,335 @@
+{
+  "AcpiTest.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "AcpiTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "AudioDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "BootKicker.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "BOOTx64.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "ChipTune.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "CleanNvram.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "CrScreenshotDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "CryptoTest.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "CryptoTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "DataHubTest.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "DataHubTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "GdbSyms.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "GopStop.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "HiiDatabase.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "KeyTester.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "MmapDump.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "NvmExpressDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenCanopy.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenControl.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenCore.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenHfsPlus.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenPartitionDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenRuntime.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenUsbKbDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenShell.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "PavpProvision.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "PropertyTest.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "PropertyTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "Ps2KeyboardDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "Ps2MouseDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "ResetSystem.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "RtcRw.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "Shell.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "SmbiosTest.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "SmbiosTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "UsbMouseDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "VerifyMemOpt.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "VerifyMsrE2.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "XhciDxe.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "BrightnessKeys.kext": {
+    "parent": "BrightnessKeys"
+  },
+  "FeatureUnlock.kext": {
+    "parent": "FeatureUnlock"
+  },
+  "ExFatDxe.efi": {
+    "parent": "OcBinaryData"
+  },
+  "ExFatDxeLegacy.efi": {
+    "parent": "OcBinaryData"
+  },
+  "HfsPlus.efi": {
+    "parent": "OcBinaryData"
+  },
+  "HfsPlus32.efi": {
+    "parent": "OcBinaryData"
+  },
+  "HfsPlusLegacy.efi": {
+    "parent": "OcBinaryData"
+  },
+  "WhateverGreen.kext": {
+    "parent": "WhateverGreen"
+  },
+  "VoodooInput.kext": {
+    "parent": "VoodooInput"
+  },
+  "CpuTscSync.kext": {
+    "parent": "CpuTscSync"
+  },
+  "VoodooPS2Controller.kext": {
+    "parent": "VoodooPS2"
+  },
+  "VoodooPS2Keyboard.kext": {
+    "parent": "VoodooPS2"
+  },
+  "VoodooPS2Mouse.kext": {
+    "parent": "VoodooPS2"
+  },
+  "VoodooPS2Trackpad.kext": {
+    "parent": "VoodooPS2"
+  },
+  "VoodooI2C.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooGPIO.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CServices.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CAtmelMXT.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CELAN.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CFTE.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CHID.kext": {
+    "parent": "VoodooI2C"
+  },
+  "VoodooI2CSynaptics.kext": {
+    "parent": "VoodooI2C"
+  },
+  "IntelMausi.kext": {
+    "parent": "IntelMausi"
+  },
+  "AirPortBrcm4360_Injector.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "AirPortBrcmNIC_Injector.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "AirportBrcmFixup.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "BlueToolFixup.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmBluetoothInjector.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmFirmwareData.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmFirmwareRepo.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmNonPatchRAM.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmNonPatchRAM2.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM2.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM3.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "HibernationFixup.kext": {
+    "parent": "HibernationFixup"
+  },
+  "AppleALC.kext": {
+    "parent": "AppleALC"
+  },
+  "CPUFriend.kext": {
+    "parent": "CPUFriend"
+  },
+  "VirtualSMC.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCBatteryManager.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCDellSensors.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCLightSensor.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCProcessor.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCSuperIO.kext": {
+    "parent": "VirtualSMC"
+  },
+  "Lilu.kext": {
+    "parent": "Lilu"
+  },
+  "MacHyperVSupport.kext": {
+    "parent": "MacHyperVSupport"
+  },
+  "RestrictEvents.kext": {
+    "parent": "RestrictEvents"
+  },
+  "SidecarFixup.kext": {
+    "parent": "SidecarFixup"
+  },
+  "UEFIGraphicsFB.kext": {
+    "parent": "UEFIGraphicsFB"
+  },
+  "RTCMemoryFixup.kext": {
+    "parent": "RTCMemoryFixup"
+  },
+  "NVMeFix.kext": {
+    "parent": "NVMeFix"
+  },
+  "DebugEnhancer.kext": {
+    "parent": "DebugEnhancer"
+  },
+  "SSDT-AWAC.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-CPUR.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-DESKTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-LAPTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-USBX-DESKTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-USBX-LAPTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-IMEI-S.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-IMEI.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PLUG-DRTNIA.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PMC.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PNLF-CFL.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PNLF.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-RHUB.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-RTC0-RANGE-HEDT.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-UNC.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-XOSI.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "AppleMCEReporterDisabler.kext": {
+    "parent": "AppleMCEReporterDisabler"
+  },
+  "SmallTreeIntel82576.kext": {
+    "parent": "SmallTreeIntel82576"
+  },
+  "AtherosE2200Ethernet.kext": {
+    "parent": "AtherosEthernetE2200"
+  }
+}

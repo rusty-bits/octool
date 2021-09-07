@@ -69,7 +69,7 @@ pub fn init(
         path.parent().unwrap().join("config.json").to_str().unwrap(),
         stdout,
     )?;
-    resources.parents = res::get_serde_json("tool_config_files/parents.json", stdout)?;
+    resources.resource_list = res::get_serde_json("tool_config_files/resource_list.json", stdout)?;
 
     write!(stdout, "\r\n")?;
     let path = res::get_or_update_local_parent(

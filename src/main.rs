@@ -31,7 +31,7 @@ fn process(
         acidanthera: serde_json::Value::Bool(false),
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
-        parents: serde_json::Value::Bool(false),
+        resource_list: serde_json::Value::Bool(false),
         other: res::get_serde_json("tool_config_files/other.json", stdout)?,
         config_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
@@ -47,11 +47,11 @@ fn process(
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
-        parents: &serde_json::Value::Bool(false),
+        res_list_copy: &serde_json::Value::Bool(false),
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
-    position.parents = &resources.parents;
+    position.res_list_copy = &resources.resource_list;
 
     writeln!(
         stdout,

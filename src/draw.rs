@@ -17,7 +17,7 @@ pub struct Position<'a> {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
-    pub parents: &'a serde_json::Value,
+    pub res_list_copy: &'a serde_json::Value,
 }
 
 impl<'a> Position<'a> {
@@ -70,7 +70,7 @@ impl<'a> Position<'a> {
     pub fn parent(&self) -> Option<&str> {
         let mut r = String::new();
         self.res_name(&mut r);
-        self.parents[r]["parent"].as_str()
+        self.res_list_copy[r]["parent"].as_str()
     }
     pub fn res_name(&self, name: &mut String) {
         *name = self.sec_key[self.depth]

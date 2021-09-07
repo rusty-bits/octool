@@ -28,7 +28,10 @@ pub fn build_output(
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
 
-    write!(stdout, "\x1B[0J\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n")?;
+    write!(
+        stdout,
+        "\x1B[0J\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n"
+    )?;
     let mut from_paths = Vec::new();
     let acpis = resources.config_plist.as_dictionary().unwrap()["ACPI"]
         .as_dictionary()
@@ -130,7 +133,12 @@ pub fn build_output(
     for val in drivers {
         let driver = val.as_dictionary().unwrap();
         if driver["Enabled"].as_boolean().unwrap() {
-            let r = driver["Path"].as_string().unwrap().split('/').next().unwrap();
+            let r = driver["Path"]
+                .as_string()
+                .unwrap()
+                .split('/')
+                .next()
+                .unwrap();
             if r == "OpenCanopy.efi" {
                 has_open_canopy = true;
             }
@@ -166,28 +174,6 @@ pub fn build_output(
         lang.push_str(&canopy_language);
         lang.push('_');
         let input_resources = Path::new("INPUT/Resources");
-        /*
-                let mut entries = fs::read_dir("resources/OcBinaryData/Resources/Audio")?
-                    .map(|res| res.map(|e| e.path()))
-                    .collect::<Result<Vec<_>, io::Error>>()?;
-
-                entries.retain(|p| p.to_str().unwrap().contains(&lang));
-                let f = Path::new("resources/OcBinaryData/Resources/Audio");
-                for file in resources.octool_config["global_audio_files"]
-                    .as_array()
-                    .unwrap()
-                {
-                    entries.push(f.join(file.as_str().unwrap()));
-                }
-
-                print!(
-                    "\x1B[32mCopying\x1B[0m {} Audio resources from OcBinaryData ... ",
-                    entries.len()
-                );
-
-                copy_items(&entries, "OUTPUT/EFI/OC/Resources/Audio", &options)?;
-                println!("\x1B[32mdone\x1B[0m");
-        */
         for res in &["Audio", "Font", "Image", "Label"] {
             let in_path = Path::new("resources/OcBinaryData/Resources");
             let out_path = Path::new("OUTPUT/EFI/OC/Resources");

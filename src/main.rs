@@ -142,6 +142,7 @@ fn process(
                 Key::Char('M') => {
                     snake(stdout)?;
                     std::io::stdin().keys().next().unwrap().unwrap();
+                    write!(stdout, "\x1B[2J")?;
                 }
                 Key::Char('s') => {
                     write!(stdout, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidating\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
@@ -193,6 +194,11 @@ fn main() {
         None => "INPUT/config.plist".to_string(),
     })
     .to_owned();
+
+    write!(stdout, "current_dir {:?}\r\n", current_dir).unwrap();
+    if !config_file.has_root() {
+        config_file = current_dir.join(config_file);
+    }
 
     if !config_file.exists() {
         write!(

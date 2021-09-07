@@ -91,7 +91,7 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}s{res} save {inv}q{res} quit {inv}G{res} Go build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string",
+        " {inv}s{res} save {inv}q{res} quit {inv}G{res} Go build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),
@@ -138,8 +138,7 @@ pub fn update_screen(
                 tmp.push_str(" to expand");
                 &tmp
             }
-            Value::Integer(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
-            Value::String(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
+            Value::Integer(_) | Value::String(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
             Value::Boolean(_) => "\x1B[7mspace\x1B[0m to toggle",
             Value::Data(_) =>
                 "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit,  \x1B[7mtab\x1B[0m to switch hex/string",
@@ -155,7 +154,7 @@ pub fn update_screen(
     if position.depth > 0 {
         write!(stdout, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
     }
-    write!(stdout, "\x1B8").unwrap();
+    write!(stdout, "\r\n\x1B[2K\x1B8").unwrap();
     Ok(())
 }
 

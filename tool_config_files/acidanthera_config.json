@@ -438,5 +438,15 @@
         }
       }
     ]
+  },
+  "OcBinaryData": {
+    "versions": [
+      {
+        "links": {
+          "debug": "https://github.com/acidanthera/OcBinaryData.git",
+          "release": "https://github.com/acidanthera/OcBinaryData.git"
+        }
+      }
+    ]
   }
 }

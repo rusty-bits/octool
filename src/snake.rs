@@ -8,7 +8,8 @@ use termion::{async_stdin, terminal_size};
 // blame mahasvan for this "secret" snake option
 
 pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
-    let mut direction = 8;
+    let mut direction = 6;
+    let mut score = 0;
     let mut rest = 100;
     let ma = "BLAME_MAHASVAN_FOR_THIS_";
     let mut masc = ma.chars();
@@ -81,7 +82,8 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             break;
         } else {
             scr[pos] = true;
-            write!(stdout, "\x1B[{};{}H\x1B[7m{}\x1B[0m", sy, sx, c)?;
+            score += 1;
+            write!(stdout, "\x1B[1;1H{}\x1B[{};{}H\x1B[7m{}\x1B[0m", score, sy, sx, c)?;
             stdout.flush()?;
         }
     }

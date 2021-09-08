@@ -91,7 +91,7 @@ pub fn init(
     )?;
     validate_plist(&config_plist, &resources, stdout)?;
 
-    position.file_name = config_plist.to_str().unwrap().to_owned();
+    position.config_file_name = config_plist.to_str().unwrap().to_owned();
     position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
     let mut found_key = false;
     let keys: Vec<String> = resources

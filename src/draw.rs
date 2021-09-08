@@ -9,7 +9,7 @@ use std::io::{Stdout, Write};
 
 #[derive(Debug)]
 pub struct Position<'a> {
-    pub file_name: String,              // name of config.plist
+    pub config_file_name: String,              // name of config.plist
     pub section_num: [usize; 5],        // selected section for each depth
     pub depth: usize,                   // depth of plist we are looking at
     pub sec_key: [String; 5],           // key of selected section
@@ -128,7 +128,7 @@ pub fn update_screen(
         stdout,
         "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0m {}{}{} info if available\r\n\x1B[0K  {}",
         color::Fg(color::Green),
-        &position.file_name,
+        &position.config_file_name,
         style::Underline,
         &info,
         style::Reset,

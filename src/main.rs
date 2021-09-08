@@ -13,6 +13,7 @@ use std::{env, error::Error};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
+use termion::{color, style};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
@@ -39,7 +40,7 @@ fn process(
     };
 
     let mut position = Position {
-        file_name: String::new(),
+        config_file_name: String::new(),
         section_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),
@@ -121,8 +122,16 @@ fn process(
                     edit_value(&position, &mut resources.config_plist, stdout, false)?
                 }
                 Key::Char('D') => {
-                    if delete_value(&position, &mut resources.config_plist) {
-                        position.delete();
+                    write!(stdout, "\r\n{inv}{yel}WARNING:{res} this will entirely delete {grn}{}{res}\r\n press 'y' to confirm, any other key to cancel.\r\n{yel}There is currently no undo option{res}\r\n\x1B[2K", &position.sec_key[position.depth],
+                    yel = color::Fg(color::Yellow),
+                    grn = color::Fg(color::Green),
+                    inv = style::Invert, res = style::Reset,
+                    )?;
+                    stdout.flush()?;
+                    if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('y') {
+                        if delete_value(&position, &mut resources.config_plist) {
+                            position.delete();
+                        }
                     }
                 }
                 Key::Char('i') => {
@@ -145,10 +154,17 @@ fn process(
                     write!(stdout, "\x1B[2J")?;
                 }
                 Key::Char('s') => {
-                    write!(stdout, "\r\n\x1B[0JSaving plist to test_out.plist\r\n\x1B[32mValidating\x1B[0m test_out.plist with acidanthera/ocvalidate\r\n")?;
-                    resources.config_plist.to_file_xml("test_out.plist")?;
+                    let mut config_file = PathBuf::from(position.config_file_name).file_name().unwrap().to_string_lossy().to_string();
+                    if !config_file.starts_with("modified_") {
+                        let mut tmp = "modified_".to_string();
+                        tmp.push_str(&config_file);
+                        config_file = tmp.to_owned();
+                    }
+                    let save_file = PathBuf::from("INPUT").join(&config_file);
+                    write!(stdout, "\r\n\x1B[0JSaving copy of plist to INPUT directory\r\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
+                    resources.config_plist.to_file_xml(&save_file)?;
                     let _ = init::validate_plist(
-                        &Path::new("test_out.plist").to_path_buf(),
+                        &Path::new(&save_file).to_path_buf(),
                         &resources,
                         stdout,
                     )?;
@@ -195,7 +211,6 @@ fn main() {
     })
     .to_owned();
 
-    write!(stdout, "current_dir {:?}\r\n", current_dir).unwrap();
     if !config_file.has_root() {
         config_file = current_dir.join(config_file);
     }
@@ -207,9 +222,14 @@ fn main() {
             config_file
         )
         .unwrap();
-        write!(stdout, "Using OpenCorePkg/Docs/Sample.plist\r\n").unwrap();
         config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
     }
+    write!(
+        stdout,
+        "\x1B[32mUsing\x1B[0m {}\r\n",
+        config_file.to_str().unwrap()
+    )
+    .unwrap();
     stdout.flush().unwrap();
 
     match process(&config_file, &current_dir, &mut stdout) {

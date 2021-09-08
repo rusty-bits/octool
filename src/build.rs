@@ -32,6 +32,7 @@ pub fn build_output(
         stdout,
         "\x1B[0J\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n"
     )?;
+    stdout.flush()?;
     let mut from_paths = Vec::new();
     let acpis = resources.config_plist.as_dictionary().unwrap()["ACPI"]
         .as_dictionary()
@@ -61,6 +62,7 @@ pub fn build_output(
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
 
     write!(stdout, "\x1B[32mCopying\x1B[0m enabled Kexts ...\r\n")?;
+    stdout.flush()?;
     let mut from_paths = Vec::new();
     let kexts = resources.config_plist.as_dictionary().unwrap()["Kernel"]
         .as_dictionary()
@@ -95,6 +97,7 @@ pub fn build_output(
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
 
     write!(stdout, "\x1B[32mCopying\x1B[0m enabled Tools ...\r\n")?;
+    stdout.flush()?;
     let mut from_paths = Vec::new();
     let tools = resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
@@ -124,6 +127,7 @@ pub fn build_output(
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
 
     write!(stdout, "\x1B[32mCopying\x1B[0m enabled Drivers ...\r\n")?;
+    stdout.flush()?;
     let mut from_paths = Vec::new();
     let drivers = resources.config_plist.as_dictionary().unwrap()["UEFI"]
         .as_dictionary()
@@ -159,6 +163,7 @@ pub fn build_output(
     from_paths.dedup();
     copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
+    stdout.flush()?;
 
     if has_open_canopy {
         write!(
@@ -203,10 +208,13 @@ pub fn build_output(
                 entries.len(),
                 res
             )?;
+            stdout.flush()?;
             copy_items(&entries, out_path.join(res), &options)?;
             write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
+            stdout.flush()?;
         }
         write!(stdout, "\r\n")?;
+        stdout.flush()?;
     }
 
     match resources.config_plist.as_dictionary().unwrap()["Misc"]
@@ -231,7 +239,7 @@ pub fn build_output(
             )?;
             compute_vault_plist(resources, stdout)?;
             write!(stdout, "\x1b[32mSigning\x1B[0m OpenCore.efi ... ")?;
-            io::stdout().flush()?;
+            stdout.flush()?;
             let out = status("strings", &["-a", "-t", "d", "OUTPUT/EFI/OC/OpenCore.efi"])?;
             let mut offset = 0;
             for line in String::from_utf8(out.stdout).unwrap().lines() {
@@ -255,6 +263,7 @@ pub fn build_output(
             );
             std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
             write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
+            stdout.flush()?;
         }
         _ => (),
     }
@@ -266,7 +275,7 @@ fn compute_vault_plist(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     write!(stdout, "\x1B[32mComputing\x1B[0m vault.plist ... ")?;
-    io::stdout().flush()?;
+    stdout.flush()?;
     let _ = status(
         &resources
             .open_core_pkg
@@ -289,5 +298,6 @@ fn compute_vault_plist(
         ],
     );
     write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
+    stdout.flush()?;
     Ok(())
 }

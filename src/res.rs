@@ -352,7 +352,7 @@ pub fn get_serde_json(
         "\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K",
         path
     )?;
-    std::io::stdout().flush()?;
+    stdout.flush()?;
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;

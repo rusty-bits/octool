@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fs;
 use std::io::{self, Stdout, Write};
 use std::path::Path;
-use termion::input::TermRead;
 use termion::raw::RawTerminal;
 
 pub fn build_output(
@@ -208,9 +207,7 @@ pub fn build_output(
                 entries.len(),
                 res
             )?;
-            write!(stdout, "{:?}", entries)?;
             stdout.flush()?;
-            let _ = std::io::stdin().keys().next().unwrap();
             copy_items(&entries, out_path.join(res), &options)?;
             write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
             stdout.flush()?;

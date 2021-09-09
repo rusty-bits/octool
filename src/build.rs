@@ -5,7 +5,8 @@ use fs_extra::dir::{copy, CopyOptions};
 use std::error::Error;
 use std::fs;
 use std::io::{self, Stdout, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use termion::input::TermRead;
 use termion::raw::RawTerminal;
 
 pub fn build_output(
@@ -196,11 +197,10 @@ pub fn build_output(
                 }
             }
             if input_resources.join(res).exists() {
-                entries.push(
-                    fs::read_dir(input_resources.join(res))?
-                        .map(|r| r.map(|p| p.path()))
-                        .collect::<Result<PathBuf, io::Error>>()?,
-                );
+                for r in fs::read_dir(input_resources.join(res))?
+                {
+                    entries.push(r?.path());
+                }
             }
             write!(
                 stdout,
@@ -208,7 +208,9 @@ pub fn build_output(
                 entries.len(),
                 res
             )?;
+            write!(stdout, "{:?}", entries)?;
             stdout.flush()?;
+            let _ = std::io::stdin().keys().next().unwrap();
             copy_items(&entries, out_path.join(res), &options)?;
             write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
             stdout.flush()?;

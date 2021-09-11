@@ -224,7 +224,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
 
     write!(
         stdout,
-        "\r\n{}the first found resource will be added to the OUTPUT/EFI{}\x1B[0K\r\n",
+        "\r\n{}the first found resource will be used in the OUTPUT/EFI{}\x1B[0K\r\n",
         style::Underline,
         style::Reset,
     )
@@ -322,7 +322,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     match res_path {
         None => write!(stdout, "\x1B[31mNo local resource found\x1B[0m\x1B[0K\r\n").unwrap(),
         Some(p) => {
-            write!(stdout, "\x1B[32mlocal path to resource\x1B[0m\x1B[0K\r\n").unwrap();
+            write!(stdout, "\x1B[32mlocal path to resource that will be used\x1B[0m\x1B[0K\r\n").unwrap();
             let out = status(
                 "find",
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],

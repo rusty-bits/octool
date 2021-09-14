@@ -9,28 +9,33 @@ use std::io::{Stdout, Write};
 
 #[derive(Debug)]
 pub struct Position<'a> {
-    pub config_file_name: String,              // name of config.plist
-    pub section_num: [usize; 5],        // selected section for each depth
-    pub depth: usize,                   // depth of plist we are looking at
-    pub sec_key: [String; 5],           // key of selected section
-    pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
-    pub sec_length: [usize; 5],         // number of items in current section
+    pub config_file_name: String, // name of config.plist
+    pub sec_num: [usize; 5],      // selected section for each depth
+    pub depth: usize,             // depth of plist we are looking at
+    pub sec_key: [String; 5],     // key of selected section
+    pub item_clone: Value,        // copy of highlighted item (can we get rid of this?)
+    pub deleted_item: Value,
+    pub deleted_key: String,
+    pub sec_length: [usize; 5], // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
-    pub build_type: String,             // building release or debug version
+    pub build_type: String,     // building release or debug version
     pub res_list_copy: &'a serde_json::Value,
+    pub can_expand: bool,
 }
 
 impl<'a> Position<'a> {
     pub fn up(&mut self) {
-        if self.section_num[self.depth] > 0 {
-            self.section_num[self.depth] -= 1;
+        if self.sec_num[self.depth] > 0 {
+            self.sec_num[self.depth] -= 1;
             self.sec_length[self.depth + 1] = 0;
         }
     }
     pub fn down(&mut self) {
-        if self.section_num[self.depth] < self.sec_length[self.depth] - 1 {
-            self.section_num[self.depth] += 1;
-            self.sec_length[self.depth + 1] = 0;
+        if self.sec_length[self.depth] > 0 {
+            if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
+                self.sec_num[self.depth] += 1;
+                self.sec_length[self.depth + 1] = 0;
+            }
         }
     }
     pub fn left(&mut self) {
@@ -41,21 +46,24 @@ impl<'a> Position<'a> {
         }
     }
     pub fn right(&mut self) {
-        if self.sec_length[self.depth + 1] > 0 {
-            self.depth += 1;
-            self.section_num[self.depth] = 0;
+        if self.depth < 3 && self.can_expand {
+                self.depth += 1;
+                self.sec_num[self.depth] = 0;
         }
+    }
+    pub fn add(&mut self) {
+        self.sec_length[self.depth] += 1;
     }
     pub fn delete(&mut self) {
         if self.sec_length[self.depth] > 0 {
             self.sec_length[self.depth] -= 1;
         }
-        if self.section_num[self.depth] == self.sec_length[self.depth] {
+        if self.sec_num[self.depth] == self.sec_length[self.depth] {
             self.up();
         }
-        if self.sec_length[self.depth] == 0 {
-            self.left();
-        }
+        //        if self.sec_length[self.depth] == 0 {
+        //            self.left();
+        //        }
     }
     /// return true if current selected item is a resource
     pub fn is_resource(&self) -> bool {
@@ -88,6 +96,8 @@ pub fn update_screen(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     let rows: i32 = terminal_size().unwrap().1.into();
+    position.can_expand = false;
+
     write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
     write!(
         stdout,
@@ -109,6 +119,11 @@ pub fn update_screen(
             row += display_value(k, None, position, list.get(k).unwrap(), stdout, i, 0).unwrap();
         }
     }
+    write!(
+        stdout,
+        "{:?} {} {:?}",
+        position.sec_key, position.depth, position.sec_num
+    )?;
 
     let mut blanks = rows - row;
     if blanks < 0 {
@@ -152,7 +167,10 @@ pub fn update_screen(
         }
     }
     if position.depth > 0 {
-        write!(stdout, "  {}", "\x1B[7mleft\x1B[0m to collapse").unwrap();
+        write!(stdout, "  \x1B[7mleft\x1B[0m to collapse").unwrap();
+    }
+    if position.is_resource() {
+        write!(stdout, "  \x1B[7ma\x1B[0m to add resource").unwrap();
     }
     write!(stdout, "\r\n\x1B[2K\x1B8").unwrap();
     Ok(())
@@ -173,7 +191,7 @@ fn display_value(
     let mut pre_key = '>';
     let mut row = 1;
     write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(d))?; // indent to section and clear rest of line
-    if position.section_num[d] == item_num {
+    if position.sec_num[d] == item_num {
         position.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
         // is current live item
@@ -187,8 +205,9 @@ fn display_value(
         Value::Array(v) => {
             if live_item {
                 position.sec_length[d + 1] = v.len();
+                position.can_expand = true;
             }
-            if position.depth > d && position.section_num[d] == item_num {
+            if position.depth > d && position.sec_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -200,7 +219,7 @@ fn display_value(
                 v.len(),
                 save_curs_pos
             )?;
-            if position.depth > d && position.section_num[d] == item_num {
+            if position.depth > d && position.sec_num[d] == item_num {
                 let mut key = String::new();
                 for i in 0..v.len() {
                     let color = get_array_key(&mut key, &v[i], i);
@@ -252,8 +271,9 @@ fn display_value(
         Value::Dictionary(v) => {
             if live_item {
                 position.sec_length[d + 1] = v.keys().len();
+                position.can_expand = true;
             }
-            if position.depth > d && position.section_num[d] == item_num {
+            if position.depth > d && position.sec_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -271,7 +291,7 @@ fn display_value(
                 save_curs_pos
             )
             .unwrap();
-            if position.depth > d && position.section_num[d] == item_num {
+            if position.depth > d && position.sec_num[d] == item_num {
                 let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
                 for (i, k) in keys.iter().enumerate() {
                     row += display_value(&k, None, position, v.get(&k).unwrap(), stdout, i, d + 1)?;

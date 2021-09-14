@@ -13,11 +13,11 @@ use std::{env, error::Error};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
-use termion::{color, style};
+use termion::{clear, color, style};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
-use crate::edit::{delete_value, edit_value};
+use crate::edit::{add_delete_value, edit_value, extract_value};
 use crate::init::init;
 use crate::res::Resources;
 use crate::snake::snake;
@@ -35,20 +35,24 @@ fn process(
         resource_list: serde_json::Value::Bool(false),
         other: res::get_serde_json("tool_config_files/other.json", stdout)?,
         config_plist: plist::Value::Boolean(false),
+        sample_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
     };
 
     let mut position = Position {
         config_file_name: String::new(),
-        section_num: [0; 5],
+        sec_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),
         item_clone: plist::Value::Boolean(false),
+        deleted_item: plist::Value::Boolean(false),
+        deleted_key: Default::default(),
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
         res_list_copy: &serde_json::Value::Bool(false),
+        can_expand: false,
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
@@ -99,7 +103,23 @@ fn process(
                     }
                     break;
                 }
+                Key::Char('a') => {
+                    if position.is_resource() {
+                        if extract_value(&mut position, &resources.sample_plist) {
+                            if add_delete_value(&mut position, &mut resources.config_plist, true) {
+                                position.add();
+                            }
+                        } else {
+                            panic!("Failed to extract");
+                        }
+                    }
+                }
                 Key::Char('p') => {
+                    if add_delete_value(&mut position, &mut resources.config_plist, true) {
+                        position.add();
+                    }
+                }
+                Key::Char('P') => {
                     res::print_parents(&resources, stdout);
                     std::io::stdin().keys().next().unwrap().unwrap();
                 }
@@ -107,9 +127,9 @@ fn process(
                 Key::Down | Key::Char('j') => position.down(),
                 Key::Left | Key::Char('h') => position.left(),
                 Key::Right | Key::Char('l') => position.right(),
-                Key::Home | Key::Char('t') => position.section_num[position.depth] = 0,
+                Key::Home | Key::Char('t') => position.sec_num[position.depth] = 0,
                 Key::End | Key::Char('b') => {
-                    position.section_num[position.depth] = position.sec_length[position.depth] - 1
+                    position.sec_num[position.depth] = position.sec_length[position.depth] - 1
                 }
                 Key::Char(' ') => {
                     if !showing_info {
@@ -121,16 +141,21 @@ fn process(
                 Key::Char('\n') | Key::Char('\t') => {
                     edit_value(&position, &mut resources.config_plist, stdout, false)?
                 }
-                Key::Char('D') => {
-                    write!(stdout, "\r\n{inv}{yel}WARNING:{res} this will entirely delete {grn}{}{res}\r\n press 'y' to confirm, any other key to cancel.\r\n{yel}There is currently no undo option{res}\r\n\x1B[2K", &position.sec_key[position.depth],
+                Key::Char('d') => {
+                    if position.sec_length[position.depth] > 0 {
+                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
+                    obj = &position.sec_key[position.depth],
                     yel = color::Fg(color::Yellow),
                     grn = color::Fg(color::Green),
-                    inv = style::Invert, res = style::Reset,
+                    und = style::Underline,
+                    res = style::Reset,
+                    clr = clear::UntilNewline,
                     )?;
-                    stdout.flush()?;
-                    if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('y') {
-                        if delete_value(&position, &mut resources.config_plist) {
-                            position.delete();
+                        stdout.flush()?;
+                        if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('d') {
+                            if add_delete_value(&mut position, &mut resources.config_plist, false) {
+                                position.delete();
+                            }
                         }
                     }
                 }
@@ -154,7 +179,11 @@ fn process(
                     write!(stdout, "\x1B[2J")?;
                 }
                 Key::Char('s') => {
-                    let mut config_file = PathBuf::from(position.config_file_name).file_name().unwrap().to_string_lossy().to_string();
+                    let mut config_file = PathBuf::from(position.config_file_name)
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string();
                     if !config_file.starts_with("modified_") {
                         let mut tmp = "modified_".to_string();
                         tmp.push_str(&config_file);

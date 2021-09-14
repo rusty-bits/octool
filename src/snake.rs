@@ -2,13 +2,14 @@ use std::error::Error;
 use std::io::{Read, Stdout, Write};
 use std::{thread, time};
 
+use termion::input::TermRead;
 use termion::raw::RawTerminal;
 use termion::{async_stdin, terminal_size};
 
 // blame mahasvan for this "secret" snake option
 
 pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
-    let mut direction = 6;
+    let mut direction = 1;
     let mut score = 0;
     let mut rest = 100;
     let ma = "BLAME_MAHASVAN_FOR_THIS_";
@@ -21,7 +22,10 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut scr = vec![false; (row * col).into()];
     let mut sx = col / 2;
     let mut sy = row / 2;
+    let mut old_x = sx;
+    let mut old_y = sy;
     let mut stdin = async_stdin();
+    let mut turns = 0;
 
     let mut key_bytes = [0, 0, 0];
     loop {
@@ -29,14 +33,19 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             key_bytes[0] = key_bytes[2];
         }
         direction = match key_bytes[0] {
-            b'A' | b'k' => 8,
+            b'A' | b'k' => 4,
             b'B' | b'j' => 2,
-            b'D' | b'h' => 4,
-            b'C' | b'l' => 6,
+            b'D' | b'h' => 3,
+            b'C' | b'l' => 1,
+            b'q' => 0,
             _ => direction,
         };
+        key_bytes[0] = b'x';
+        //        if direction == 0 {
+        //            break;
+        //        };
         match direction {
-            8 => {
+            4 => {
                 sy -= 1;
                 if sy < 1 {
                     sy = row
@@ -48,18 +57,19 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
                     sy = 1
                 };
             }
-            4 => {
+            3 => {
                 sx -= 1;
                 if sx < 1 {
                     sx = col
                 };
             }
-            6 => {
+            1 => {
                 sx += 1;
                 if sx > col {
                     sx = 1
                 };
             }
+            0 => break,
             _ => (),
         }
         let pos = ((sy - 1) * col + (sx - 1)) as usize;
@@ -76,16 +86,33 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             rest = 20
         };
         if scr[pos] {
-            write!(stdout, " you died! ")?;
-            stdout.flush()?;
-            while stdin.read(&mut key_bytes)? == 0 {};
-            break;
+            direction += 1;
+            if direction == 5 {
+                direction = 1
+            };
+            turns += 1;
+            if turns == 5 {
+                break;
+            };
+            sx = old_x;
+            sy = old_y;
         } else {
             scr[pos] = true;
+            old_x = sx;
+            old_y = sy;
             score += 1;
-            write!(stdout, "\x1B[1;1H{}\x1B[{};{}H\x1B[7m{}\x1B[0m", score, sy, sx, c)?;
+            turns = 0;
+            write!(
+                stdout,
+                "\x1B[1;1H{}\x1B[{};{}H\x1B[7m{}\x1B[0m",
+                score, sy, sx, c
+            )?;
             stdout.flush()?;
         }
     }
+    write!(stdout, " you died! ")?;
+    stdout.flush()?;
+//    while stdin.read(&mut key_bytes)? == 0 {}
+    let _ = std::io::stdin().keys();
     Ok(())
 }

@@ -44,6 +44,8 @@ pub fn init(
 
     resources.config_plist = Value::from_file(&config_plist)
         .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
+    resources.sample_plist = Value::from_file(&"tool_config_files/OpenCorePkg/Docs/Sample.plist")
+        .expect(format!("Didn't find Sample.plist at {:?}", config_plist).as_str());
 
     resources.acidanthera =
         res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
@@ -104,7 +106,7 @@ pub fn init(
     for (i, k) in keys.iter().enumerate() {
         if !found_key {
             if !k.starts_with('#') {
-                position.section_num[0] = i;
+                position.sec_num[0] = i;
                 found_key = true;
             }
         }

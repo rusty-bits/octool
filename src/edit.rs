@@ -9,41 +9,107 @@ use std::{
     io::{Stdout, Write},
 };
 
-pub fn delete_value(position: &Position, mut val: &mut Value) -> bool {
-    let mut deleted = false;
+pub fn extract_value(position: &mut Position, mut plist_val: &Value) -> bool {
+    let mut extracted = false;
     for i in 0..position.depth {
-        match val {
+        match plist_val {
+            Value::Dictionary(d) => {
+                plist_val = match d.get(&position.sec_key[i]) {
+                    Some(k) => k,
+                    None => panic!("failure to get Value from Sample.plist"),
+                }
+            }
+            Value::Array(a) => {
+                plist_val = a.get(0).expect("No 0 element in Sample.plist");
+            }
+            _ => (),
+        }
+    }
+    match plist_val {
+        Value::Dictionary(d) => {
+            //            let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()[0].clone();
+            let key = d.keys().next().expect("Didn't get first key");
+            position.deleted_item = d
+                .get(&key)
+                .expect("No value at position 0 in Sample.plist")
+                .to_owned();
+            position.deleted_key = key.to_owned();
+            extracted = true;
+        }
+        Value::Array(a) => {
+            position.deleted_item = a.get(0).expect("No elment 0 in Sample.plist").to_owned();
+            let c = position.deleted_item.as_dictionary_mut().unwrap();
+            for val in c.values_mut() {
+                match val {
+                    Value::String(_) => *val = Value::String("".to_string()),
+                    Value::Boolean(_) => *val = Value::Boolean(false),
+                    _ => (),
+                }
+            }
+
+
+            position.deleted_key = Default::default();
+            extracted = true;
+        }
+        _ => (),
+    }
+    extracted
+}
+
+pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add: bool) -> bool {
+    let mut changed = false;
+    for i in 0..position.depth {
+        match plist_val {
             Value::Dictionary(d) => {
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                    [position.section_num[i]]
+                    [position.sec_num[i]]
                     .clone();
-                val = match d.get_mut(&key) {
+                plist_val = match d.get_mut(&key) {
                     Some(k) => k,
                     None => panic!("failure to get Value from Dict"),
                 }
             }
             Value::Array(a) => {
-                val = a.get_mut(position.section_num[i]).unwrap();
+                plist_val = a.get_mut(position.sec_num[i]).unwrap();
             }
             _ => (),
         }
     }
-    match val {
+    match plist_val {
         Value::Dictionary(d) => {
-            let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                [position.section_num[position.depth]]
-                .clone();
-            let _ = d.remove(&key);
+            if add {
+                if d.insert(
+                    position.deleted_key.to_owned(),
+                    position.deleted_item.to_owned(),
+                ) == None
+                {
+                    changed = true
+                };
+            } else {
+                let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
+                    [position.sec_num[position.depth]]
+                    .clone();
+                position.deleted_item = d.remove(&key).unwrap();
+                position.deleted_key = position.sec_key[position.depth].to_owned();
+                changed = true;
+            }
             d.sort_keys();
-            deleted = true;
         }
         Value::Array(a) => {
-            let _ = a.remove(position.section_num[position.depth]);
-            deleted = true;
+            if add {
+                a.insert(
+                    position.sec_num[position.depth],
+                    position.deleted_item.to_owned(),
+                );
+            } else {
+                position.deleted_item = a.remove(position.sec_num[position.depth]);
+                position.deleted_key = Default::default();
+            }
+            changed = true;
         }
         _ => (),
     }
-    deleted
+    changed
 }
 
 pub fn edit_value(
@@ -63,7 +129,7 @@ pub fn edit_value(
         match val {
             Value::Dictionary(d) => {
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                    [position.section_num[i]]
+                    [position.sec_num[i]]
                     .clone();
                 val = match d.get_mut(&key) {
                     Some(k) => k,
@@ -71,7 +137,7 @@ pub fn edit_value(
                 }
             }
             Value::Array(a) => {
-                val = a.get_mut(position.section_num[i]).unwrap();
+                val = a.get_mut(position.sec_num[i]).unwrap();
             }
             _ => (),
         }
@@ -84,7 +150,7 @@ pub fn edit_value(
                 Some(Value::Boolean(b)) => *b = !*b,
                 _ => (),
             },
-/*            Value::String(s) => {
+            /*            Value::String(s) => {
                 if s.starts_with('#') {
                     s.remove(0);
                 } else {

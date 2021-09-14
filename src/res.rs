@@ -18,6 +18,7 @@ pub struct Resources {
     pub resource_list: Value,
     pub other: Value,
     pub config_plist: plist::Value,
+    pub sample_plist: plist::Value,
     pub working_dir: PathBuf,
     pub open_core_pkg: PathBuf,
 }

@@ -17,7 +17,7 @@ use termion::{clear, color, style};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
-use crate::edit::{add_delete_value, edit_value, extract_value};
+use crate::edit::{add_delete_value, add_item, edit_value, extract_value};
 use crate::init::init;
 use crate::res::Resources;
 use crate::snake::snake;
@@ -46,8 +46,8 @@ fn process(
         depth: 0,
         sec_key: Default::default(),
         item_clone: plist::Value::Boolean(false),
-        deleted_item: plist::Value::Boolean(false),
-        deleted_key: Default::default(),
+        held_item: plist::Value::Boolean(false),
+        held_key: Default::default(),
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
@@ -105,13 +105,16 @@ fn process(
                 }
                 Key::Char('a') => {
                     if position.is_resource() {
-                        if extract_value(&mut position, &resources.sample_plist) {
+                        if extract_value(&mut position, &resources.sample_plist, false) {
                             if add_delete_value(&mut position, &mut resources.config_plist, true) {
                                 position.add();
                             }
                         } else {
                             panic!("Failed to extract");
                         }
+                    } else {
+                        // add item
+                        add_item(&mut position, &mut resources.config_plist, stdout);
                     }
                 }
                 Key::Char('p') => {
@@ -121,6 +124,8 @@ fn process(
                 }
                 Key::Char('P') => {
                     res::print_parents(&resources, stdout);
+//                    write!(stdout, "{:?}", resources.config_plist).unwrap();
+                    stdout.flush().unwrap();
                     std::io::stdin().keys().next().unwrap().unwrap();
                 }
                 Key::Up | Key::Char('k') => position.up(),
@@ -144,17 +149,51 @@ fn process(
                 Key::Char('d') => {
                     if position.sec_length[position.depth] > 0 {
                         write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
-                    obj = &position.sec_key[position.depth],
-                    yel = color::Fg(color::Yellow),
-                    grn = color::Fg(color::Green),
-                    und = style::Underline,
-                    res = style::Reset,
-                    clr = clear::UntilNewline,
-                    )?;
+                            obj = &position.sec_key[position.depth],
+                            yel = color::Fg(color::Yellow),
+                            grn = color::Fg(color::Green),
+                            und = style::Underline,
+                            res = style::Reset,
+                            clr = clear::UntilNewline,
+                        )?;
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('d') {
                             if add_delete_value(&mut position, &mut resources.config_plist, false) {
                                 position.delete();
+                            }
+                        }
+                    }
+                }
+                Key::Char('r') => {
+                    if position.depth < 4 {
+                        let mut obj = String::new();
+                        for i in 0..position.depth + 1 {
+                            obj.push_str(&position.sec_key[i]);
+                            obj.push(' ');
+                        }
+                        write!(stdout,"\r\n{und}Press{res} '{grn}r{res}' again to reset {yel}{obj}{res}to the Sample.plist values, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
+                            obj = &obj,
+                            cur = &position.sec_key[position.depth],
+                            yel = color::Fg(color::Yellow),
+                            grn = color::Fg(color::Green),
+                            und = style::Underline,
+                            res = style::Reset,
+                            clr = clear::UntilNewline,
+                        )?;
+                        stdout.flush()?;
+                        if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
+                            if extract_value(&mut position, &resources.config_plist, true) {
+                                let tmp_item = position.held_item.clone();
+                                let tmp_key = position.held_key.clone();
+                                if extract_value(&mut position, &resources.sample_plist, true) {
+                                    let _ = add_delete_value(
+                                        &mut position,
+                                        &mut resources.config_plist,
+                                        true,
+                                    );
+                                }
+                                position.held_key = tmp_key.to_owned();
+                                position.held_item = tmp_item.to_owned();
                             }
                         }
                     }
@@ -190,7 +229,7 @@ fn process(
                         config_file = tmp.to_owned();
                     }
                     let save_file = PathBuf::from("INPUT").join(&config_file);
-                    write!(stdout, "\r\n\x1B[0JSaving copy of plist to INPUT directory\r\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
+                    write!(stdout, "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
                     resources.config_plist.to_file_xml(&save_file)?;
                     let _ = init::validate_plist(
                         &Path::new(&save_file).to_path_buf(),

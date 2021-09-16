@@ -12,8 +12,7 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut direction = 1;
     let mut score = 0;
     let mut rest = 100;
-    let ma = "BLAME_MAHASVAN_FOR_THIS_";
-    let mut masc = ma.chars();
+    let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
 
     write!(stdout, "{}", termion::clear::All)?;
 
@@ -22,10 +21,10 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut scr = vec![false; (row * col).into()];
     let mut sx = col / 2;
     let mut sy = row / 2;
-    let mut old_x = sx;
-    let mut old_y = sy;
+//    let mut old_x = sx;
+//    let mut old_y = sy;
     let mut stdin = async_stdin();
-    let mut turns = 0;
+//    let mut turns = 0;
 
     let mut key_bytes = [0, 0, 0];
     loop {
@@ -73,46 +72,40 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             _ => (),
         }
         let pos = ((sy - 1) * col + (sx - 1)) as usize;
-        let c = match masc.next() {
-            Some(c) => c,
-            None => {
-                masc = ma.chars();
-                masc.next().unwrap()
-            }
-        };
         thread::sleep(time::Duration::from_millis(rest));
         rest -= 1;
         if rest < 20 {
             rest = 20
         };
         if scr[pos] {
-            direction += 1;
+/*            direction += 1;
             if direction == 5 {
                 direction = 1
             };
             turns += 1;
             if turns == 5 {
+            */
                 break;
-            };
+       /*     };
             sx = old_x;
             sy = old_y;
+            */
         } else {
             scr[pos] = true;
-            old_x = sx;
-            old_y = sy;
+//            old_x = sx;
+//            old_y = sy;
             score += 1;
-            turns = 0;
+//            turns = 0;
             write!(
                 stdout,
                 "\x1B[1;1H{}\x1B[{};{}H\x1B[7m{}\x1B[0m",
-                score, sy, sx, c
+                score, sy, sx, masc.next().unwrap()
             )?;
             stdout.flush()?;
         }
     }
     write!(stdout, " you died! ")?;
     stdout.flush()?;
-//    while stdin.read(&mut key_bytes)? == 0 {}
     let _ = std::io::stdin().keys();
     Ok(())
 }

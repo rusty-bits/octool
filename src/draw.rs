@@ -9,16 +9,16 @@ use std::io::{Stdout, Write};
 
 #[derive(Debug)]
 pub struct Position<'a> {
-    pub config_file_name: String, // name of config.plist
-    pub sec_num: [usize; 5],      // selected section for each depth
-    pub depth: usize,             // depth of plist we are looking at
-    pub sec_key: [String; 5],     // key of selected section
-    pub item_clone: Value,        // copy of highlighted item (can we get rid of this?)
-    pub deleted_item: Value,
-    pub deleted_key: String,
-    pub sec_length: [usize; 5], // number of items in current section
+    pub config_file_name: String,       // name of config.plist
+    pub sec_num: [usize; 5],            // selected section for each depth
+    pub depth: usize,                   // depth of plist we are looking at
+    pub sec_key: [String; 5],           // key of selected section
+    pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
+    pub held_item: Value,               // last deleted or placed item value
+    pub held_key: String,               // last deleted or placed key
+    pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
-    pub build_type: String,     // building release or debug version
+    pub build_type: String,             // building release or debug version
     pub res_list_copy: &'a serde_json::Value,
     pub can_expand: bool,
 }
@@ -47,8 +47,8 @@ impl<'a> Position<'a> {
     }
     pub fn right(&mut self) {
         if self.depth < 3 && self.can_expand {
-                self.depth += 1;
-                self.sec_num[self.depth] = 0;
+            self.depth += 1;
+            self.sec_num[self.depth] = 0;
         }
     }
     pub fn add(&mut self) {
@@ -101,7 +101,7 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}s{res} save {inv}q{res} quit {inv}G{res} Go build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}s{res}ave {inv}q{res}uit {inv}a{res}dd {inv}d{res}elete {inv}r{res}eset {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),
@@ -119,20 +119,20 @@ pub fn update_screen(
             row += display_value(k, None, position, list.get(k).unwrap(), stdout, i, 0).unwrap();
         }
     }
+    /*
     write!(
         stdout,
         "{:?} {} {:?}",
         position.sec_key, position.depth, position.sec_num
     )?;
-
+    */
     let mut blanks = rows - row;
     if blanks < 0 {
         blanks = 0;
     }
 
     write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?; // clear rows up to footer
-
-    let mut tmp = String::new(); // lastly draw the header
+                                                                  // lastly draw the header
     let mut info = String::new();
     position.res_name(&mut info);
     if info.len() > 20 {
@@ -141,38 +141,48 @@ pub fn update_screen(
     }
     write!(
         stdout,
-        "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0m {}{}{} info if available\r\n\x1B[0K  {}",
+        "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
         color::Fg(color::Green),
         &position.config_file_name,
         style::Underline,
         &info,
         style::Reset,
+    )
+    .unwrap();
+    if position.depth > 0 {
+        write!(stdout, "  \x1B[7mleft\x1B[0m collapse").unwrap();
+    }
+    write!(
+        stdout,
+        "{}",
         match position.item_clone {
-            Value::Array(_) | Value::Dictionary(_) => {
-                tmp.push_str("\x1B[7mright\x1B[0m");
-                tmp.push_str(" to expand");
-                &tmp
-            }
-            Value::Integer(_) | Value::String(_) => "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit",
-            Value::Boolean(_) => "\x1B[7mspace\x1B[0m to toggle",
+            Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
+            Value::Integer(_) | Value::String(_) => "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit",
+            Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
             Value::Data(_) =>
-                "\x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m to edit,  \x1B[7mtab\x1B[0m to switch hex/string",
-            _ => "XXXunknownXXX",
+                "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit  \x1B[7mtab\x1B[0m switch hex/string",
+            _ => "  XXXunknownXXX",
         }
     )
     .unwrap();
     if position.depth == 2 {
         if position.is_resource() {
-            write!(stdout, " \x1B[7mspace\x1B[0m to toggle").unwrap();
+            write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
         }
     }
-    if position.depth > 0 {
-        write!(stdout, "  \x1B[7mleft\x1B[0m to collapse").unwrap();
-    }
     if position.is_resource() {
-        write!(stdout, "  \x1B[7ma\x1B[0m to add resource").unwrap();
+        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
     }
-    write!(stdout, "\r\n\x1B[2K\x1B8").unwrap();
+    if position.held_key.len() > 0 {
+        write!(
+            stdout,
+            "  \x1B[7mp\x1B[0m place {}{}\x1B[0m",
+            style::Underline,
+            position.held_key
+        )
+        .unwrap();
+    }
+    write!(stdout, "\r\n\x1B[2K\x1B8",).unwrap();
     Ok(())
 }
 

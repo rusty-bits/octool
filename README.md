@@ -41,18 +41,27 @@ Usage:
 'SPACE' will toggle a boolean value between true/false  
 - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list  
 
-'D' will delete the highlighted field or section, there is no code in place yet asking for conformation or for undoing the deletion, also no code yet to add a child or section to the config.plist  
+'a' add - if in a resource section, add a blank resource template to the working plist from the Sample.plist  
+ - if in some other section, select a type and key name to add to the working plist  
 
-'G' go - make an OUTPUT/EFI/OC folder from the config.plist  
+'d' will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' place command  
+
+'G' go (capital G) - make an OUTPUT/EFI/OC folder from the config.plist  
  - if `OpenCanopy.efi` is enabled it will copy the OcBinaryData Resources to `OUTPUT/EFI/OC/Resources`  
  - if Misc->Security->Vault is set to Basic or Secure, octool will compute the required files and sign the `OpenCore.efi` if needed  
- - right now, octool will ignore resources that it doesn't know about unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist to disabled for the unknown resource  
+ - right now, octool will ignore resources that it doesn't know about unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist for the unknown resource  
  - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap, but I need to have octool print a message as a reminder when it uses files from INPUT  
  - lastly, it will again validate the `OUTPUT/EFI/OC/config.plist` file with ocvalidate  
 
-'p' prints out some resource_list.json data for debugging  
+'p' place - places the last deleted or modified item into the plist  
 
-'s' save a copy of the config.plist as test_out.plist (for now)  
+'P' (capital P) prints out some resource_list.json data for debugging  
+
+'r' reset - if a single item is selected, reset its value to the same as the Sample.plist value  
+ - if a section is highlighted, reset the whole section to the same as the Sample.plist  
+
+'s' save a copy of the config.plist as INPUT/modified_config.plist  
+ - modified_ will be added to the begining of the saved file unless you are already working on a file whose name starts with modified_  
 
 'q' quit without saving  
 

@@ -222,20 +222,6 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     let mut ind_res = String::new();
     position.res_name(&mut ind_res);
     let parent = resources.resource_list[&ind_res]["parent"].as_str().unwrap_or("");
-//    let parent = position.parent().unwrap_or("");
-//    pub fn parent(&self) -> Option<&str> {
-//        let mut r = String::new();
-//        self.res_name(&mut r);
-//        self.res_list_copy[r]["parent"].as_str()
-//    }
-//    pub fn res_name(&self, name: &mut String) {
-//        *name = self.sec_key[self.depth]
-//            .to_owned()
-//            .split('/')
-//            .last()
-//            .unwrap()
-//            .to_string();
-//    }
 
     write!(
         stdout,

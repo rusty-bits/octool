@@ -28,7 +28,6 @@ pub fn extract_value(position: &mut Position, mut plist_val: &Value, actual: boo
     }
     match plist_val {
         Value::Dictionary(d) => {
-            //            let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()[0].clone();
             let key = if actual {
                 position.sec_key[position.depth].clone()
             } else {
@@ -66,9 +65,6 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     for i in 0..position.depth {
         match plist_val {
             Value::Dictionary(d) => {
-                //                let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                //                    [position.sec_num[i]]
-                //                    .clone();
                 plist_val = match d.get_mut(&position.sec_key[i]) {
                     Some(k) => k,
                     None => panic!("failure to get Value from Dict"),
@@ -87,9 +83,6 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
                     changed = true;
                 };
             } else {
-                //                let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                //                    [position.sec_num[position.depth]]
-                //                    .clone();
                 position.held_item = d.remove(&position.sec_key[position.depth]).unwrap();
                 position.held_key = position.sec_key[position.depth].to_owned();
                 changed = true;
@@ -170,11 +163,7 @@ pub fn add_item(mut position: &mut Position, resources: &mut Resources, stdout: 
     };
     if item_types[selection - 1] == &new_res_msg {
         if !extract_value(&mut position, &resources.sample_plist, false) {
-//            if add_delete_value(&mut position, &mut resources.config_plist, true) {
-//                position.add();
-//            }
-//        } else {
-            panic!("Failed to extract");
+            return;
         }
     } else {
         stdout.suspend_raw_mode().unwrap();
@@ -247,14 +236,6 @@ pub fn edit_value(
                 Some(Value::Boolean(b)) => *b = !*b,
                 _ => (),
             },
-            /*            Value::String(s) => {
-                if s.starts_with('#') {
-                    s.remove(0);
-                } else {
-                    s.insert(0, '#');
-                }
-            }
-            */
             _ => (),
         }
     } else {

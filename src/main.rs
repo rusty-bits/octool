@@ -51,12 +51,10 @@ fn process(
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
-//        res_list_copy: &serde_json::Value::Bool(false),
         can_expand: false,
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
-//    position.res_list_copy = &resources.resource_list;
 
     writeln!(
         stdout,
@@ -103,20 +101,7 @@ fn process(
                     }
                     break;
                 }
-                Key::Char('a') => {
-//                    if position.is_resource() {
-//                        if extract_value(&mut position, &resources.sample_plist, false) {
-//                            if add_delete_value(&mut position, &mut resources.config_plist, true) {
-//                                position.add();
-//                            }
-//                        } else {
-//                            panic!("Failed to extract");
-//                        }
-//                    } else {
-                        // add item
-                        add_item(&mut position, &mut resources, stdout);
-//                    }
-                }
+                Key::Char('a') => add_item(&mut position, &mut resources, stdout),
                 Key::Char('v') | Key::Char('p') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, true) {
                         position.add();

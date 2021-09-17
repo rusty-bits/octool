@@ -19,7 +19,6 @@ pub struct Position {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
-//    pub res_list_copy: &'a serde_json::Value,
     pub can_expand: bool,
 }
 
@@ -75,11 +74,6 @@ impl Position {
             self.resource_sections.contains(&sec_sub)
         }
     }
-//    pub fn parent(&self) -> Option<&str> {
-//        let mut r = String::new();
-//        self.res_name(&mut r);
-//        self.res_list_copy[r]["parent"].as_str()
-//    }
     pub fn res_name(&self, name: &mut String) {
         *name = self.sec_key[self.depth]
             .to_owned()
@@ -170,9 +164,9 @@ pub fn update_screen(
             write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
         }
     }
-//    if position.is_resource() {
-//        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
-//    }
+    if position.is_resource() {
+        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
+    }
     if position.held_key.len() > 0 {
         write!(
             stdout,

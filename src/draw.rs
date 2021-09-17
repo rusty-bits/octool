@@ -224,10 +224,15 @@ fn display_value(
                 save_curs_pos
             )?;
             if position.depth > d && position.sec_num[d] == item_num {
-                let mut key = String::new();
-                for i in 0..v.len() {
-                    let color = get_array_key(&mut key, &v[i], i);
-                    row += display_value(&key, color, position, &v[i], stdout, i, d + 1)?;
+                if v.len() == 0 {
+                    write!(stdout, "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}", "    ".repeat(d+1), save_curs_pos).unwrap();
+                    row += 1;
+                } else {
+                    let mut key = String::new();
+                    for i in 0..v.len() {
+                        let color = get_array_key(&mut key, &v[i], i);
+                        row += display_value(&key, color, position, &v[i], stdout, i, d + 1)?;
+                    }
                 }
             }
         }
@@ -296,9 +301,22 @@ fn display_value(
             )
             .unwrap();
             if position.depth > d && position.sec_num[d] == item_num {
-                let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
-                for (i, k) in keys.iter().enumerate() {
-                    row += display_value(&k, None, position, v.get(&k).unwrap(), stdout, i, d + 1)?;
+                if v.keys().len() == 0 {
+                    write!(stdout, "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}", "    ".repeat(d+1), save_curs_pos).unwrap();
+                    row += 1;
+                } else {
+                    let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();
+                    for (i, k) in keys.iter().enumerate() {
+                        row += display_value(
+                            &k,
+                            None,
+                            position,
+                            v.get(&k).unwrap(),
+                            stdout,
+                            i,
+                            d + 1,
+                        )?;
+                    }
                 }
             }
         }

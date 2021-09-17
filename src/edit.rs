@@ -88,6 +88,10 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
                 changed = true;
             }
             d.sort_keys();
+            if add {
+                position.sec_num[position.depth] =
+                    d.keys().position(|k| k == &position.held_key).unwrap_or(0);
+            };
         }
         Value::Array(a) => {
             if add {
@@ -106,10 +110,17 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     changed
 }
 
-pub fn add_item(mut position: &mut Position, resources: &mut Resources, stdout: &mut RawTerminal<Stdout>) {
+pub fn add_item(
+    mut position: &mut Position,
+    resources: &mut Resources,
+    stdout: &mut RawTerminal<Stdout>,
+) {
     let mut selection = 1;
     let mut item_types = Vec::<&str>::new();
-    let new_res_msg = format!("New {} {} template from Sample.plist", position.sec_key[0], position.sec_key[1]);
+    let new_res_msg = format!(
+        "New {} {} template from Sample.plist",
+        position.sec_key[0], position.sec_key[1]
+    );
     if position.is_resource() {
         item_types.push(&new_res_msg);
     }

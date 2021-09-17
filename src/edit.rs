@@ -1,4 +1,5 @@
 use crate::draw::{get_lossy_string, hex_str_with_style, Position};
+use crate::res::Resources;
 use plist::{Integer, Value};
 use termion::event::Key;
 use termion::{color, cursor};
@@ -41,11 +42,7 @@ pub fn extract_value(position: &mut Position, mut plist_val: &Value, actual: boo
             extracted = true;
         }
         Value::Array(a) => {
-            let num = if actual {
-                position.depth
-            } else {
-                0
-            };
+            let num = if actual { position.depth } else { 0 };
             position.held_item = a.get(num).expect("No elment in Sample.plist").to_owned();
             let c = position.held_item.as_dictionary_mut().unwrap();
             for val in c.values_mut() {
@@ -56,7 +53,7 @@ pub fn extract_value(position: &mut Position, mut plist_val: &Value, actual: boo
                 }
             }
 
-            position.held_key = Default::default();
+            position.held_key = position.sec_key[num].clone();
             extracted = true;
         }
         _ => (),
@@ -116,16 +113,23 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     changed
 }
 
-pub fn add_item(position: &mut Position, plist: &mut Value, stdout: &mut RawTerminal<Stdout>) {
+pub fn add_item(mut position: &mut Position, resources: &mut Resources, stdout: &mut RawTerminal<Stdout>) {
     let mut selection = 1;
-    let item_types = [
+    let mut item_types = Vec::<&str>::new();
+    let new_res_msg = format!("New {} {} template from Sample.plist", position.sec_key[0], position.sec_key[1]);
+    if position.is_resource() {
+        item_types.push(&new_res_msg);
+    }
+    for s in [
         "Array",
         "Boolean",
         "Data",
         "Dictionary",
         "Integer",
         "String",
-    ];
+    ] {
+        item_types.push(s);
+    }
     write!(
         stdout,
         "\r\nSelect new item type:\x1B[0K\r\n{}",
@@ -164,34 +168,43 @@ pub fn add_item(position: &mut Position, plist: &mut Value, stdout: &mut RawTerm
     if selection == 0 {
         return;
     };
-    stdout.suspend_raw_mode().unwrap();
-    write!(
-        stdout,
-        "Enter key for new {} item: {}\x1B[0K",
-        item_types[selection - 1],
-        cursor::Show
-    )
-    .unwrap();
-    stdout.flush().unwrap();
-    let mut key = String::new();
-    match std::io::stdin().read_line(&mut key) {
-        Ok(_) => (),
-        Err(err) => panic!("{} Error reading key", err),
+    if item_types[selection - 1] == &new_res_msg {
+        if !extract_value(&mut position, &resources.sample_plist, false) {
+//            if add_delete_value(&mut position, &mut resources.config_plist, true) {
+//                position.add();
+//            }
+//        } else {
+            panic!("Failed to extract");
+        }
+    } else {
+        stdout.suspend_raw_mode().unwrap();
+        write!(
+            stdout,
+            "Enter key for new {} item: {}\x1B[0K",
+            item_types[selection - 1],
+            cursor::Show
+        )
+        .unwrap();
+        stdout.flush().unwrap();
+        let mut key = String::new();
+        match std::io::stdin().read_line(&mut key) {
+            Ok(_) => (),
+            Err(err) => panic!("{} Error reading key", err),
+        }
+        position.held_key = String::from(key.trim());
+        position.held_item = match item_types[selection - 1] {
+            "Array" => plist::Value::Array(vec![]),
+            "Boolean" => false.into(),
+            "Data" => plist::Value::Data(vec![]),
+            "Dictionary" => plist::Value::Dictionary(plist::Dictionary::default()),
+            "Integer" => 0.into(),
+            "String" => plist::Value::String("".to_string()),
+            _ => panic!("How did you select this?"),
+        };
+        write!(stdout, "{}", cursor::Hide).unwrap();
+        stdout.activate_raw_mode().unwrap();
     }
-    position.held_key = String::from(key.trim());
-    position.held_item = match item_types[selection - 1] {
-        "Array" => plist::Value::Array(vec![]),
-        "Boolean" => false.into(),
-        "Data" => plist::Value::Data(vec![]),
-        "Dictionary" => plist::Value::Dictionary(plist::Dictionary::default()),
-        "Integer" => 0.into(),
-        "String" => plist::Value::String("".to_string()),
-        _ => panic!("How did you select this?"),
-    };
-    write!(stdout, "{}", cursor::Hide).unwrap();
-    stdout.activate_raw_mode().unwrap();
-
-    if add_delete_value(position, plist, true) {
+    if add_delete_value(position, &mut resources.config_plist, true) {
         position.add();
     }
 }
@@ -261,6 +274,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
     let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
     let mut hexedit = true;
+    let mut keys = std::io::stdin().keys();
     loop {
         let mut tmp_val = edit_hex.clone();
         if tmp_val.len() % 2 == 1 {
@@ -296,8 +310,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
             .unwrap();
         }
         stdout.flush()?;
-        let key = std::io::stdin().keys().next().unwrap().unwrap();
-        match key {
+        match keys.next().unwrap().unwrap() {
             Key::Char('\n') => {
                 *val = tmp_val;
                 break;
@@ -378,11 +391,11 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
 
 fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
     let mut new = val.to_string();
+    let mut keys = std::io::stdin().keys();
     loop {
         write!(stdout, "\x1B8{}\x1B[0K", new).unwrap();
         stdout.flush().unwrap();
-        let key = std::io::stdin().keys().next().unwrap();
-        match key {
+        match keys.next().unwrap() {
             Ok(key) => match key {
                 Key::Char('\n') => {
                     *val = match new.parse::<i64>() {
@@ -413,12 +426,12 @@ fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
 fn edit_string(val: &mut String, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
+    let mut keys = std::io::stdin().keys();
     loop {
         write!(stdout, "\x1B8{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
-        let key = std::io::stdin().keys().next().unwrap();
-        match key {
+        match keys.next().unwrap() {
             Ok(key) => match key {
                 Key::Char('\n') => {
                     *val = new;

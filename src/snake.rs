@@ -8,9 +8,60 @@ use termion::{async_stdin, terminal_size};
 
 // blame mahasvan for this "secret" snake option
 
+struct Snake<'a> {
+    stdout: &'a mut RawTerminal<Stdout>,
+    col: u16,
+    row: u16,
+    pos_x: u16,
+    pos_y: u16,
+}
+
+impl<'a> Snake<'a> {
+    fn diaplay(&mut self, c: char) {
+            write!(
+                self.stdout,
+                "\x1B[{};{}H\x1B[7m{}\x1B[0m",
+                self.pos_y, self.pos_x, c
+            ).unwrap();
+            self.stdout.flush().unwrap();
+    }
+    fn moveit(&mut self, direction: i32) {
+        match direction {
+            4 => self.up(),
+            2 => self.down(),
+            3 => self.left(),
+            1 => self.right(),
+            _ => (),
+        }
+    }
+    fn left(&mut self) {
+                self.pos_x -= 1;
+                if self.pos_x < 1 {
+                    self.pos_x = self.col
+                };
+            }
+    fn right(&mut self) {
+                self.pos_x += 1;
+                if self.pos_x > self.col {
+                    self.pos_x = 1
+                };
+    }
+    fn up(&mut self) {
+                self.pos_y -= 1;
+                if self.pos_y < 1 {
+                    self.pos_y = self.row
+                };
+    }
+    fn down(&mut self) {
+                self.pos_y += 1;
+                if self.pos_y > self.row {
+                    self.pos_y = 1
+                };
+    }
+}
+
 pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut direction = 1;
-    let mut score = 0;
     let mut rest = 100;
     let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
 
@@ -19,12 +70,15 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let (col, row) = terminal_size()?;
 
     let mut scr = vec![false; (row * col).into()];
-    let mut sx = col / 2;
-    let mut sy = row / 2;
-//    let mut old_x = sx;
-//    let mut old_y = sy;
     let mut stdin = async_stdin();
-//    let mut turns = 0;
+
+    let mut snake = Snake {
+        stdout,
+        col,
+        row,
+        pos_x: col / 2,
+        pos_y: row / 2,
+    };
 
     let mut key_bytes = [0, 0, 0];
     loop {
@@ -36,72 +90,21 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             b'B' | b'j' => 2,
             b'D' | b'h' => 3,
             b'C' | b'l' => 1,
-            b'q' => 0,
             _ => direction,
         };
-        key_bytes[0] = b'x';
-        //        if direction == 0 {
-        //            break;
-        //        };
-        match direction {
-            4 => {
-                sy -= 1;
-                if sy < 1 {
-                    sy = row
-                };
-            }
-            2 => {
-                sy += 1;
-                if sy > row {
-                    sy = 1
-                };
-            }
-            3 => {
-                sx -= 1;
-                if sx < 1 {
-                    sx = col
-                };
-            }
-            1 => {
-                sx += 1;
-                if sx > col {
-                    sx = 1
-                };
-            }
-            0 => break,
-            _ => (),
-        }
-        let pos = ((sy - 1) * col + (sx - 1)) as usize;
+        key_bytes[0] = b'x'; // set byte 0 to a non direction value
+        snake.moveit(direction);
+        let pos = ((snake.pos_y - 1) * col + (snake.pos_x - 1)) as usize;
         thread::sleep(time::Duration::from_millis(rest));
         rest -= 1;
         if rest < 20 {
             rest = 20
         };
         if scr[pos] {
-/*            direction += 1;
-            if direction == 5 {
-                direction = 1
-            };
-            turns += 1;
-            if turns == 5 {
-            */
                 break;
-       /*     };
-            sx = old_x;
-            sy = old_y;
-            */
         } else {
             scr[pos] = true;
-//            old_x = sx;
-//            old_y = sy;
-            score += 1;
-//            turns = 0;
-            write!(
-                stdout,
-                "\x1B[1;1H{}\x1B[{};{}H\x1B[7m{}\x1B[0m",
-                score, sy, sx, masc.next().unwrap()
-            )?;
-            stdout.flush()?;
+            snake.diaplay(masc.next().unwrap());
         }
     }
     write!(stdout, " you died! ")?;

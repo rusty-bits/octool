@@ -51,12 +51,12 @@ fn process(
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
-        res_list_copy: &serde_json::Value::Bool(false),
+//        res_list_copy: &serde_json::Value::Bool(false),
         can_expand: false,
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
-    position.res_list_copy = &resources.resource_list;
+//    position.res_list_copy = &resources.resource_list;
 
     writeln!(
         stdout,
@@ -104,27 +104,27 @@ fn process(
                     break;
                 }
                 Key::Char('a') => {
-                    if position.is_resource() {
-                        if extract_value(&mut position, &resources.sample_plist, false) {
-                            if add_delete_value(&mut position, &mut resources.config_plist, true) {
-                                position.add();
-                            }
-                        } else {
-                            panic!("Failed to extract");
-                        }
-                    } else {
+//                    if position.is_resource() {
+//                        if extract_value(&mut position, &resources.sample_plist, false) {
+//                            if add_delete_value(&mut position, &mut resources.config_plist, true) {
+//                                position.add();
+//                            }
+//                        } else {
+//                            panic!("Failed to extract");
+//                        }
+//                    } else {
                         // add item
-                        add_item(&mut position, &mut resources.config_plist, stdout);
-                    }
+                        add_item(&mut position, &mut resources, stdout);
+//                    }
                 }
-                Key::Char('p') => {
+                Key::Char('v') | Key::Char('p') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, true) {
                         position.add();
                     }
                 }
                 Key::Char('P') => {
                     res::print_parents(&resources, stdout);
-//                    write!(stdout, "{:?}", resources.config_plist).unwrap();
+                    //                    write!(stdout, "{:?}", resources.config_plist).unwrap();
                     stdout.flush().unwrap();
                     std::io::stdin().keys().next().unwrap().unwrap();
                 }
@@ -146,9 +146,14 @@ fn process(
                 Key::Char('\n') | Key::Char('\t') => {
                     edit_value(&position, &mut resources.config_plist, stdout, false)?
                 }
-                Key::Char('d') => {
+                Key::Char('D') | Key::Ctrl('x') => {
+                    if add_delete_value(&mut position, &mut resources.config_plist, false) {
+                        position.delete();
+                    }
+                }
+                Key::Char('x') | Key::Char('d') => {
                     if position.sec_length[position.depth] > 0 {
-                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
+                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' or '{grn}x{res}' to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
                             obj = &position.sec_key[position.depth],
                             yel = color::Fg(color::Yellow),
                             grn = color::Fg(color::Green),
@@ -157,12 +162,16 @@ fn process(
                             clr = clear::UntilNewline,
                         )?;
                         stdout.flush()?;
-                        if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('d') {
+                        let kp = std::io::stdin().keys().next().unwrap().unwrap();
+                        if kp == Key::Char('d') || kp == Key::Char('x') {
                             if add_delete_value(&mut position, &mut resources.config_plist, false) {
                                 position.delete();
                             }
                         }
                     }
+                }
+                Key::Char('c') | Key::Char('y') => {
+                    let _ = extract_value(&mut position, &mut resources.config_plist, true);
                 }
                 Key::Char('r') => {
                     if position.depth < 4 {

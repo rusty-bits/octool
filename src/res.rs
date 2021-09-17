@@ -38,12 +38,12 @@ pub fn get_or_update_local_parent(
     let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
-    write!(
+/*    write!(
         stdout,
         "\x1B[32mchecking local\x1B[0m [{}] {}\x1B[0K\r\n",
         build_type, parent
     )?;
-
+*/
     let path = Path::new("resources");
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
     if dir.ends_with(".kext") {
@@ -73,7 +73,7 @@ pub fn get_or_update_local_parent(
                     )?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
                 } else {
-                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+//                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
                 }
             }
             Err(e) => match e.kind() {

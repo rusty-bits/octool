@@ -46,7 +46,12 @@ pub fn build_output(
         for val in enabled_resss {
             let enabled_res = val.as_dictionary().unwrap();
             if enabled_res["Enabled"].as_boolean().unwrap() {
-                let r = enabled_res[&pth].as_string().unwrap().split('/').next().unwrap();
+                let r = enabled_res[&pth]
+                    .as_string()
+                    .unwrap()
+                    .split('/')
+                    .next()
+                    .unwrap();
                 if &sub == "Drivers" && r == "OpenCanopy.efi" {
                     has_open_canopy = true;
                 }
@@ -68,7 +73,16 @@ pub fn build_output(
         let mut to_path = "OUTPUT/EFI/OC/".to_string();
         to_path.push_str(&out_pth);
         copy_items(&from_paths, &to_path, &options)?;
-        write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
+        let mut s = "";
+        if from_paths.len() > 1 {
+            s = "s";
+        };
+        write!(
+            stdout,
+            "\x1B[32mdone\x1B[0m with {} file{}\r\n\n",
+            from_paths.len(),
+            s
+        )?;
     }
 
     if has_open_canopy {
@@ -106,11 +120,16 @@ pub fn build_output(
                     entries.push(r?.path());
                 }
             }
+            let mut s = "";
+            if entries.len() > 1 {
+                s = "s";
+            };
             write!(
                 stdout,
-                "\x1B[32mCopying\x1B[0m {} {} resources from OcBinaryData ... ",
+                "\x1B[32mCopying\x1B[0m {} {} resource{} from OcBinaryData ... ",
                 entries.len(),
-                res
+                res,
+                s
             )?;
             stdout.flush()?;
             copy_items(&entries, out_path.join(res), &options)?;

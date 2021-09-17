@@ -40,7 +40,7 @@ pub fn get_or_update_local_parent(
         .unwrap_or("");
     write!(
         stdout,
-        "\x1B[32mchecking\x1B[0m local [{}] {}\x1B[0K\r\n",
+        "\x1B[32mchecking local\x1B[0m [{}] {}\x1B[0K\r\n",
         build_type, parent
     )?;
 
@@ -59,15 +59,17 @@ pub fn get_or_update_local_parent(
             Ok(mut sum_file) => {
                 let mut sum = String::new();
                 sum_file.read_to_string(&mut sum)?;
-                write!(
-                    stdout,
-                    "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
-                    hash, sum
-                )?;
                 if sum != hash {
                     write!(
                         stdout,
-                        "\x1B[32mnew version found, Downloading\x1B[0m\x1B[0K\r\n"
+                        "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                        hash, sum
+                    )?;
+                    write!(
+                        stdout,
+                        "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                        yel = color::Fg(color::Yellow),
+                        grn = color::Fg(color::Green),
                     )?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
                 } else {
@@ -78,8 +80,10 @@ pub fn get_or_update_local_parent(
                 std::io::ErrorKind::NotFound => {
                     write!(
                         stdout,
-                        "{:?} \x1B[33mlocal copy not found, \x1B[32mDownloading\x1B[0m\x1B[0K\r\n",
-                        dir
+                        "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                        dir,
+                        yel = color::Fg(color::Yellow),
+                        grn = color::Fg(color::Green),
                     )?;
                     write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
@@ -221,7 +225,9 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     let section = position.sec_key[0].as_str();
     let mut ind_res = String::new();
     position.res_name(&mut ind_res);
-    let parent = resources.resource_list[&ind_res]["parent"].as_str().unwrap_or("");
+    let parent = resources.resource_list[&ind_res]["parent"]
+        .as_str()
+        .unwrap_or("");
 
     write!(
         stdout,
@@ -323,7 +329,11 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     match res_path {
         None => write!(stdout, "\x1B[31mNo local resource found\x1B[0m\x1B[0K\r\n").unwrap(),
         Some(p) => {
-            write!(stdout, "\x1B[32mlocal path to resource that will be used\x1B[0m\x1B[0K\r\n").unwrap();
+            write!(
+                stdout,
+                "\x1B[32mlocal path to resource that will be used\x1B[0m\x1B[0K\r\n"
+            )
+            .unwrap();
             let out = status(
                 "find",
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
@@ -421,12 +431,15 @@ pub fn get_res_path(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Option<String> {
     let mut res_path: Option<PathBuf>;
-    let parent = resources.resource_list[&ind_res]["parent"].as_str().unwrap_or("");
+    let parent = resources.resource_list[&ind_res]["parent"]
+        .as_str()
+        .unwrap_or("");
     let build_type = resources.octool_config["build_type"]
         .as_str()
         .unwrap_or("release");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
     if path.exists() {
+        write!(stdout, "\x1B[33mUsing INPUT folder copy for \x1B[32m{}\x1B[0m\r\n", ind_res).unwrap();
         res_path = Some(path.clone());
     } else {
         res_path = None;

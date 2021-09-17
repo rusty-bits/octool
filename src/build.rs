@@ -28,147 +28,53 @@ pub fn build_output(
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
 
-    write!(
-        stdout,
-        "\x1B[0J\x1B[32mCopying\x1B[0m enabled ACPI files ...\r\n"
-    )?;
-    stdout.flush()?;
-    let mut from_paths = Vec::new();
-    let acpis = resources.config_plist.as_dictionary().unwrap()["ACPI"]
-        .as_dictionary()
-        .unwrap()["Add"]
-        .as_array()
-        .unwrap();
-    for val in acpis {
-        let acpi = val.as_dictionary().unwrap();
-        if acpi["Enabled"].as_boolean().unwrap() {
-            let r = acpi["Path"].as_string().unwrap().split('/').next().unwrap();
-            match get_res_path(&resources, r, "ACPI", stdout) {
-                Some(res) => from_paths.push(res),
-                None => {
-                    build_okay = false;
-                    write!(
-                        stdout,
-                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                        r
-                    )?;
+    let a: Vec<(String, String, String, String)> =
+        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    for (sec, sub, pth, out_pth) in a {
+        write!(
+            stdout,
+            "\x1B[0J\r\n\x1B[32mCopying\x1B[0m enabled {} files ...\r\n",
+            &sec
+        )?;
+        stdout.flush()?;
+        let mut from_paths = Vec::new();
+        let enabled_resss = resources.config_plist.as_dictionary().unwrap()[&sec]
+            .as_dictionary()
+            .unwrap()[&sub]
+            .as_array()
+            .unwrap();
+        for val in enabled_resss {
+            let enabled_res = val.as_dictionary().unwrap();
+            if enabled_res["Enabled"].as_boolean().unwrap() {
+                let r = enabled_res[&pth].as_string().unwrap().split('/').next().unwrap();
+                if &sub == "Drivers" && r == "OpenCanopy.efi" {
+                    has_open_canopy = true;
+                }
+                match get_res_path(&resources, r, &sec, stdout) {
+                    Some(res) => from_paths.push(res),
+                    None => {
+                        build_okay = false;
+                        write!(
+                            stdout,
+                            "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                            r
+                        )?;
+                    }
                 }
             }
         }
+        from_paths.sort();
+        from_paths.dedup();
+        let mut to_path = "OUTPUT/EFI/OC/".to_string();
+        to_path.push_str(&out_pth);
+        copy_items(&from_paths, &to_path, &options)?;
+        write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
     }
-    from_paths.sort();
-    from_paths.dedup();
-    copy_items(&from_paths, "OUTPUT/EFI/OC/ACPI", &options)?;
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
-
-    write!(stdout, "\x1B[32mCopying\x1B[0m enabled Kexts ...\r\n")?;
-    stdout.flush()?;
-    let mut from_paths = Vec::new();
-    let kexts = resources.config_plist.as_dictionary().unwrap()["Kernel"]
-        .as_dictionary()
-        .unwrap()["Add"]
-        .as_array()
-        .unwrap();
-    for val in kexts {
-        let kext = val.as_dictionary().unwrap();
-        if kext["Enabled"].as_boolean().unwrap() {
-            let r = kext["BundlePath"]
-                .as_string()
-                .unwrap()
-                .split('/')
-                .next()
-                .unwrap();
-            match get_res_path(&resources, r, "Kernel", stdout) {
-                Some(res) => from_paths.push(res),
-                None => {
-                    build_okay = false;
-                    write!(
-                        stdout,
-                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                        r
-                    )?;
-                }
-            }
-        }
-    }
-    from_paths.sort();
-    from_paths.dedup();
-    copy_items(&from_paths, "OUTPUT/EFI/OC/Kexts", &options)?;
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
-
-    write!(stdout, "\x1B[32mCopying\x1B[0m enabled Tools ...\r\n")?;
-    stdout.flush()?;
-    let mut from_paths = Vec::new();
-    let tools = resources.config_plist.as_dictionary().unwrap()["Misc"]
-        .as_dictionary()
-        .unwrap()["Tools"]
-        .as_array()
-        .unwrap();
-    for val in tools {
-        let tool = val.as_dictionary().unwrap();
-        if tool["Enabled"].as_boolean().unwrap() {
-            let r = tool["Path"].as_string().unwrap().split('/').next().unwrap();
-            match get_res_path(&resources, r, "Misc", stdout) {
-                Some(res) => from_paths.push(res),
-                None => {
-                    build_okay = false;
-                    write!(
-                        stdout,
-                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                        r
-                    )?;
-                }
-            }
-        }
-    }
-    from_paths.sort();
-    from_paths.dedup();
-    copy_items(&from_paths, "OUTPUT/EFI/OC/Tools", &options)?;
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
-
-    write!(stdout, "\x1B[32mCopying\x1B[0m enabled Drivers ...\r\n")?;
-    stdout.flush()?;
-    let mut from_paths = Vec::new();
-    let drivers = resources.config_plist.as_dictionary().unwrap()["UEFI"]
-        .as_dictionary()
-        .unwrap()["Drivers"]
-        .as_array()
-        .unwrap();
-    for val in drivers {
-        let driver = val.as_dictionary().unwrap();
-        if driver["Enabled"].as_boolean().unwrap() {
-            let r = driver["Path"]
-                .as_string()
-                .unwrap()
-                .split('/')
-                .next()
-                .unwrap();
-            if r == "OpenCanopy.efi" {
-                has_open_canopy = true;
-            }
-            match get_res_path(&resources, r, "UEFI", stdout) {
-                Some(res) => from_paths.push(res),
-                None => {
-                    build_okay = false;
-                    write!(
-                        stdout,
-                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                        r
-                    )?;
-                }
-            }
-        }
-    }
-    from_paths.sort();
-    from_paths.dedup();
-    copy_items(&from_paths, "OUTPUT/EFI/OC/Drivers", &options)?;
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
-    stdout.flush()?;
 
     if has_open_canopy {
         write!(
             stdout,
-            "\x1B[32mFound\x1B[0m OpenCanopy.efi in UEFI->Drivers\r\n"
+            "\x1B[32mFound\x1B[0m OpenCanopy.efi Enabled in UEFI->Drivers\r\n"
         )?;
         let _ =
             get_or_update_local_parent("OcBinaryData", &resources.acidanthera, "release", stdout)?;
@@ -196,8 +102,7 @@ pub fn build_output(
                 }
             }
             if input_resources.join(res).exists() {
-                for r in fs::read_dir(input_resources.join(res))?
-                {
+                for r in fs::read_dir(input_resources.join(res))? {
                     entries.push(r?.path());
                 }
             }

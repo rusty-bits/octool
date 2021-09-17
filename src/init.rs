@@ -24,12 +24,17 @@ pub fn init(
         "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
         position.build_type
     )?;
-    position.resource_sections =
-        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    let a: Vec<(String, String, String, String)> = serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    for (mut sec, sub, _, _) in a {
+        sec.push_str(&sub);
+        position.resource_sections.push(sec);
+    };
+//    position.resource_sections =
+//        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
 
     write!(
         stdout,
-        "\n\x1B[32mchecking\x1B[0m acidanthera OpenCorePkg source\r\n"
+        "\n\x1B[32mchecking local\x1B[0m acidanthera OpenCorePkg source\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["opencorepkg_path"]
@@ -52,7 +57,7 @@ pub fn init(
 
     write!(
         stdout,
-        "\n\x1B[32mchecking\x1B[0m dortania/build_repo/config.json\r\n"
+        "\n\x1B[32mchecking local\x1B[0m dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]

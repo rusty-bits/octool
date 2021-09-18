@@ -256,16 +256,16 @@ fn main() {
     write!(stdout, "{}", termion::cursor::Hide).unwrap();
     write!(stdout, "{}", termion::cursor::Goto(1, 1)).unwrap();
 
-    let current_dir = env::current_dir().unwrap();
-
     #[cfg(not(debug_assertions))] // point to octool dir no matter where tool run from
     {
+        let current_dir = env::current_dir().unwrap();
         let working_dir = env::current_exe().unwrap();
         if working_dir != current_dir {
             let working_dir = working_dir.parent().unwrap();
             env::set_current_dir(working_dir).unwrap();
         }
     }
+    let current_dir = env::current_dir().unwrap();
 
     let mut config_file = Path::new(&match env::args().nth(1) {
         Some(s) => s,

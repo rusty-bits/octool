@@ -28,9 +28,9 @@ pub fn build_output(
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
 
-    let a: Vec<(String, String, String, String)> =
+    let res_config: Vec<(String, String, String, String)> =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
-    for (sec, sub, pth, out_pth) in a {
+    for (sec, sub, pth, out_pth) in res_config {
         write!(
             stdout,
             "\x1B[0J\r\n\x1B[32mCopying\x1B[0m enabled {} files ...\r\n",
@@ -38,31 +38,34 @@ pub fn build_output(
         )?;
         stdout.flush()?;
         let mut from_paths = Vec::new();
-        let enabled_resss = resources.config_plist.as_dictionary().unwrap()[&sec]
+        let enabled_resources = resources.config_plist.as_dictionary().unwrap()[&sec]
             .as_dictionary()
             .unwrap()[&sub]
             .as_array()
             .unwrap();
-        for val in enabled_resss {
+        for val in enabled_resources {
             let enabled_res = val.as_dictionary().unwrap();
             if enabled_res["Enabled"].as_boolean().unwrap() {
-                let r = enabled_res[&pth]
+                let res = enabled_res[&pth]
                     .as_string()
                     .unwrap()
                     .split('/')
                     .next()
                     .unwrap();
-                if &sub == "Drivers" && r == "OpenCanopy.efi" {
+                if &sub == "Drivers" && res == "OpenCanopy.efi" {
                     has_open_canopy = true;
                 }
-                match get_res_path(&resources, r, &sec, stdout) {
-                    Some(res) => from_paths.push(res),
+                match get_res_path(&resources, res, &sec, stdout) {
+                    Some(res) => {
+                        write!(stdout, "{:?}\r\n", res)?;
+                        from_paths.push(res);
+                    }
                     None => {
                         build_okay = false;
                         write!(
                             stdout,
                             "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                            r
+                            res
                         )?;
                     }
                 }

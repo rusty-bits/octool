@@ -252,30 +252,33 @@ fn process(
 
 fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}", termion::clear::All).unwrap();
-    write!(stdout, "{}", termion::cursor::Hide).unwrap();
-    write!(stdout, "{}", termion::cursor::Goto(1, 1)).unwrap();
+    write!(
+        stdout,
+        "{}{}{}",
+        termion::clear::All,
+        termion::cursor::Hide,
+        termion::cursor::Goto(1, 1)
+    )
+    .unwrap();
 
-    #[cfg(not(debug_assertions))] // point to octool dir no matter where tool run from
-    {
-        let current_dir = env::current_dir().unwrap();
-        let working_dir = env::current_exe().unwrap();
-        if working_dir != current_dir {
-            let working_dir = working_dir.parent().unwrap();
-            env::set_current_dir(working_dir).unwrap();
-        }
-    }
     let current_dir = env::current_dir().unwrap();
+    let working_dir;
+    #[cfg(not(debug_assertions))]
+    {
+        working_dir = env::current_exe().unwrap().parent().unwrap().to_path_buf();
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        working_dir = current_dir.to_owned();
+    }
+    env::set_current_dir(&working_dir).unwrap();
 
     let mut config_file = Path::new(&match env::args().nth(1) {
-        Some(s) => s,
-        None => "INPUT/config.plist".to_string(),
+        Some(s) => current_dir.join(s),
+        None => working_dir.join("INPUT/config.plist"),
     })
     .to_owned();
-
-    if !config_file.has_root() {
-        config_file = current_dir.join(config_file);
-    }
 
     if !config_file.exists() {
         write!(

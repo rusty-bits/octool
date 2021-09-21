@@ -24,13 +24,12 @@ pub fn init(
         "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
         position.build_type
     )?;
-    let a: Vec<(String, String, String, String)> = serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
-    for (mut sec, sub, _, _) in a {
+    let config_res_sections: Vec<(String, String, String, String)> =
+        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    for (mut sec, sub, _, _) in config_res_sections {
         sec.push_str(&sub);
         position.resource_sections.push(sec);
-    };
-//    position.resource_sections =
-//        serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
+    }
 
     write!(
         stdout,
@@ -116,7 +115,6 @@ pub fn init(
             }
         }
     }
-
     Ok(())
 }
 

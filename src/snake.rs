@@ -59,7 +59,8 @@ fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
 
 pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
-    let mut apple = "113322445513245".chars().cycle();
+    let mut apple = "113322446655".chars().cycle();
+    let mut score = 0;
 
     write!(stdout, "{}", termion::clear::All)?;
 
@@ -79,7 +80,6 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     travel(&mut snake, direction, true);
     let mut key_bytes = [0, 0, 0];
     loop {
-        display(stdout, &snake, food, &mut masc, &mut apple);
         if stdin.read(&mut key_bytes)? == 3 {
             key_bytes[0] = key_bytes[2];
         }
@@ -93,13 +93,15 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
 
         let eating_food = head_touching_object(&snake, food);
         if eating_food {
+            score += 1;
             food = get_new_food_position(&snake, board_bounds, &mut rng);
-            slp -= 4;
+            slp -= 2;
             if slp < 20 {
                 slp = 20;
             };
         }
         travel(&mut snake, direction, eating_food);
+        display(stdout, &snake, food, &mut masc, &mut apple, score);
         if head_touching_self(&snake) || head_out_of_bounds(&snake, board_bounds) {
             break;
         }
@@ -127,6 +129,7 @@ fn display(
     food: CoordinateVector,
     snk: &mut Cycle<Chars>,
     apple: &mut Cycle<Chars>,
+    score: i32,
 ) {
     write!(
         stdout,
@@ -148,6 +151,7 @@ fn display(
     .unwrap();
     let segment = snake.front().unwrap();
     write!(stdout, "\x1B[{};{}H{}", segment.1, segment.0, ' ').unwrap();
+    write!(stdout, "\x1B[1;1H{}", score).unwrap();
 
     //    }
 }

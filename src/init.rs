@@ -21,7 +21,7 @@ pub fn init(
         .to_string();
     write!(
         stdout,
-        "\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        "\x1B[32mbuild_type set to\x1B[0m {}\r\n",
         position.build_type
     )?;
     let config_res_sections: Vec<(String, String, String, String)> =
@@ -33,7 +33,7 @@ pub fn init(
 
     write!(
         stdout,
-        "\n\x1B[32mchecking local\x1B[0m acidanthera OpenCorePkg source\r\n"
+        "\n\x1B[32mChecking local\x1B[0m acidanthera OpenCorePkg source\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["opencorepkg_path"]
@@ -56,7 +56,7 @@ pub fn init(
 
     write!(
         stdout,
-        "\n\x1B[32mchecking local\x1B[0m dortania/build_repo/config.json\r\n"
+        "\n\x1B[32mChecking local\x1B[0m dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -77,7 +77,7 @@ pub fn init(
     )?;
     resources.resource_list = res::get_serde_json("tool_config_files/resource_list.json", stdout)?;
 
-    write!(stdout, "\r\n")?;
+    write!(stdout, "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg\r\n")?;
     let path = res::get_or_update_local_parent(
         "OpenCorePkg",
         &resources.dortania,

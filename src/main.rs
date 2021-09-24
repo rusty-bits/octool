@@ -192,6 +192,21 @@ fn process(
                         }
                     }
                 }
+                Key::Char('m') => {
+                    if extract_value(&mut position, &resources.config_plist, true) {
+                        let tmp_item = position.held_item.clone();
+                        let _tmp_key = position.held_key.clone();
+                        write!(stdout, "{:?}", tmp_item)?;
+                        stdout.flush()?;
+//                        if extract_value(&mut position, &resources.sample_plist, true) {
+//                            let _ =
+//                                add_delete_value(&mut position, &mut resources.config_plist, true);
+//                        }
+//                        position.held_key = tmp_key.to_owned();
+//                        position.held_item = tmp_item.to_owned();
+                    }
+                    let _ = std::io::stdin().keys().next();
+                }
                 Key::Char('i') => {
                     if !showing_info {
                         if position.is_resource() {

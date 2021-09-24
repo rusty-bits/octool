@@ -80,12 +80,16 @@ pub fn build_output(
         if from_paths.len() > 1 {
             s = "s";
         };
-        write!(
-            stdout,
-            "\x1B[32mdone\x1B[0m with {} file{}\r\n\n",
-            from_paths.len(),
-            s
-        )?;
+        if from_paths.len() == 0 {
+            write!(stdout, "No files to copy\r\n\n")?;
+        } else {
+            write!(
+                stdout,
+                "\x1B[32mdone\x1B[0m with {} file{}\r\n\n",
+                from_paths.len(),
+                s
+            )?;
+        }
     }
 
     if has_open_canopy {

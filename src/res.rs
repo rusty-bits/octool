@@ -38,12 +38,12 @@ pub fn get_or_update_local_parent(
     let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
-    /*    write!(
-            stdout,
-            "\x1B[32mchecking local\x1B[0m [{}] {}\x1B[0K\r\n",
-            build_type, parent
-        )?;
-    */
+/*    write!(
+        stdout,
+        "\x1B[32mlocal\x1B[0m [{}] {}\x1B[0K ",
+        build_type, parent
+    )?;
+*/
     let path = Path::new("resources");
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
     if dir.ends_with(".kext") {
@@ -72,9 +72,9 @@ pub fn get_or_update_local_parent(
                         grn = color::Fg(color::Green),
                     )?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
-                } else {
-                    //                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
-                }
+                } /*  else {
+                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                }   */
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
@@ -360,7 +360,7 @@ pub fn get_serde_json(
 ) -> Result<serde_json::Value, Box<dyn Error>> {
     write!(
         stdout,
-        "\x1B[0K\n\x1B[32mloading\x1B[0m {} ... \x1B[0K",
+        "\x1B[0K\n\x1B[32mLoading\x1B[0m {} ... \x1B[0K",
         path
     )?;
     stdout.flush()?;

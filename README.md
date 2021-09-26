@@ -41,10 +41,10 @@ Usage:
 'SPACE' will toggle a boolean value between true/false  
 - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list  
 
-'a' add - if in a resource section, add a blank resource template to the working plist from the Sample.plist  
+'a' add - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
  - if in some other section, select a type and key name to add to the working plist  
 
-'d' will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' place command  
+'d' will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
 
 'G' go (capital G) - make an OUTPUT/EFI/OC folder from the config.plist  
  - if `OpenCanopy.efi` is enabled it will copy the OcBinaryData Resources to `OUTPUT/EFI/OC/Resources`  
@@ -53,15 +53,17 @@ Usage:
  - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap, but I need to have octool print a message as a reminder when it uses files from INPUT  
  - lastly, it will again validate the `OUTPUT/EFI/OC/config.plist` file with ocvalidate  
 
-'p' place - places the last deleted or modified item into the plist  
+'p' paste - places the last deleted or modified item into the plist  
 
-'P' (capital P) prints out some resource_list.json data for debugging  
+'P' (capital P) prints out some `tool_config_files/resource_list.json` data for debugging  
 
-'r' reset - if a single item is selected, reset its value to the same as the Sample.plist value  
- - if a section is highlighted, reset the whole section to the same as the Sample.plist  
+'r' reset - if a single item is selected, reset its value to the same as the `Sample.plist` value  
+ - if a section is highlighted, reset the whole section to the same as the `Sample.plist`  
 
-'s' save a copy of the config.plist as INPUT/modified_config.plist  
- - modified_ will be added to the begining of the saved file unless you are already working on a file whose name starts with modified_  
+'m' merge - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
+
+'s' save a copy of the `config.plist` as `INPUT/modified_config.plist`  
+ - `modified_` will be added to the begining of the saved file unless you are already working on a file whose name starts with `modified_`  
 
 'q' quit without saving  
 

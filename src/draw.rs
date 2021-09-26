@@ -5,8 +5,6 @@ use termion::{raw::RawTerminal, style};
 use std::error::Error;
 use std::io::{Stdout, Write};
 
-//use crate::res::has_parent;
-
 #[derive(Debug)]
 pub struct Position {
     pub config_file_name: String,       // name of config.plist
@@ -95,7 +93,7 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}s{res}ave {inv}q{res}uit {inv}a{res}dd {inv}d{res}elete {inv}r{res}eset {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}s{res}ave {inv}q{res}uit {inv}a{res}dd {inv}d{res}el {inv}m{res}erge {inv}r{res}eset {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),
@@ -113,13 +111,13 @@ pub fn update_screen(
             row += display_value(k, None, position, list.get(k).unwrap(), stdout, i, 0).unwrap();
         }
     }
-    /*
+    #[cfg(debug_assertions)]
     write!(
         stdout,
         "{:?} {} {:?}",
         position.sec_key, position.depth, position.sec_num
     )?;
-    */
+
     let mut blanks = rows - row;
     if blanks < 0 {
         blanks = 0;

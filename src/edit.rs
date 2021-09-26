@@ -10,8 +10,13 @@ use std::{
     io::{Stdout, Write},
 };
 
-pub fn extract_value(position: &mut Position, mut plist_val: &Value, actual: bool) -> bool {
-    let mut extracted = false;
+pub fn extract_value(
+    position: &mut Position,
+    mut plist_val: &Value,
+    first: bool,
+    preserve: bool,
+) -> bool {
+    let mut extracted = true;
     for i in 0..position.depth {
         match plist_val {
             Value::Dictionary(d) => {
@@ -26,36 +31,47 @@ pub fn extract_value(position: &mut Position, mut plist_val: &Value, actual: boo
             _ => (),
         }
     }
+    //    write!(std::io::stdout(), "{:?}\r\n", plist_val).unwrap();
     match plist_val {
         Value::Dictionary(d) => {
-            let key = if actual {
-                position.sec_key[position.depth].clone()
-            } else {
+            let key = if first {
                 d.keys().next().expect("Didn't get first key").clone()
+            } else {
+                position.sec_key[position.depth].clone()
             };
-            position.held_item = d
-                .get(&key)
-                .expect("No value for key in Sample.plist")
-                .to_owned();
-            position.held_key = key.to_owned();
-            extracted = true;
+            match d.get(&key) {
+                Some(v) => {
+                    position.held_item = v.to_owned();
+                    position.held_key = key.to_owned();
+                }
+                None => extracted = false,
+            };
         }
         Value::Array(a) => {
-            let num = if actual { position.depth } else { 0 };
+            let num = if first {
+                0
+            } else {
+                position.sec_num[position.depth]
+            };
             position.held_item = a.get(num).expect("No elment in Sample.plist").to_owned();
-            let c = position.held_item.as_dictionary_mut().unwrap();
-            for val in c.values_mut() {
-                match val {
-                    Value::String(_) => *val = Value::String("".to_string()),
-                    Value::Boolean(_) => *val = Value::Boolean(false),
-                    _ => (),
-                }
-            }
+            match position.held_item.as_dictionary_mut() {
+                Some(c) => {
+                    if !preserve {
+                        for val in c.values_mut() {
+                            match val {
+                                Value::String(_) => *val = Value::String("".to_string()),
+                                Value::Boolean(_) => *val = Value::Boolean(false),
+                                _ => (),
+                            }
+                        }
+                    }
 
-            position.held_key = position.sec_key[num].clone();
-            extracted = true;
+                    position.held_key = position.sec_key[position.depth].clone();
+                }
+                None => extracted = false,
+            }
         }
-        _ => (),
+        _ => extracted = false,
     }
     extracted
 }
@@ -173,24 +189,21 @@ pub fn add_item(
         return;
     };
     if item_types[selection - 1] == &new_res_msg {
-        if !extract_value(&mut position, &resources.sample_plist, false) {
+        if !extract_value(&mut position, &resources.sample_plist, true, false) {
             return;
         }
     } else {
-        stdout.suspend_raw_mode().unwrap();
         write!(
             stdout,
-            "Enter key for new {} item: {}\x1B[0K",
+            "Enter key for new {} item: {}{}\x1B[0K\r\n\x1B[2K",
             item_types[selection - 1],
+            cursor::Save,
             cursor::Show
         )
         .unwrap();
         stdout.flush().unwrap();
         let mut key = String::new();
-        match std::io::stdin().read_line(&mut key) {
-            Ok(_) => (),
-            Err(err) => panic!("{} Error reading key", err),
-        }
+        edit_string(&mut key, stdout).unwrap();
         position.held_key = String::from(key.trim());
         position.held_item = match item_types[selection - 1] {
             "Array" => plist::Value::Array(vec![]),
@@ -202,7 +215,6 @@ pub fn add_item(
             _ => panic!("How did you select this?"),
         };
         write!(stdout, "{}", cursor::Hide).unwrap();
-        stdout.activate_raw_mode().unwrap();
     }
     if add_delete_value(position, &mut resources.config_plist, true) {
         position.add();
@@ -376,7 +388,6 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
             Key::Esc => break,
             _ => (),
         }
-        //        stdout.flush()?;
     }
     Ok(())
 }

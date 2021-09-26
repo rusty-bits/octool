@@ -38,12 +38,12 @@ pub fn get_or_update_local_parent(
     let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
-/*    write!(
-        stdout,
-        "\x1B[32mlocal\x1B[0m [{}] {}\x1B[0K ",
-        build_type, parent
-    )?;
-*/
+    /*    write!(
+            stdout,
+            "\x1B[32mlocal\x1B[0m [{}] {}\x1B[0K ",
+            build_type, parent
+        )?;
+    */
     let path = Path::new("resources");
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
     if dir.ends_with(".kext") {
@@ -73,8 +73,8 @@ pub fn get_or_update_local_parent(
                     )?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
                 } /*  else {
-                    write!(stdout, "Already up to date.\x1B[0K\r\n")?;
-                }   */
+                      write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                  }   */
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
@@ -164,7 +164,7 @@ pub fn clone_or_pull(
     if path.exists() {
         write!(
             stdout,
-            "\x1B[32mfound\x1B[0m {:?}, checking for updates\x1B[0K\r\n",
+            "\x1B[32mFound\x1B[0m {:?}, checking for updates\x1B[0K\r\n",
             path.parent().unwrap()
         )?;
         let out = status(
@@ -430,6 +430,7 @@ pub fn get_res_path(
     section: &str,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Option<String> {
+    let mut from_input = false;
     let mut res_path: Option<PathBuf>;
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
@@ -439,12 +440,7 @@ pub fn get_res_path(
         .unwrap_or("release");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
     if path.exists() {
-        write!(
-            stdout,
-            "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
-            ind_res
-        )
-        .unwrap();
+        from_input = true;
         res_path = Some(path.clone());
     } else {
         res_path = None;
@@ -495,15 +491,18 @@ pub fn get_res_path(
                 &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
             )
             .unwrap();
-            Some(
-                // this will currently use the last resource found from the find command
-                String::from_utf8(out.stdout)
-                    .unwrap()
-                    .lines()
-                    .last()
-                    .unwrap()
-                    .to_owned(),
-            )
+            let out = String::from_utf8(out.stdout).unwrap().trim().to_owned();
+            if from_input {
+                write!(
+                    stdout,
+                    "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
+                    ind_res
+                )
+                .unwrap();
+            } else {
+                write!(stdout, "{}\r\n", out).unwrap();
+            }
+            Some(out)
         }
     }
 }

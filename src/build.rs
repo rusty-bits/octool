@@ -57,7 +57,6 @@ pub fn build_output(
                 }
                 match get_res_path(&resources, res, &sec, stdout) {
                     Some(res) => {
-                        write!(stdout, "{:?}\r\n", res)?;
                         from_paths.push(res);
                     }
                     None => {

@@ -156,7 +156,7 @@ fn process(
                     }
                 }
                 Key::Char('c') | Key::Char('y') => {
-                    let _ = extract_value(&mut position, &mut resources.config_plist, true);
+                    let _ = extract_value(&mut position, &mut resources.config_plist, false, true);
                 }
                 Key::Char('r') => {
                     if position.depth < 4 {
@@ -176,10 +176,15 @@ fn process(
                         )?;
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
-                            if extract_value(&mut position, &resources.config_plist, true) {
+                            if extract_value(&mut position, &resources.config_plist, false, true) {
                                 let tmp_item = position.held_item.clone();
                                 let tmp_key = position.held_key.clone();
-                                if extract_value(&mut position, &resources.sample_plist, true) {
+                                if extract_value(
+                                    &mut position,
+                                    &resources.sample_plist,
+                                    false,
+                                    true,
+                                ) {
                                     let _ = add_delete_value(
                                         &mut position,
                                         &mut resources.config_plist,
@@ -193,19 +198,56 @@ fn process(
                     }
                 }
                 Key::Char('m') => {
-                    if extract_value(&mut position, &resources.config_plist, true) {
-                        let tmp_item = position.held_item.clone();
-                        let _tmp_key = position.held_key.clone();
-                        write!(stdout, "{:?}", tmp_item)?;
-                        stdout.flush()?;
-//                        if extract_value(&mut position, &resources.sample_plist, true) {
-//                            let _ =
-//                                add_delete_value(&mut position, &mut resources.config_plist, true);
-//                        }
-//                        position.held_key = tmp_key.to_owned();
-//                        position.held_item = tmp_item.to_owned();
+                    //todo - need to check for array or dict, now assumes dict -checks for dict now
+                    //    it might not make sense to merge an array, maybe use 'r'eset instead?
+                    let tmp_depth = position.depth;
+                    if !position.can_expand && position.depth > 0 {
+                        position.depth -= 1;
                     }
-                    let _ = std::io::stdin().keys().next();
+                    if extract_value(&mut position, &resources.config_plist, false, true) {
+                        match position.held_item.clone() {
+                            plist::Value::Dictionary(mut d) => {
+                                let tmp_key = position.held_key.clone();
+                                stdout.flush()?;
+                                if extract_value(
+                                    &mut position,
+                                    &resources.sample_plist,
+                                    false,
+                                    false,
+                                ) {
+                                    stdout.flush().unwrap();
+                                    match position.held_item.clone() {
+                                        plist::Value::Dictionary(d2) => {
+                                            for (k, v) in d2 {
+                                                if !d.contains_key(&k) {
+                                                    d.insert(k.to_owned(), v.to_owned());
+                                                }
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                    let _ = add_delete_value(
+                                        &mut position,
+                                        &mut resources.config_plist,
+                                        false,
+                                    );
+                                    d.sort_keys();
+                                    position.held_item = plist::Value::Dictionary(d.to_owned());
+                                    let _ = add_delete_value(
+                                        &mut position,
+                                        &mut resources.config_plist,
+                                        true,
+                                    );
+                                    if tmp_depth != position.depth {
+                                        position.sec_length[tmp_depth] = d.len();
+                                    }
+                                }
+                                position.held_key = tmp_key.to_owned();
+                            }
+                            _ => (),
+                        }
+                    }
+                    position.depth = tmp_depth;
                 }
                 Key::Char('i') => {
                     if !showing_info {

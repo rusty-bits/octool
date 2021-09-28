@@ -13,8 +13,6 @@ use termion::raw::RawTerminal;
 use termion::{async_stdin, terminal_size};
 // blame mahasvan for this "secret" snake option
 
-type Snake = VecDeque<CoordinateVector>;
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct CoordinateVector(pub i32, pub i32);
 impl Add for CoordinateVector {
@@ -25,41 +23,50 @@ impl Add for CoordinateVector {
     }
 }
 
-fn travel(snake: &mut Snake, direction: CoordinateVector, grow: bool) -> CoordinateVector {
-    let &old_head = snake.back().unwrap();
+struct Snake {
+    seg: VecDeque<CoordinateVector>,
+    direction: CoordinateVector,
+}
+
+fn travel(snake: &mut Snake, grow: bool) -> CoordinateVector {
+    let &old_head = snake.seg.back().unwrap();
     if grow {
-        let &old_tail = snake.front().unwrap();
+        let &old_tail = snake.seg.front().unwrap();
         for _ in 0..5 {
-            snake.push_front(old_tail);
+            snake.seg.push_front(old_tail);
         }
     } else {
-        snake.pop_front().unwrap();
+        snake.seg.pop_front().unwrap();
     }
-    let new_head = old_head + direction;
-    snake.push_back(old_head + direction);
+    let new_head = old_head + snake.direction;
+    snake.seg.push_back(old_head + snake.direction);
     new_head
 }
 
 fn head_touching_object(snake: &Snake, object: CoordinateVector) -> bool {
-    *snake.back().unwrap() == object
+    *snake.seg.back().unwrap() == object
 }
 
-fn head_touching_self(snake: &Snake) -> bool {
-    let &head = snake.back().unwrap();
+fn head_touching_snake(snake: &Snake, other: &Snake) -> bool {
+    let &head = snake.seg.back().unwrap();
     // Find the position of first snake segment which is equal to the head
-    let position = snake.iter().position(|&coord| coord == head).unwrap();
+    let position = match other.seg.iter().position(|&coord| coord == head) {
+        Some(p) => p,
+        None => 100,
+    };
     // Return true if the found position is not the head.
-    position < snake.len() - 1
+    position < other.seg.len() - 1
 }
 
 fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
-    let &head = snake.back().unwrap();
+    let &head = snake.seg.back().unwrap();
     head.0 > bounds.0 || head.1 > bounds.1 || head.0 < 1 || head.1 < 1
 }
 
 pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
     let mut apple = "113322446655".chars().cycle();
+    let mut stripe = "13".chars().cycle();
     let mut score = 0;
 
     write!(stdout, "{}", termion::clear::All)?;
@@ -71,42 +78,90 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
     let mut stdin = async_stdin();
 
     let mut rng = thread_rng();
-    let mut direction = CoordinateVector(1, 0);
     let board_bounds = CoordinateVector(y + 1, x + 1);
-    let mut snake = VecDeque::from(vec![CoordinateVector(y / 2, x / 2)]);
+    let mut snake = Snake {
+        seg: VecDeque::from(vec![CoordinateVector(y / 2, x / 2)]),
+        direction: CoordinateVector(1, 0),
+    };
+    let mut baddy = Snake {
+        seg: VecDeque::from(vec![CoordinateVector(
+            rng.gen_range(1..board_bounds.0),
+            rng.gen_range(1..board_bounds.1),
+        )]),
+        direction: CoordinateVector(0, 1),
+    };
+    let &tail = baddy.seg.front().unwrap();
+    for _ in 0..8 {
+        baddy.seg.push_front(tail);
+    }
     let mut food = get_new_food_position(&snake, board_bounds, &mut rng);
 
     let mut slp = 100;
-    travel(&mut snake, direction, true);
+    travel(&mut snake, true);
     let mut key_bytes = [0, 0, 0];
     loop {
         if stdin.read(&mut key_bytes)? == 3 {
             key_bytes[0] = key_bytes[2];
         }
-        direction = match key_bytes[0] {
-            b'D' if direction.1 != 0 => CoordinateVector(-1, 0),
-            b'C' if direction.1 != 0 => CoordinateVector(1, 0),
-            b'A' if direction.0 != 0 => CoordinateVector(0, -1),
-            b'B' if direction.0 != 0 => CoordinateVector(0, 1),
-            _ => direction,
+        snake.direction = match key_bytes[0] {
+            b'D' if snake.direction.1 != 0 => CoordinateVector(-1, 0),
+            b'C' if snake.direction.1 != 0 => CoordinateVector(1, 0),
+            b'A' if snake.direction.0 != 0 => CoordinateVector(0, -1),
+            b'B' if snake.direction.0 != 0 => CoordinateVector(0, 1),
+            _ => snake.direction,
         };
 
         let eating_food = head_touching_object(&snake, food);
         if eating_food {
             score += 1;
             food = get_new_food_position(&snake, board_bounds, &mut rng);
-            slp -= 2;
+            slp -= 4;
             if slp < 20 {
                 slp = 20;
             };
         }
-        travel(&mut snake, direction, eating_food);
-        display(stdout, &snake, food, &mut masc, &mut apple, score);
-        if head_touching_self(&snake) || head_out_of_bounds(&snake, board_bounds) {
+        travel(&mut snake, eating_food);
+        let t = rng.gen_range(1..100);
+        if t > 95 {
+            turn_right(&mut baddy);
+        } else if t < 5 {
+            turn_left(&mut baddy);
+        }
+        travel(&mut baddy, false);
+        if head_out_of_bounds(&baddy, board_bounds) {
+            baddy.seg.pop_back().unwrap();
+            let &tail = baddy.seg.front().unwrap();
+            baddy.seg.push_front(tail);
+            turn_right(&mut baddy);
+        };
+        display(
+            stdout,
+            &snake,
+            &baddy,
+            food,
+            &mut masc,
+            &mut apple,
+            &mut stripe,
+            score,
+        );
+        if head_touching_snake(&snake, &snake)
+            || head_out_of_bounds(&snake, board_bounds)
+            || head_touching_snake(&baddy, &snake)
+        {
             break;
         }
         stdout.flush()?;
         sleep(Duration::from_millis(slp));
+    }
+    for segment in snake.seg.iter() {
+        write!(
+            stdout,
+            "\x1B[{};{}H\x1B[31;7m{}\x1B[0m",
+            segment.1, segment.0, 'X'
+        )
+        .unwrap();
+        stdout.flush().unwrap();
+        sleep(Duration::from_millis(20));
     }
     Ok(())
 }
@@ -117,18 +172,46 @@ fn get_new_food_position(
     rng: &mut ThreadRng,
 ) -> CoordinateVector {
     let new_position = CoordinateVector(rng.gen_range(1..bounds.0), rng.gen_range(1..bounds.1));
-    match snake.contains(&new_position) {
+    match snake.seg.contains(&new_position) {
         true => get_new_food_position(snake, bounds, rng),
         false => new_position,
     }
 }
 
+fn turn_left(snake: &mut Snake) {
+    let mut a = snake.direction.0;
+    let mut b = snake.direction.1;
+    if a != 0 {
+        b = -a;
+        a = 0;
+    } else {
+        a = b;
+        b = 0;
+    }
+    snake.direction = CoordinateVector(a, b);
+}
+
+fn turn_right(snake: &mut Snake) {
+    let mut a = snake.direction.0;
+    let mut b = snake.direction.1;
+    if a != 0 {
+        b = a;
+        a = 0;
+    } else {
+        a = -b;
+        b = 0;
+    }
+    snake.direction = CoordinateVector(a, b);
+}
+
 fn display(
     stdout: &mut RawTerminal<Stdout>,
     snake: &Snake,
+    baddy: &Snake,
     food: CoordinateVector,
     snk: &mut Cycle<Chars>,
     apple: &mut Cycle<Chars>,
+    stripe: &mut Cycle<Chars>,
     score: i32,
 ) {
     write!(
@@ -140,18 +223,28 @@ fn display(
         ''
     )
     .unwrap();
-    let segment = snake.back().unwrap();
+    let segment = snake.seg.back().unwrap();
     write!(
         stdout,
-        "\x1B[{};{}H\x1B[7m{}\x1B[0m",
+        "\x1B[{};{}H\x1B[42;37m{}\x1B[0m",
         segment.1,
         segment.0,
         snk.next().unwrap()
     )
     .unwrap();
-    let segment = snake.front().unwrap();
+    let segment = snake.seg.front().unwrap();
+    write!(stdout, "\x1B[{};{}H{}", segment.1, segment.0, ' ').unwrap();
+    let segment = baddy.seg.back().unwrap();
+    write!(
+        stdout,
+        "\x1B[{};{}H\x1B[3{};7m{}\x1B[0m",
+        segment.1,
+        segment.0,
+        stripe.next().unwrap(),
+        '/'
+    )
+    .unwrap();
+    let segment = baddy.seg.front().unwrap();
     write!(stdout, "\x1B[{};{}H{}", segment.1, segment.0, ' ').unwrap();
     write!(stdout, "\x1B[1;1H{}", score).unwrap();
-
-    //    }
 }

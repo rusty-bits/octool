@@ -102,6 +102,7 @@ fn process(
                     break;
                 }
                 Key::Char('a') => add_item(&mut position, &mut resources, stdout),
+                Key::Char('f') => edit::find(&resources.config_plist, stdout),
                 Key::Char('v') | Key::Char('p') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, true) {
                         position.add();

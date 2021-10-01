@@ -125,6 +125,51 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     }
     changed
 }
+pub fn find(resource: &plist::Value, stdout: &mut RawTerminal<Stdout>) {
+    let mut search = String::new();
+    write!(
+        stdout,
+        "{}\r\x1B[2KEnter search term: {}\r\n\x1B[2K\x1B8",
+        cursor::Show,
+        cursor::Save
+    )
+    .unwrap();
+    edit_string(&mut search, stdout).unwrap();
+    search = search.to_lowercase();
+    let resource = resource.as_dictionary().unwrap();
+    for (i, key) in resource.keys().enumerate() {
+        let low_key = key.to_lowercase();
+        if low_key.contains(&search) {
+            write!(stdout, "\r\n0 [{}, 0, 0, 0] {}\x1B[0K", i, key).unwrap();
+        }
+        let sub = resource.get(key).unwrap().as_dictionary().unwrap();
+        for (j, s_key) in sub.keys().enumerate() {
+            let low_key = s_key.to_lowercase();
+            if low_key.contains(&search) {
+                write!(stdout, "\r\n1 [{}, {}, 0, 0] {}->{}\x1B[0K", i, j, key, s_key).unwrap();
+            }
+            let sub_sub = sub.get(s_key).unwrap();
+            match sub_sub {
+                plist::Value::Dictionary(d) => {
+                    for (k, s_s_key) in d.keys().enumerate() {
+                        let low_key = s_s_key.to_lowercase();
+                        if low_key.contains(&search) {
+                            write!(
+                                stdout,
+                                "\r\n2 [{}, {}, {}, 0]  {}->{}->{}\x1B[0K",
+                                i, j, k, key, s_key, s_s_key
+                            )
+                            .unwrap();
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+    write!(stdout, "\r\n\x1B[2K{}", cursor::Hide).unwrap();
+    edit_string(&mut search, stdout).unwrap();
+}
 
 pub fn add_item(
     mut position: &mut Position,

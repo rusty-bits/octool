@@ -42,7 +42,7 @@ Usage:
 
 'c' `copy` - copy the highlighted field or section  
 
-'d' will `delete` the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
+'d' `delete` - will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
 
 'f' `find` - find all occurances of a string in the plist  
 - if there is only one occurance, it will jump to the location  

@@ -71,7 +71,7 @@ pub fn extract_value(
                 position.sec_num[position.depth]
             };
             let mut ex_item = a.get(num).expect("No elment in Sample.plist").to_owned();
-//            position.held_item = Some(a.get(num).expect("No elment in Sample.plist").to_owned());
+            //            position.held_item = Some(a.get(num).expect("No elment in Sample.plist").to_owned());
             match ex_item.as_dictionary_mut() {
                 Some(c) => {
                     if !preserve {
@@ -264,6 +264,7 @@ pub fn add_item(
     resources: &mut Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) {
+    position.modified = true;
     let mut selection = 1;
     let mut item_types = Vec::<&str>::new();
     let new_res_msg = format!(

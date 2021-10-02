@@ -12,33 +12,34 @@ pub struct Position {
     pub depth: usize,                   // depth of plist we are looking at
     pub sec_key: [String; 5],           // key of selected section
     pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
-    pub held_item: Option<Value>,               // last deleted or placed item value
+    pub held_item: Option<Value>,       // last deleted or placed item value
     pub held_key: String,               // last deleted or placed key
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
     pub can_expand: bool,
     pub find_string: String,
+    pub modified: bool,
 }
 
 impl Position {
     pub fn up(&mut self) {
         if self.sec_num[self.depth] > 0 {
             self.sec_num[self.depth] -= 1;
-//            self.sec_length[self.depth + 1] = 0;
+            //            self.sec_length[self.depth + 1] = 0;
         }
     }
     pub fn down(&mut self) {
         if self.sec_length[self.depth] > 0 {
             if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
                 self.sec_num[self.depth] += 1;
-//                self.sec_length[self.depth + 1] = 0;
+                //                self.sec_length[self.depth + 1] = 0;
             }
         }
     }
     pub fn left(&mut self) {
         if self.depth > 0 {
-//            self.sec_length[self.depth + 1] = 0;
+            //            self.sec_length[self.depth + 1] = 0;
             self.sec_key[self.depth].clear();
             self.depth -= 1;
         }
@@ -51,6 +52,7 @@ impl Position {
     }
     pub fn add(&mut self) {
         self.sec_length[self.depth] += 1;
+        self.modified = true;
     }
     pub fn delete(&mut self) {
         if self.sec_length[self.depth] > 0 {
@@ -59,6 +61,7 @@ impl Position {
         if self.sec_num[self.depth] == self.sec_length[self.depth] {
             self.up();
         }
+        self.modified = true;
         //        if self.sec_length[self.depth] == 0 {
         //            self.left();
         //        }
@@ -163,9 +166,9 @@ pub fn update_screen(
             write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
         }
     }
-//    if position.is_resource() {
-//        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
-//    }
+    //    if position.is_resource() {
+    //        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
+    //    }
     if position.find_string.len() > 0 {
         write!(
             stdout,
@@ -237,7 +240,13 @@ fn display_value(
             )?;
             if position.depth > d && position.sec_num[d] == item_num {
                 if v.len() == 0 {
-                    write!(stdout, "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}", "    ".repeat(d+1), save_curs_pos).unwrap();
+                    write!(
+                        stdout,
+                        "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
+                        "    ".repeat(d + 1),
+                        save_curs_pos
+                    )
+                    .unwrap();
                     row += 1;
                 } else {
                     let mut key = String::new();
@@ -316,7 +325,13 @@ fn display_value(
             .unwrap();
             if position.depth > d && position.sec_num[d] == item_num {
                 if v.keys().len() == 0 {
-                    write!(stdout, "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}", "    ".repeat(d+1), save_curs_pos).unwrap();
+                    write!(
+                        stdout,
+                        "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
+                        "    ".repeat(d + 1),
+                        save_curs_pos
+                    )
+                    .unwrap();
                     row += 1;
                 } else {
                     let keys: Vec<String> = v.keys().map(|s| s.to_string()).collect();

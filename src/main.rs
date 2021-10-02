@@ -55,6 +55,7 @@ fn process(
         build_type: "release".to_string(),
         can_expand: false,
         find_string: Default::default(),
+        modified: false,
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
@@ -77,7 +78,16 @@ fn process(
                     if showing_info {
                         showing_info = false;
                     } else {
-                        break;
+                        if position.modified {
+                            write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\x1B[0K\r\n\x1B[2K").unwrap();
+                            stdout.flush().unwrap();
+                            match std::io::stdin().keys().next().unwrap().unwrap() {
+                                Key::Char('Q') => break,
+                                _ => (),
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 }
                 Key::Char('G') => {
@@ -92,6 +102,24 @@ fn process(
                         &resources,
                         stdout,
                     )?;
+                    let mut config_file = PathBuf::from(&position.config_file_name)
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string();
+                    if !config_file.starts_with("last_built_") {
+                        let mut tmp = "last_built_".to_string();
+                        tmp.push_str(&config_file);
+                        config_file = tmp.to_owned();
+                    }
+                    let save_file = PathBuf::from("INPUT").join(&config_file);
+                    write!(
+                        stdout,
+                        "\r\n\x1B[0JSaving copy of plist as INPUT/{}\r\n\x1B[0K",
+                        config_file
+                    )
+                    .unwrap();
+                    resources.config_plist.to_file_xml(&save_file)?;
                     if !build_okay || !config_okay {
                         writeln!(stdout, "\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m\r")?;
                     } else {
@@ -195,10 +223,12 @@ fn process(
                         //                   showing_info = false;
                         //               } else {
                         edit_value(&position, &mut resources.config_plist, stdout, true)?;
+                        position.modified = true;
                     }
                 }
                 Key::Char('\n') | Key::Char('\t') => {
-                    edit_value(&position, &mut resources.config_plist, stdout, false)?
+                    edit_value(&position, &mut resources.config_plist, stdout, false)?;
+                    position.modified = true;
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, false) {
@@ -245,6 +275,7 @@ fn process(
                         )?;
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
+                            position.modified = true;
                             if extract_value(&mut position, &resources.config_plist, false, true) {
                                 let tmp_item = position.held_item.clone();
                                 let tmp_key = position.held_key.clone();
@@ -320,6 +351,7 @@ fn process(
                     position.held_key = initial_key;
                     position.held_item = initial_item;
                     position.depth = initial_depth;
+                    position.modified = true;
                 }
                 Key::Char('i') => {
                     if !showing_info {
@@ -354,13 +386,14 @@ fn process(
                     let save_file = PathBuf::from("INPUT").join(&config_file);
                     write!(stdout, "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
                     resources.config_plist.to_file_xml(&save_file)?;
+                    position.modified = false;
                     let _ = init::validate_plist(
                         &Path::new(&save_file).to_path_buf(),
                         &resources,
                         stdout,
                     )?;
                     showing_info = true;
-//                    break;
+                    //                    break;
                 }
                 _ => (),
             }

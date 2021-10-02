@@ -115,7 +115,7 @@ pub fn update_screen(
     write!(
         stdout,
         "{:?} {} {:?}",
-        position.sec_key, position.depth, position.sec_num
+        position.sec_length, position.depth, position.sec_num
     )?;
 
     let mut blanks = rows - row;

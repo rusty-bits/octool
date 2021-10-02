@@ -10,6 +10,23 @@ use std::{
     io::{Stdout, Write},
 };
 
+#[derive(Debug)]
+pub struct Found {
+    pub level: usize,
+    pub section: [usize; 5],
+    pub keys: Vec<String>,
+}
+
+impl Found {
+    pub fn new() -> Found {
+        Found {
+            level: 0,
+            section: [0; 5],
+            keys: vec![],
+        }
+    }
+}
+
 pub fn extract_value(
     position: &mut Position,
     mut plist_val: &Value,
@@ -125,7 +142,7 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     }
     changed
 }
-pub fn find(resource: &plist::Value, stdout: &mut RawTerminal<Stdout>) {
+pub fn find(resource: &plist::Value, found: &mut Vec<Found>, stdout: &mut RawTerminal<Stdout>) {
     let mut search = String::new();
     write!(
         stdout,
@@ -135,40 +152,77 @@ pub fn find(resource: &plist::Value, stdout: &mut RawTerminal<Stdout>) {
     )
     .unwrap();
     edit_string(&mut search, stdout).unwrap();
-    search = search.to_lowercase();
-    let resource = resource.as_dictionary().unwrap();
-    for (i, key) in resource.keys().enumerate() {
-        let low_key = key.to_lowercase();
-        if low_key.contains(&search) {
-            write!(stdout, "\r\n0 [{}, 0, 0, 0] {}\x1B[0K", i, key).unwrap();
-        }
-        let sub = resource.get(key).unwrap().as_dictionary().unwrap();
-        for (j, s_key) in sub.keys().enumerate() {
-            let low_key = s_key.to_lowercase();
+    if search.len() > 0 {
+        search = search.to_lowercase();
+        let resource = resource.as_dictionary().unwrap();
+        for (i, key) in resource.keys().enumerate() {
+            let low_key = key.to_lowercase();
             if low_key.contains(&search) {
-                write!(stdout, "\r\n1 [{}, {}, 0, 0] {}->{}\x1B[0K", i, j, key, s_key).unwrap();
+                found.push(Found {
+                    level: 0,
+                    section: [i, 0, 0, 0, 0],
+                    keys: vec![key.to_owned()],
+                });
             }
-            let sub_sub = sub.get(s_key).unwrap();
-            match sub_sub {
-                plist::Value::Dictionary(d) => {
-                    for (k, s_s_key) in d.keys().enumerate() {
-                        let low_key = s_s_key.to_lowercase();
-                        if low_key.contains(&search) {
-                            write!(
-                                stdout,
-                                "\r\n2 [{}, {}, {}, 0]  {}->{}->{}\x1B[0K",
-                                i, j, k, key, s_key, s_s_key
-                            )
-                            .unwrap();
+            let sub = resource.get(key).unwrap().as_dictionary().unwrap();
+            for (j, s_key) in sub.keys().enumerate() {
+                let low_key = s_key.to_lowercase();
+                if low_key.contains(&search) {
+                    found.push(Found {
+                        level: 1,
+                        section: [i, j, 0, 0, 0],
+                        keys: vec![key.to_owned(), s_key.to_owned()],
+                    });
+                }
+                let sub_sub = sub.get(s_key).unwrap();
+                match sub_sub {
+                    plist::Value::Dictionary(d) => {
+                        for (k, s_s_key) in d.keys().enumerate() {
+                            let low_key = s_s_key.to_lowercase();
+                            if low_key.contains(&search) {
+                                found.push(Found {
+                                    level: 2,
+                                    section: [i, j, k, 0, 0],
+                                    keys: vec![
+                                        key.to_owned(),
+                                        s_key.to_owned(),
+                                        s_s_key.to_owned(),
+                                    ],
+                                });
+                            }
                         }
                     }
+                    plist::Value::Array(a) => {
+                        for (k, v) in a.iter().enumerate() {
+                            match v {
+                                plist::Value::Dictionary(d) => {
+                                    for (l, s_s_key) in d.keys().enumerate() {
+                                        let low_key = s_s_key.to_lowercase();
+                                        if low_key.contains(&search) {
+                                            found.push(Found {
+                                                level: 3,
+                                                section: [i, j, k, l, 0],
+                                                keys: vec![
+                                                    key.to_owned(),
+                                                    s_key.to_owned(),
+                                                    k.to_string(),
+                                                    s_s_key.to_owned(),
+                                                ],
+                                            });
+                                        }
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+
+                    _ => (),
                 }
-                _ => (),
             }
         }
     }
-    write!(stdout, "\r\n\x1B[2K{}", cursor::Hide).unwrap();
-    edit_string(&mut search, stdout).unwrap();
+    write!(stdout, "{}", cursor::Hide).unwrap();
 }
 
 pub fn add_item(

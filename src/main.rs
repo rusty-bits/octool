@@ -13,11 +13,11 @@ use std::{env, error::Error};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
-use termion::{clear, color, style};
+use termion::{clear, color, cursor, style};
 
 use crate::build::build_output;
 use crate::draw::{update_screen, Position};
-use crate::edit::{add_delete_value, add_item, edit_value, extract_value};
+use crate::edit::{add_delete_value, add_item, edit_value, extract_value, Found};
 use crate::init::init;
 use crate::res::Resources;
 use crate::snake::snake;
@@ -27,6 +27,8 @@ fn process(
     current_dir: &PathBuf,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
+    let mut found = vec![Found::new()];
+    let mut found_id: usize = 0;
     let stdin = stdin();
     let mut resources = Resources {
         acidanthera: serde_json::Value::Bool(false),
@@ -60,6 +62,7 @@ fn process(
         stdout,
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
+    stdout.flush()?;
     let key = std::io::stdin().keys().next().unwrap().unwrap();
 
     if key != Key::Char('q') {
@@ -102,7 +105,74 @@ fn process(
                     break;
                 }
                 Key::Char('a') => add_item(&mut position, &mut resources, stdout),
-                Key::Char('f') => edit::find(&resources.config_plist, stdout),
+                Key::Char('f') => {
+                    found = vec![];
+                    found_id = 0;
+                    edit::find(&resources.config_plist, &mut found, stdout);
+                    if found.len() == 1 {
+                        position.depth = found[0].level;
+                        position.sec_num = found[0].section;
+                        found_id = 1;
+                    } else if found.len() > 1 {
+                        let mut selection = 1;
+                        write!(stdout, "\r\n\x1B[2K{}", cursor::Save).unwrap();
+                        loop {
+                            write!(stdout, "\x1B8").unwrap();
+                            for (i, f) in found.iter().enumerate() {
+                                let mut fk = f.keys.iter();
+                                write!(
+                                    stdout,
+                                    "  {}{}",
+                                    if i == selection - 1 {
+                                        "\x1B[7m"
+                                    } else {
+                                        ""
+                                    },
+                                    fk.next().unwrap()
+                                )
+                                .unwrap();
+                                for next_key in fk {
+                                    write!(stdout, "->{}", next_key).unwrap();
+                                }
+                                write!(stdout, "\x1B[0m\r\n\x1B[2K").unwrap();
+                            }
+                            stdout.flush().unwrap();
+                            match std::io::stdin().keys().next().unwrap().unwrap() {
+                                Key::Up => {
+                                    if selection > 1 {
+                                        selection -= 1;
+                                    }
+                                }
+                                Key::Down => {
+                                    if selection < found.len() {
+                                        selection += 1;
+                                    }
+                                }
+                                Key::Char('\n') => break,
+                                Key::Esc => {
+                                    selection = 0;
+                                    break;
+                                }
+                                _ => (),
+                            }
+                        }
+                        found_id = selection;
+                        if selection > 0 {
+                            position.depth = found[selection - 1].level;
+                            position.sec_num = found[selection - 1].section;
+                        }
+                    }
+                }
+                Key::Char('n') => {
+                    if found_id > 0 {
+                        found_id += 1;
+                        if found_id > found.len() {
+                            found_id = 1;
+                        }
+                        position.depth = found[found_id-1].level;
+                        position.sec_num = found[found_id-1].section;
+                    }
+                }
                 Key::Char('v') | Key::Char('p') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, true) {
                         position.add();

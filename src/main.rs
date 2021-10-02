@@ -48,12 +48,13 @@ fn process(
         depth: 0,
         sec_key: Default::default(),
         item_clone: plist::Value::Boolean(false),
-        held_item: plist::Value::Boolean(false),
+        held_item: None,
         held_key: Default::default(),
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
         can_expand: false,
+        find_string: Default::default(),
     };
 
     init(&config_plist, &mut resources, &mut position, stdout)?;
@@ -108,11 +109,12 @@ fn process(
                 Key::Char('f') => {
                     found = vec![];
                     found_id = 0;
-                    edit::find(&resources.config_plist, &mut found, stdout);
+                    edit::find(&mut position, &resources.config_plist, &mut found, stdout);
                     if found.len() == 1 {
                         position.depth = found[0].level;
                         position.sec_num = found[0].section;
-                        found_id = 1;
+                        position.find_string = String::new();
+                        found_id = 0;
                     } else if found.len() > 1 {
                         let mut selection = 1;
                         write!(stdout, "\r\n\x1B[2K{}", cursor::Save).unwrap();
@@ -123,11 +125,7 @@ fn process(
                                 write!(
                                     stdout,
                                     "  {}{}",
-                                    if i == selection - 1 {
-                                        "\x1B[7m"
-                                    } else {
-                                        ""
-                                    },
+                                    if i == selection - 1 { "\x1B[7m" } else { "" },
                                     fk.next().unwrap()
                                 )
                                 .unwrap();
@@ -169,11 +167,11 @@ fn process(
                         if found_id > found.len() {
                             found_id = 1;
                         }
-                        position.depth = found[found_id-1].level;
-                        position.sec_num = found[found_id-1].section;
+                        position.depth = found[found_id - 1].level;
+                        position.sec_num = found[found_id - 1].section;
                     }
                 }
-                Key::Char('v') | Key::Char('p') => {
+                Key::Char('v') | Key::Char('p') | Key::Ctrl('v') => {
                     if add_delete_value(&mut position, &mut resources.config_plist, true) {
                         position.add();
                     }
@@ -226,7 +224,7 @@ fn process(
                         }
                     }
                 }
-                Key::Char('c') | Key::Char('y') => {
+                Key::Char('c') | Key::Char('y') | Key::Ctrl('c') => {
                     let _ = extract_value(&mut position, &mut resources.config_plist, false, true);
                 }
                 Key::Char('r') => {
@@ -263,7 +261,7 @@ fn process(
                                     );
                                 }
                                 position.held_key = tmp_key.to_owned();
-                                position.held_item = tmp_item.to_owned();
+                                position.held_item = tmp_item;
                             }
                         }
                     }
@@ -271,14 +269,15 @@ fn process(
                 Key::Char('m') => {
                     //todo - need to check for array or dict, now assumes dict -checks for dict now
                     //    it might not make sense to merge an array, maybe use 'r'eset instead?
-                    let tmp_depth = position.depth;
+                    let initial_depth = position.depth;
+                    let initial_key = position.held_key.to_owned();
+                    let initial_item = position.held_item.to_owned();
                     if !position.can_expand && position.depth > 0 {
                         position.depth -= 1;
                     }
                     if extract_value(&mut position, &resources.config_plist, false, true) {
-                        match position.held_item.clone() {
+                        match position.held_item.clone().unwrap() {
                             plist::Value::Dictionary(mut d) => {
-                                let tmp_key = position.held_key.clone();
                                 stdout.flush()?;
                                 if extract_value(
                                     &mut position,
@@ -287,7 +286,7 @@ fn process(
                                     false,
                                 ) {
                                     stdout.flush().unwrap();
-                                    match position.held_item.clone() {
+                                    match position.held_item.clone().unwrap() {
                                         plist::Value::Dictionary(d2) => {
                                             for (k, v) in d2 {
                                                 if !d.contains_key(&k) {
@@ -303,22 +302,24 @@ fn process(
                                         false,
                                     );
                                     d.sort_keys();
-                                    position.held_item = plist::Value::Dictionary(d.to_owned());
+                                    position.held_item =
+                                        Some(plist::Value::Dictionary(d.to_owned()));
                                     let _ = add_delete_value(
                                         &mut position,
                                         &mut resources.config_plist,
                                         true,
                                     );
-                                    if tmp_depth != position.depth {
-                                        position.sec_length[tmp_depth] = d.len();
+                                    if initial_depth != position.depth {
+                                        position.sec_length[initial_depth] = d.len();
                                     }
                                 }
-                                position.held_key = tmp_key.to_owned();
                             }
                             _ => (),
                         }
                     }
-                    position.depth = tmp_depth;
+                    position.held_key = initial_key;
+                    position.held_item = initial_item;
+                    position.depth = initial_depth;
                 }
                 Key::Char('i') => {
                     if !showing_info {
@@ -340,7 +341,7 @@ fn process(
                     write!(stdout, "\x1B[2J")?;
                 }
                 Key::Char('s') => {
-                    let mut config_file = PathBuf::from(position.config_file_name)
+                    let mut config_file = PathBuf::from(&position.config_file_name)
                         .file_name()
                         .unwrap()
                         .to_string_lossy()
@@ -358,11 +359,12 @@ fn process(
                         &resources,
                         stdout,
                     )?;
-                    break;
+                    showing_info = true;
+//                    break;
                 }
                 _ => (),
             }
-            if key != Key::Char('i') && key != Key::Char(' ') {
+            if key != Key::Char('i') && key != Key::Char(' ') && key != Key::Char('s') {
                 showing_info = false;
             }
             if !showing_info {

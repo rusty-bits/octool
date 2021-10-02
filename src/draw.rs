@@ -12,32 +12,33 @@ pub struct Position {
     pub depth: usize,                   // depth of plist we are looking at
     pub sec_key: [String; 5],           // key of selected section
     pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
-    pub held_item: Value,               // last deleted or placed item value
+    pub held_item: Option<Value>,               // last deleted or placed item value
     pub held_key: String,               // last deleted or placed key
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
     pub can_expand: bool,
+    pub find_string: String,
 }
 
 impl Position {
     pub fn up(&mut self) {
         if self.sec_num[self.depth] > 0 {
             self.sec_num[self.depth] -= 1;
-            self.sec_length[self.depth + 1] = 0;
+//            self.sec_length[self.depth + 1] = 0;
         }
     }
     pub fn down(&mut self) {
         if self.sec_length[self.depth] > 0 {
             if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
                 self.sec_num[self.depth] += 1;
-                self.sec_length[self.depth + 1] = 0;
+//                self.sec_length[self.depth + 1] = 0;
             }
         }
     }
     pub fn left(&mut self) {
         if self.depth > 0 {
-            self.sec_length[self.depth + 1] = 0;
+//            self.sec_length[self.depth + 1] = 0;
             self.sec_key[self.depth].clear();
             self.depth -= 1;
         }
@@ -90,10 +91,10 @@ pub fn update_screen(
     let rows: i32 = terminal_size().unwrap().1.into();
     position.can_expand = false;
 
-    write!(stdout, "\x1B[{}H", rows)?; // show footer first, in case we need to write over it
+    write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}s{res}ave {inv}q{res}uit {inv}a{res}dd {inv}d{res}el {inv}m{res}erge {inv}r{res}eset {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}x{res}cut {inv}c{res}opy {inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),
@@ -118,7 +119,7 @@ pub fn update_screen(
         position.sec_length, position.depth, position.sec_num
     )?;
 
-    let mut blanks = rows - row;
+    let mut blanks = rows - row - 1;
     if blanks < 0 {
         blanks = 0;
     }
@@ -162,8 +163,17 @@ pub fn update_screen(
             write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
         }
     }
-    if position.is_resource() {
-        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
+//    if position.is_resource() {
+//        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
+//    }
+    if position.find_string.len() > 0 {
+        write!(
+            stdout,
+            "  \x1B[7mn\x1B[0m jump to next {}{}\x1B[0m",
+            style::Underline,
+            position.find_string
+        )
+        .unwrap();
     }
     if position.held_key.len() > 0 {
         write!(
@@ -188,12 +198,14 @@ fn display_value(
     d: usize,
 ) -> Result<i32, Box<dyn Error>> {
     let mut live_item = false;
+    let mut selected_item = false;
     let mut save_curs_pos = String::new();
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
     write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(d))?; // indent to section and clear rest of line
     if position.sec_num[d] == item_num {
+        selected_item = true;
         position.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
         // is current live item
@@ -205,8 +217,10 @@ fn display_value(
     }
     match plist_value {
         Value::Array(v) => {
-            if live_item {
+            if selected_item {
                 position.sec_length[d + 1] = v.len();
+            }
+            if live_item {
                 position.can_expand = true;
             }
             if position.depth > d && position.sec_num[d] == item_num {
@@ -276,8 +290,10 @@ fn display_value(
             )?;
         }
         Value::Dictionary(v) => {
-            if live_item {
+            if selected_item {
                 position.sec_length[d + 1] = v.keys().len();
+            }
+            if live_item {
                 position.can_expand = true;
             }
             if position.depth > d && position.sec_num[d] == item_num {

@@ -20,7 +20,7 @@ octool then pulls the latest build of the OpenCorePkg from the Dortania builds s
 Lastly, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.  
 If you continue, you then enter the config.plist editor...  
 ```
-Navigation: arrow keys or standard vi keys
+Navigation: arrow keys or some standard vi keys
           'up'/'k'            jump to top of section
               ^                       't'
               |                        ^
@@ -30,10 +30,6 @@ Navigation: arrow keys or standard vi keys
           'down'/'j'          jump to bottom of section
 ```
 Usage:  
-'i' show info of highlighted item.  
- - If item is resource such as a kext or driver, octool will show the source of the file it will place in the OUTPUT EFI folder.  
- - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) Configuration.tex file.  
-
 'TAB/ENTER' will switch to edit mode for string, integer, or data fields. 'TAB' will also toggle between editing a data field as hex or as a string.  
  - 'ENTER' will save any changes made  
  - 'ESC' will discard and changes  
@@ -41,35 +37,53 @@ Usage:
 'SPACE' will toggle a boolean value between true/false  
 - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list  
 
-'a' add - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
+'a' `add` - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
  - if in some other section, select a type and key name to add to the working plist  
 
-'d' will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
+'c' `copy` - copy the highlighted field or section  
 
-'G' go (capital G) - make an OUTPUT/EFI/OC folder from the config.plist  
+'d' will `delete` the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
+
+'f' `find` - find all occurances of a string in the plist  
+- if there is only one occurance, it will jump to the location  
+- if there is more than one occurance, it will present a list to select from  
+- 'n' can be used to go to the next item without needing to do another find command  
+
+'G' `go` (capital G) - make an OUTPUT/EFI/OC folder from the config.plist  
  - if `OpenCanopy.efi` is enabled it will copy the OcBinaryData Resources to `OUTPUT/EFI/OC/Resources`  
  - if Misc->Security->Vault is set to Basic or Secure, octool will compute the required files and sign the `OpenCore.efi` if needed  
  - right now, octool will ignore resources that it doesn't know about unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist for the unknown resource  
  - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap, but I need to have octool print a message as a reminder when it uses files from INPUT  
  - lastly, it will again validate the `OUTPUT/EFI/OC/config.plist` file with ocvalidate  
 
-'p' paste - places the last deleted or modified item into the plist  
+'i' show `info` of highlighted item.  
+ - If item is resource such as a kext or driver, octool will show the source of the file it will place in the OUTPUT EFI folder.  
+ - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) Configuration.tex file.  
+
+'m' `merge` - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
+
+'n' `next` - jump to the next found item if more than one occurance was found  
+
+'p' `paste` - places the last deleted or modified etc. item into the plist  
 
 'P' (capital P) prints out some `tool_config_files/resource_list.json` data for debugging  
 
-'r' reset - if a single item is selected, reset its value to the same as the `Sample.plist` value  
+'q' `quit` without saving  
+
+'r' `reset` - if a single item is selected, reset its value to the same as the `Sample.plist` value  
  - if a section is highlighted, reset the whole section to the same as the `Sample.plist`  
 
-'m' merge - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
-
-'s' save a copy of the `config.plist` as `INPUT/modified_config.plist`  
+'s' `save` a copy of the `config.plist` as `INPUT/modified_config.plist`  
  - `modified_` will be added to the begining of the saved file unless you are already working on a file whose name starts with `modified_`  
 
-'q' quit without saving  
+'x' `cut` - remove the highlighted field or section from the plist  
+
+'y' `yank` - copy the highlighted field or section (included for those vim users used to 'y' for copying)  
+
+'v' `paste` - place the last cut, copied, etc. item into the plist  
 
 ## To Do: ##  
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example using either `release` or `degug` versions of resources, or only copy specific language versions of the audio files for OpenCanopy for example `en`  
- - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3` etc., currently octool just uses the latest build from the Dortania builds and then falls back to the latest releases from Acidanthera for anything not included in Dortania  
- - cross compile the tool for windows/linux use, currently only supports running on macOS  
- - add a search function  
+ - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3 0.7.4` etc., currently octool just uses the latest build from the Dortania builds and then falls back to the latest releases from Acidanthera for anything not included in Dortania  
+ - cross compile the tool for windows/linux use, currently only built for macOS  
  - highlight if the kext/driver/etc exists in the known repos  

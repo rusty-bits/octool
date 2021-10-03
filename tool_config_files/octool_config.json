@@ -1,44 +1,37 @@
 {
-  "resource_sections": [
-    [
-      "ACPI",
-      "Add",
-      "Path",
-      "ACPI"
-    ],
-    [
-      "Kernel",
-      "Add",
-      "BundlePath",
-      "Kexts"
-    ],
-    [
-      "Misc",
-      "Tools",
-      "Path",
-      "Tools"
-    ],
-    [
-      "UEFI",
-      "Drivers",
-      "Path",
-      "Drivers"
-    ]
-  ],
   "build_type": "release",
+
   "acpi_path": "Docs/AcpiSamples/Binaries",
   "drivers_path": "X64/EFI/OC/Drivers",
   "tools_path": "X64/EFI/OC/Tools",
+
   "dortania_config_url": "https://github.com/dortania/build-repo.git",
   "dortania_config_branch": "builds",
   "dortania_config_path": "tool_config_files/build-repo/.git",
+
   "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
   "opencorepkg_branch": "master",
   "opencorepkg_path": "tool_config_files/OpenCorePkg/.git",
+
   "canopy_language": "en",
   "global_audio_files": [
     "AXEFIAudio_Beep.mp3",
     "AXEFIAudio_Click.mp3",
     "AXEFIAudio_VoiceOver_Boot.mp3"
+  ],
+
+  "resource_sections": [
+    [
+      "ACPI", "Add", "Path", "ACPI"
+    ],
+    [
+      "Kernel", "Add", "BundlePath", "Kexts"
+    ],
+    [
+      "Misc", "Tools", "Path", "Tools"
+    ],
+    [
+      "UEFI", "Drivers", "Path", "Drivers"
+    ]
   ]
 }

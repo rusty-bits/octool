@@ -140,6 +140,12 @@
   "HfsPlusLegacy.efi": {
     "parent": "OcBinaryData"
   },
+  "btrfs_x64.efi": {
+    "parent": "OcBinaryData"
+  },
+  "ext4_x64.efi": {
+    "parent": "OcBinaryData"
+  },
   "WhateverGreen.kext": {
     "parent": "WhateverGreen"
   },

@@ -9,7 +9,7 @@ use std::io::{Stdout, Write};
 pub struct Position {
     pub config_file_name: String,       // name of config.plist
     pub sec_num: [usize; 5],            // selected section for each depth
-    pub depth: usize,                   // depth of plist we are looking at
+    pub depth: usize,                   // depth of plist section we are looking at
     pub sec_key: [String; 5],           // key of selected section
     pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
     pub held_item: Option<Value>,       // last deleted or placed item value
@@ -17,9 +17,9 @@ pub struct Position {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
-    pub can_expand: bool,
-    pub find_string: String,
-    pub modified: bool,
+    pub can_expand: bool,               // true if highlighted field can have children
+    pub find_string: String,            // last entered search string
+    pub modified: bool,                 // true if plist changed and not saved
 }
 
 impl Position {
@@ -86,6 +86,12 @@ impl Position {
     }
 }
 
+/// Redraws the plist on the screen
+/// Draws the Footer first, in case it needs to be overwritten
+/// Draws the plist next with current selection expanded
+/// This allows the currently highlighted item info to be obtained
+/// so any special comments can be included in the Header
+/// which is drawn last
 pub fn update_screen(
     position: &mut Position,
     plist: &Value,

@@ -16,6 +16,7 @@ pub fn build_output(
     std::fs::create_dir_all("OUTPUT/EFI")?;
     let mut has_open_canopy = false;
     let mut build_okay = true;
+    let mut missing_files: Vec<&str> = vec![];
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
@@ -61,6 +62,7 @@ pub fn build_output(
                     }
                     None => {
                         build_okay = false;
+                        missing_files.push(res);
                         write!(
                             stdout,
                             "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
@@ -195,6 +197,28 @@ pub fn build_output(
             stdout.flush()?;
         }
         _ => (),
+    }
+    if missing_files.len() > 0 {
+        write!(
+            stdout,
+            "\x1B[31;7mWARNING:\x1B[0m the following file(s) are unknown by octool\x1B[33m\r\n"
+        )?;
+        for f in missing_files.iter() {
+            write!(stdout, "{}\x1B[0K\r\n", f)?;
+        }
+        write!(
+            stdout,
+            "\x1B[31mIf you want octool to include them automatically,\r\n"
+        )?;
+        write!(
+            stdout,
+            "they need to be placed in the \x1B[32mINPUT\x1B[31m folder before building.\r\n"
+        )?;
+        write!(
+            stdout,
+            "Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n"
+        )?;
+        stdout.flush()?;
     }
     Ok(build_okay)
 }

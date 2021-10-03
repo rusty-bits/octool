@@ -8,7 +8,6 @@ use std::ops::Add;
 use std::thread::sleep;
 use std::time::Duration;
 
-//use termion::input::TermRead;
 use termion::raw::RawTerminal;
 use termion::{async_stdin, terminal_size};
 // blame mahasvan for this "secret" snake option
@@ -104,10 +103,10 @@ pub fn snake(stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
             key_bytes[0] = key_bytes[2];
         }
         snake.direction = match key_bytes[0] {
-            b'D' if snake.direction.1 != 0 => CoordinateVector(-1, 0),
-            b'C' if snake.direction.1 != 0 => CoordinateVector(1, 0),
-            b'A' if snake.direction.0 != 0 => CoordinateVector(0, -1),
-            b'B' if snake.direction.0 != 0 => CoordinateVector(0, 1),
+            b'h' | b'D' if snake.direction.1 != 0 => CoordinateVector(-1, 0),
+            b'l' | b'C' if snake.direction.1 != 0 => CoordinateVector(1, 0),
+            b'k' | b'A' if snake.direction.0 != 0 => CoordinateVector(0, -1),
+            b'j' | b'B' if snake.direction.0 != 0 => CoordinateVector(0, 1),
             _ => snake.direction,
         };
 

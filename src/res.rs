@@ -12,15 +12,15 @@ use termion::{color, style};
 use sha2::Digest;
 
 pub struct Resources {
-    pub acidanthera: Value,
-    pub dortania: Value,
-    pub octool_config: Value,
-    pub resource_list: Value,
-    pub other: Value,
-    pub config_plist: plist::Value,
-    pub sample_plist: plist::Value,
-    pub working_dir: PathBuf,
-    pub open_core_pkg: PathBuf,
+    pub acidanthera: Value,           // Acidanthera parent child json
+    pub dortania: Value,              // Dortania builds config.json file
+    pub octool_config: Value,         // config file for octool itself
+    pub resource_list: Value,         // list linking resources to their parents
+    pub other: Value,                 // list of other party parent/childs
+    pub config_plist: plist::Value,   // current active config.plist
+    pub sample_plist: plist::Value,   // latest Sample.plist
+    pub working_dir: PathBuf,         // location of octool and files
+    pub open_core_pkg: PathBuf,       // location of the OpenCorePkg
 }
 
 pub fn get_or_update_local_parent(
@@ -102,6 +102,11 @@ pub fn get_or_update_local_parent(
     Ok(Some(path))
 }
 
+/// Runs `command` with included args and returns the result or Err
+/// # example
+/// ```
+/// let stats = status("git", ["fetch", "--all"]);
+/// ```
 pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
     Ok(Command::new(command).args(args).output()?)
 }
@@ -155,6 +160,8 @@ fn get_file_and_unzip(
     Ok(())
 }
 
+/// If url-repo does not already exist locally, clone the repo into `path`
+/// If it already exist, do a `git pull` on it
 pub fn clone_or_pull(
     url: &str,
     path: &Path,
@@ -220,6 +227,9 @@ pub fn clone_or_pull(
     Ok(())
 }
 
+
+/// Show the origin and local location, if any, of the currently highlighted item
+/// lastly, show which resource will be used in the build
 pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut RawTerminal<Stdout>) {
     let mut res_path: Option<PathBuf>;
     let section = position.sec_key[0].as_str();
@@ -354,6 +364,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     }
 }
 
+/// Read the `path` file into a `serde_json::Value`
 pub fn get_serde_json(
     path: &str,
     stdout: &mut RawTerminal<Stdout>,
@@ -399,6 +410,7 @@ fn res_exists(
     }
 }
 
+/// Print the Dortania and Acidanthera top level parent child
 pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
     let build_type = resources.octool_config["build_type"]
         .as_str()
@@ -424,6 +436,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
     }
 }
 
+/// this seems redundant to the `show_res_path` function, can I combine or eliminate?
 pub fn get_res_path(
     resources: &Resources,
     ind_res: &str,

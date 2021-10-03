@@ -53,11 +53,11 @@ Usage:
  - if `OpenCanopy.efi` is enabled it will copy the OcBinaryData Resources to `OUTPUT/EFI/OC/Resources`  
  - if Misc->Security->Vault is set to Basic or Secure, octool will compute the required files and sign the `OpenCore.efi` if needed  
  - right now, octool will ignore resources that it doesn't know about unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist for the unknown resource  
- - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap, but I need to have octool print a message as a reminder when it uses files from INPUT  
+ - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap  
  - lastly, it will again validate the `OUTPUT/EFI/OC/config.plist` file with ocvalidate  
 
 'i' show `info` of highlighted item.  
- - If item is resource such as a kext or driver, octool will show the source of the file it will place in the OUTPUT EFI folder.  
+ - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
  - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) Configuration.tex file.  
 
 'm' `merge` - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
@@ -68,13 +68,14 @@ Usage:
 
 'P' (capital P) prints out some `tool_config_files/resource_list.json` data for debugging  
 
-'q' `quit` without saving  
+'q' `quit` - if unsaved changes were made to the `config.plist` octool will show a warning and allow changes to be saved or ignored  
 
 'r' `reset` - if a single item is selected, reset its value to the same as the `Sample.plist` value  
  - if a section is highlighted, reset the whole section to the same as the `Sample.plist`  
 
 's' `save` a copy of the `config.plist` as `INPUT/modified_config.plist`  
- - `modified_` will be added to the begining of the saved file unless you are already working on a file whose name starts with `modified_`  
+ - `modified_` will be added to the begining of the saved file unless you are already working on a `modified_` file  
+ - the saved file will be checked with `ocvalidate` for any errors  
 
 'x' `cut` - remove the highlighted field or section from the plist  
 

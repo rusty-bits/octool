@@ -11,6 +11,11 @@ use termion::{style, terminal_size};
 
 use crate::draw::Position;
 
+/// Read through the Configuration.tex and display the info for the highlighted plist item
+///
+/// TODO: parse tables instead of just printing &*&&&*&*&
+/// TODO: keep highlighted item on screen so it can be edited while looking at definition
+/// TODO: display info of NVRAM variables
 pub fn show_info(
     position: &Position,
     stdout: &mut RawTerminal<Stdout>,
@@ -20,6 +25,7 @@ pub fn show_info(
     let mut row = 0;
 
     let contents = fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex")?;
+    let mut result = vec![];
 
     let mut sub_search = "\\subsection{".to_string();
 
@@ -83,20 +89,6 @@ pub fn show_info(
     let mut hit_bottom = false;
 
     for line in lines {
-        if row == rows {
-            hit_bottom = true;
-            write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset)?;
-            stdout.flush()?;
-            match std::io::stdin().keys().next().unwrap().unwrap() {
-                Key::Char('q') | Key::Esc => {
-                    hit_bottom = false;
-                    showing_info = false;
-                    break;
-                }
-                Key::Down => row -= 1,
-                _ => row = 0,
-            }
-        }
         if line.contains("\\item") {
             if itemize == 0 {
                 break;
@@ -119,22 +111,79 @@ pub fn show_info(
         if line.contains("\\subsection{") {
             break;
         }
-        write!(stdout, "\x1B[2K{}", parse_line(line))?;
-        stdout.flush()?;
-        row += 1;
+        result.push(format!("\x1B[2K{}", parse_line(line)));
     }
-    if hit_bottom {
-        write!(stdout, "{}{}  q to close\x1B[0J", style::Invert, "(END)")?;
-        while showing_info {
-            stdout.flush()?;
-            match std::io::stdin().keys().next().unwrap().unwrap() {
-                Key::Char('q') => {
-                    showing_info = false;
+    let mut start = 0;
+    loop {
+        for i in start..result.len() {
+            write!(stdout, "{}", result[i])?;
+            row += 1;
+            if row == rows {
+                hit_bottom = true;
+                if i == result.len() - 1 {
+                    write!(
+                        stdout,
+                        "{}END{} ... 'q' to quit\x1B[G",
+                        style::Invert,
+                        style::Reset,
+                    )?;
+                } else {
+                    write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset,)?;
                 }
-                _ => write!(stdout, "\x07")?,
+                stdout.flush()?;
+                match std::io::stdin().keys().next().unwrap().unwrap() {
+                    Key::Char('q') | Key::Esc => {
+                        hit_bottom = false;
+                        showing_info = false;
+                        break;
+                    }
+                    Key::Down => {
+                        if i < result.len() - 1 {
+                            row -= 1;
+                            start += 1;
+                            if start > result.len() - rows as usize {
+                                start = result.len() - rows as usize;
+                            }
+                        } else {
+                            row = 0;
+                        }
+                    }
+                    Key::Up => {
+                        row = 0;
+                        if start > 0 {
+                            start -= 1;
+                        }
+                        write!(stdout, "\x1B[1H")?;
+                        break;
+                    }
+                    Key::Char('b') => {
+                        if start > rows as usize {
+                            start -= rows as usize;
+                        } else {
+                            start = 0;
+                        }
+                        row = 0;
+                        write!(stdout, "\x1B[1H")?;
+                        break;
+                    }
+                    _ => {
+                        row = 0;
+                        if i < result.len() - 1 {
+                            start += rows as usize;
+                            if start > result.len() - rows as usize {
+                                start = result.len() - rows as usize;
+                            }
+                        }
+                        break;
+                    }
+                }
             }
         }
+        if !hit_bottom {
+            break;
+        }
     }
+    stdout.flush()?;
     Ok(showing_info)
 }
 

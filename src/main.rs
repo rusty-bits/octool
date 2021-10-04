@@ -91,7 +91,6 @@ fn process(
                     }
                 }
                 Key::Char('G') => {
-                    //                        term.clear_screen()?;
                     let build_okay = build_output(&resources, stdout)?;
                     writeln!(
                         stdout,

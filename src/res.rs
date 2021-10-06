@@ -331,8 +331,8 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     } else {
         write!(
             stdout,
-            "\x1B[33mNo parent found for resource, skipping prebuilt repos\x1B[0m\x1B[0J\r\n"
-        )
+            "\x1B[33m{} not found in tool_config_files/resource_list.json, skipping prebuilt repos\x1B[0m\x1B[0J\r\n"
+        , &ind_res )
         .unwrap();
     }
     write!(stdout, "\x1B[2K\r\n").unwrap();

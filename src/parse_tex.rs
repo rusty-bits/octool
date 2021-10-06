@@ -87,31 +87,48 @@ pub fn show_info(
 
     let mut itemize = 0;
     let mut hit_bottom = false;
+    let mut columns = 0;
 
     for line in lines {
-        if line.contains("\\item") {
-            if itemize == 0 {
-                break;
-            }
-        }
-        if line.contains("\\begin{") {
-            itemize += 1;
-            continue;
-        }
-        if line.contains("\\end{") {
-            itemize -= 1;
-            continue;
-        }
-        if line.contains("\\section{") {
-            break;
-        }
         if line.contains("\\subsection{Introduction}") {
             continue;
         }
-        if line.contains("\\subsection{") {
+        if line.contains("\\begin{tabular") {
+            for c in line.chars() {
+                if c == 'c' {
+                    columns += 1;
+                };
+            }
+            continue;
+        }
+        if line.contains("\\begin{item") || line.contains("\\begin{enum") {
+            itemize += 1;
+            continue;
+        }
+        if line.contains("\\begin{") {
+            continue;
+        }
+        if line.contains("\\end{tabular}") {
+            columns = 0;
+            continue;
+        }
+        if line.contains("\\end{item") || line.contains("\\end{enum") {
+            itemize -= 1;
+            continue;
+        }
+        if line.contains("\\end{") {
+            continue;
+        }
+        if line.contains("\\item") && itemize == 0 {
             break;
         }
-        result.push(format!("\x1B[2K{}", parse_line(line)));
+        if line.contains("\\subsection{") || line.contains("\\section{") {
+            break;
+        }
+        let parsed_line = parse_line(line, columns);
+        if parsed_line.len() != 0 {
+            result.push(format!("\x1B[0K{}", parsed_line));
+        }
     }
     let mut start = 0;
     loop {
@@ -119,7 +136,11 @@ pub fn show_info(
             write!(stdout, "{}", result[i])?;
             row += 1;
             if row == rows {
-                hit_bottom = true;
+                if row == result.len() as u16 + 1 {
+                    break;
+                } else {
+                    hit_bottom = true;
+                }
                 if i == result.len() - 1 {
                     write!(
                         stdout,
@@ -187,26 +208,38 @@ pub fn show_info(
     Ok(showing_info)
 }
 
-fn parse_line(line: &str) -> String {
+/// Go through line 1 character at a time to apply .tex formatting
+/// TODO: pass back attributes so formatting/mode can exist for more than 1 line
+///
+fn parse_line(line: &str, columns: i32) -> String {
     let mut ret = String::new();
     let mut build_key = false;
-    let mut build_name = false;
+    //    let mut build_name = false;
     let mut key = String::new();
-    let mut name = String::new();
+    let width = terminal_size().unwrap().0 as i32;
+    let mut col_width = 0;
+    if columns > 0 {
+        col_width = width / (columns + 1);
+    }
+    let mut col_contents_len = 0;
     for c in line.chars() {
         if build_key {
             match c {
+                // end of key
                 '{' => {
                     build_key = false;
-                    build_name = true;
+                    //                    build_name = true;
                     match key.as_str() {
                         "textbf" => ret.push_str("\x1B[1m"),
                         "emph" => ret.push_str("\x1B[7m"),
                         "texttt" => ret.push_str("\x1B[4m"),
+                        "href" => ret.push_str("\x1B[34m"),
+                        "hyperlink" => build_key = true, // ignore link text
                         _ => (),
                     };
                     key.clear();
                 }
+                // end of key - may be special character or formatting
                 ' ' => {
                     build_key = false;
                     match key.as_str() {
@@ -215,40 +248,49 @@ fn parse_line(line: &str) -> String {
                         "" => ret.push(' '),
                         _ => (),
                     }
+                    col_contents_len += 1;
                     key.clear();
                 }
-                '_' | '^' => {
+                // found escaped character
+                '_' | '^' | '#' => {
                     build_key = false;
                     ret.push(c);
+                    col_contents_len += 1;
                     key.clear();
                 }
                 _ => key.push(c),
             }
-        } else if build_name {
-            match c {
-                '}' => {
-                    build_name = false;
-                    ret.push_str(&name);
-                    ret.push_str("\x1B[0m");
-                    name.clear();
-                }
-                '\\' => {
-                    ret.push_str(&name);
-                    name.clear();
-                    build_key = true;
-                }
-                _ => name.push(c),
-            }
         } else {
             match c {
                 '\\' => build_key = true,
-                _ => ret.push(c),
+                '}' => ret.push_str("\x1B[0m"),
+                '{' => ret.push_str("\x1B[4m"),
+                '&' => {
+                    if columns > 0 {
+                        let fill = col_width - col_contents_len - 1;
+                        if fill > 0 {
+                            ret.push_str(&" ".repeat(fill as usize));
+                        }
+                        ret.push_str("|");
+                        col_contents_len = 0;
+                    } else {
+                        ret.push('&');
+                    }
+                }
+                _ => {
+                    ret.push(c);
+                    col_contents_len += 1;
+                }
             }
         }
     }
     if key == "tightlist" {
+        // ignore
         ret.clear();
     } else {
+        if key == "hline" {
+            ret.push_str(&"-".repeat(width as usize - 4));
+        }
         ret.push_str("\r\n");
     }
 

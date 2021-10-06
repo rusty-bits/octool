@@ -124,7 +124,7 @@ pub fn update_screen(
     #[cfg(debug_assertions)]
     write!(
         stdout,
-        "{:?} {} {:?}",
+        "debug-> {:?} {} {:?}",
         position.sec_length, position.depth, position.sec_num
     )?;
 

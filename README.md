@@ -1,18 +1,24 @@
-w.i.p. octool written in Rust  
+octool written in Rust  
 
-A small project to help me learn the Rust language.  All suggestions and criticisms are welcome.  
+A small project to help me learn the Rust language and to hopefully provide better features than the older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner)    
 You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the included `octool` binary, which I will try to keep current with the code.
 
+## Command line options ##  
 
-octool currently takes no command line arguments except for a path to a `config.plist` to use if desired.
+./octool [options] [config.plist]  
+
+-d  use `debug` versions for EFI instead of `release` versions  
+-h  print help message  
+-v  print version information  
+
+octool takes a path to a `config.plist` to use if desired.
 If you run octool with no path provided `./octool` will first look for a `config.plist` in the `INPUT` folder, if it doesn't find one there it will use the latest `OpenCorePkg/Docs/Sample.plist` file.  
-
 
 ## Here's a rundown of the current process octool uses. ##  
 
 At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the latest binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
  - If it finds it locally, it checks it for updates  
- - If it doesn't find it locally, octool pulls the repo into the tool_config_files folder.  
+ - If it doesn't find it locally, octool pulls the repo into the `tool_config_files` folder.  
 
 Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg) in order to have the latest Sample.plist and Configuration.tex files, etc.  Thanks to the [people of Acidanthera](https://github.com/acidanthera)  
 
@@ -84,7 +90,7 @@ Usage:
 'v' `paste` - place the last cut, copied, etc. item into the plist  
 
 ## To Do: ##  
- - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example using either `release` or `degug` versions of resources, or only copy specific language versions of the audio files for OpenCanopy for example `en`  
- - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3 0.7.4` etc., currently octool just uses the latest build from the Dortania builds and then falls back to the latest releases from Acidanthera for anything not included in Dortania  
+ - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  
+ - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3 0.7.4 0.7.5` etc., currently octool just uses the latest build from the Dortania builds and then falls back to the latest releases from Acidanthera for anything not included in Dortania  
  - cross compile the tool for windows/linux use, currently only built for macOS  
  - highlight if the kext/driver/etc exists in the known repos  

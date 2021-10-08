@@ -16,15 +16,16 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
 use crate::build::build_output;
-use crate::draw::{update_screen, Position};
+use crate::draw::{update_screen, Settings};
 use crate::edit::{add_delete_value, add_item, edit_value, extract_value, Found};
 use crate::init::init;
-use crate::res::Resources;
+use crate::res::{Resources, status};
 use crate::snake::snake;
 
 fn process(
     config_plist: &PathBuf,
     current_dir: &PathBuf,
+    settings: &mut Settings,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![Found::new()];
@@ -35,30 +36,14 @@ fn process(
         dortania: serde_json::Value::Bool(false),
         octool_config: serde_json::Value::Bool(false),
         resource_list: serde_json::Value::Bool(false),
-        other: res::get_serde_json("tool_config_files/other.json", stdout)?,
+        other: serde_json::Value::Bool(false),
         config_plist: plist::Value::Boolean(false),
         sample_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
     };
 
-    let mut position = Position {
-        config_file_name: String::new(),
-        sec_num: [0; 5],
-        depth: 0,
-        sec_key: Default::default(),
-        item_clone: plist::Value::Boolean(false),
-        held_item: None,
-        held_key: Default::default(),
-        sec_length: [0; 5],
-        resource_sections: vec![],
-        build_type: "release".to_string(),
-        can_expand: false,
-        find_string: Default::default(),
-        modified: false,
-    };
-
-    init(&config_plist, &mut resources, &mut position, stdout)?;
+    init(&config_plist, &mut resources, settings, stdout)?;
 
     writeln!(
         stdout,
@@ -68,7 +53,7 @@ fn process(
     let key = std::io::stdin().keys().next().unwrap().unwrap();
 
     if key != Key::Char('q') {
-        update_screen(&mut position, &resources.config_plist, stdout)?;
+        update_screen(settings, &resources.config_plist, stdout)?;
         stdout.flush().unwrap();
         let mut showing_info = false;
         for key in stdin.keys() {
@@ -78,7 +63,7 @@ fn process(
                     if showing_info {
                         showing_info = false;
                     } else {
-                        if position.modified {
+                        if settings.modified {
                             write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\x1B[0K\r\n\x1B[2K").unwrap();
                             stdout.flush().unwrap();
                             match std::io::stdin().keys().next().unwrap().unwrap() {
@@ -91,7 +76,7 @@ fn process(
                     }
                 }
                 Key::Char('G') => {
-                    let build_okay = build_output(&resources, stdout)?;
+                    let build_okay = build_output(&settings, &resources, stdout)?;
                     writeln!(
                         stdout,
                         "\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist\r"
@@ -101,7 +86,7 @@ fn process(
                         &resources,
                         stdout,
                     )?;
-                    let mut config_file = PathBuf::from(&position.config_file_name)
+                    let mut config_file = PathBuf::from(&settings.config_file_name)
                         .file_name()
                         .unwrap()
                         .to_string_lossy()
@@ -132,15 +117,15 @@ fn process(
                     }
                     break;
                 }
-                Key::Char('a') => add_item(&mut position, &mut resources, stdout),
+                Key::Char('a') => add_item(settings, &mut resources, stdout),
                 Key::Char('f') => {
                     found = vec![];
                     found_id = 0;
-                    edit::find(&mut position, &resources.config_plist, &mut found, stdout);
+                    edit::find(settings, &resources.config_plist, &mut found, stdout);
                     if found.len() == 1 {
-                        position.depth = found[0].level;
-                        position.sec_num = found[0].section;
-                        position.find_string = String::new();
+                        settings.depth = found[0].level;
+                        settings.sec_num = found[0].section;
+                        settings.find_string = String::new();
                         found_id = 0;
                     } else if found.len() > 1 {
                         let mut selection = 1;
@@ -183,8 +168,8 @@ fn process(
                         }
                         found_id = selection;
                         if selection > 0 {
-                            position.depth = found[selection - 1].level;
-                            position.sec_num = found[selection - 1].section;
+                            settings.depth = found[selection - 1].level;
+                            settings.sec_num = found[selection - 1].section;
                         }
                     }
                 }
@@ -194,13 +179,13 @@ fn process(
                         if found_id > found.len() {
                             found_id = 1;
                         }
-                        position.depth = found[found_id - 1].level;
-                        position.sec_num = found[found_id - 1].section;
+                        settings.depth = found[found_id - 1].level;
+                        settings.sec_num = found[found_id - 1].section;
                     }
                 }
                 Key::Char('v') | Key::Char('p') | Key::Ctrl('v') => {
-                    if add_delete_value(&mut position, &mut resources.config_plist, true) {
-                        position.add();
+                    if add_delete_value(settings, &mut resources.config_plist, true) {
+                        settings.add();
                     }
                 }
                 Key::Char('P') => {
@@ -209,35 +194,35 @@ fn process(
                     stdout.flush().unwrap();
                     std::io::stdin().keys().next().unwrap().unwrap();
                 }
-                Key::Up | Key::Char('k') => position.up(),
-                Key::Down | Key::Char('j') => position.down(),
-                Key::Left | Key::Char('h') => position.left(),
-                Key::Right | Key::Char('l') => position.right(),
-                Key::Home | Key::Char('t') => position.sec_num[position.depth] = 0,
+                Key::Up | Key::Char('k') => settings.up(),
+                Key::Down | Key::Char('j') => settings.down(),
+                Key::Left | Key::Char('h') => settings.left(),
+                Key::Right | Key::Char('l') => settings.right(),
+                Key::Home | Key::Char('t') => settings.sec_num[settings.depth] = 0,
                 Key::End | Key::Char('b') => {
-                    position.sec_num[position.depth] = position.sec_length[position.depth] - 1
+                    settings.sec_num[settings.depth] = settings.sec_length[settings.depth] - 1
                 }
                 Key::Char(' ') => {
                     if !showing_info {
                         //                   showing_info = false;
                         //               } else {
-                        edit_value(&position, &mut resources.config_plist, stdout, true)?;
-                        position.modified = true;
+                        edit_value(&settings, &mut resources.config_plist, stdout, true)?;
+                        settings.modified = true;
                     }
                 }
                 Key::Char('\n') | Key::Char('\t') => {
-                    edit_value(&position, &mut resources.config_plist, stdout, false)?;
-                    position.modified = true;
+                    edit_value(&settings, &mut resources.config_plist, stdout, false)?;
+                    settings.modified = true;
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
-                    if add_delete_value(&mut position, &mut resources.config_plist, false) {
-                        position.delete();
+                    if add_delete_value(settings, &mut resources.config_plist, false) {
+                        settings.delete();
                     }
                 }
                 Key::Char('x') | Key::Char('d') => {
-                    if position.sec_length[position.depth] > 0 {
+                    if settings.sec_length[settings.depth] > 0 {
                         write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' or '{grn}x{res}' to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
-                            obj = &position.sec_key[position.depth],
+                            obj = &settings.sec_key[settings.depth],
                             yel = color::Fg(color::Yellow),
                             grn = color::Fg(color::Green),
                             und = style::Underline,
@@ -247,25 +232,25 @@ fn process(
                         stdout.flush()?;
                         let kp = std::io::stdin().keys().next().unwrap().unwrap();
                         if kp == Key::Char('d') || kp == Key::Char('x') {
-                            if add_delete_value(&mut position, &mut resources.config_plist, false) {
-                                position.delete();
+                            if add_delete_value(settings, &mut resources.config_plist, false) {
+                                settings.delete();
                             }
                         }
                     }
                 }
                 Key::Char('c') | Key::Char('y') | Key::Ctrl('c') => {
-                    let _ = extract_value(&mut position, &mut resources.config_plist, false, true);
+                    let _ = extract_value(settings, &mut resources.config_plist, false, true);
                 }
                 Key::Char('r') => {
-                    if position.depth < 4 {
+                    if settings.depth < 4 {
                         let mut obj = String::new();
-                        for i in 0..position.depth + 1 {
-                            obj.push_str(&position.sec_key[i]);
+                        for i in 0..settings.depth + 1 {
+                            obj.push_str(&settings.sec_key[i]);
                             obj.push(' ');
                         }
                         write!(stdout,"\r\n{und}Press{res} '{grn}r{res}' again to reset {yel}{obj}{res}to the Sample.plist values, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
                             obj = &obj,
-                            cur = &position.sec_key[position.depth],
+                            cur = &settings.sec_key[settings.depth],
                             yel = color::Fg(color::Yellow),
                             grn = color::Fg(color::Green),
                             und = style::Underline,
@@ -274,24 +259,24 @@ fn process(
                         )?;
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
-                            position.modified = true;
-                            if extract_value(&mut position, &resources.config_plist, false, true) {
-                                let tmp_item = position.held_item.clone();
-                                let tmp_key = position.held_key.clone();
+                            settings.modified = true;
+                            if extract_value(settings, &resources.config_plist, false, true) {
+                                let tmp_item = settings.held_item.clone();
+                                let tmp_key = settings.held_key.clone();
                                 if extract_value(
-                                    &mut position,
+                                    settings,
                                     &resources.sample_plist,
                                     false,
                                     true,
                                 ) {
                                     let _ = add_delete_value(
-                                        &mut position,
+                                        settings,
                                         &mut resources.config_plist,
                                         true,
                                     );
                                 }
-                                position.held_key = tmp_key.to_owned();
-                                position.held_item = tmp_item;
+                                settings.held_key = tmp_key.to_owned();
+                                settings.held_item = tmp_item;
                             }
                         }
                     }
@@ -299,24 +284,24 @@ fn process(
                 Key::Char('m') => {
                     //todo - need to check for array or dict, now assumes dict -checks for dict now
                     //    it might not make sense to merge an array, maybe use 'r'eset instead?
-                    let initial_depth = position.depth;
-                    let initial_key = position.held_key.to_owned();
-                    let initial_item = position.held_item.to_owned();
-                    if !position.can_expand && position.depth > 0 {
-                        position.depth -= 1;
+                    let initial_depth = settings.depth;
+                    let initial_key = settings.held_key.to_owned();
+                    let initial_item = settings.held_item.to_owned();
+                    if !settings.can_expand && settings.depth > 0 {
+                        settings.depth -= 1;
                     }
-                    if extract_value(&mut position, &resources.config_plist, false, true) {
-                        match position.held_item.clone().unwrap() {
+                    if extract_value(settings, &resources.config_plist, false, true) {
+                        match settings.held_item.clone().unwrap() {
                             plist::Value::Dictionary(mut d) => {
                                 stdout.flush()?;
                                 if extract_value(
-                                    &mut position,
+                                    settings,
                                     &resources.sample_plist,
                                     false,
                                     false,
                                 ) {
                                     stdout.flush().unwrap();
-                                    match position.held_item.clone().unwrap() {
+                                    match settings.held_item.clone().unwrap() {
                                         plist::Value::Dictionary(d2) => {
                                             for (k, v) in d2 {
                                                 if !d.contains_key(&k) {
@@ -327,38 +312,38 @@ fn process(
                                         _ => (),
                                     }
                                     let _ = add_delete_value(
-                                        &mut position,
+                                        settings,
                                         &mut resources.config_plist,
                                         false,
                                     );
                                     d.sort_keys();
-                                    position.held_item =
+                                    settings.held_item =
                                         Some(plist::Value::Dictionary(d.to_owned()));
                                     let _ = add_delete_value(
-                                        &mut position,
+                                        settings,
                                         &mut resources.config_plist,
                                         true,
                                     );
-                                    if initial_depth != position.depth {
-                                        position.sec_length[initial_depth] = d.len();
+                                    if initial_depth != settings.depth {
+                                        settings.sec_length[initial_depth] = d.len();
                                     }
                                 }
                             }
                             _ => (),
                         }
                     }
-                    position.held_key = initial_key;
-                    position.held_item = initial_item;
-                    position.depth = initial_depth;
-                    position.modified = true;
+                    settings.held_key = initial_key;
+                    settings.held_item = initial_item;
+                    settings.depth = initial_depth;
+                    settings.modified = true;
                 }
                 Key::Char('i') => {
                     if !showing_info {
-                        if position.is_resource() {
-                            let _ = res::show_res_path(&resources, &position, stdout);
+                        if settings.is_resource() {
+                            let _ = res::show_res_path(&resources, &settings, stdout);
                             showing_info = true;
                         } else {
-                            showing_info = parse_tex::show_info(&position, stdout)?;
+                            showing_info = parse_tex::show_info(&settings, stdout)?;
                         }
                         write!(stdout, "{}\x1B[0K", "_".repeat(70))?;
                         stdout.flush()?;
@@ -372,7 +357,7 @@ fn process(
                     write!(stdout, "\x1B[2J")?;
                 }
                 Key::Char('s') => {
-                    let mut config_file = PathBuf::from(&position.config_file_name)
+                    let mut config_file = PathBuf::from(&settings.config_file_name)
                         .file_name()
                         .unwrap()
                         .to_string_lossy()
@@ -385,7 +370,7 @@ fn process(
                     let save_file = PathBuf::from("INPUT").join(&config_file);
                     write!(stdout, "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
                     resources.config_plist.to_file_xml(&save_file)?;
-                    position.modified = false;
+                    settings.modified = false;
                     let _ = init::validate_plist(
                         &Path::new(&save_file).to_path_buf(),
                         &resources,
@@ -400,7 +385,7 @@ fn process(
                 showing_info = false;
             }
             if !showing_info {
-                update_screen(&mut position, &resources.config_plist, stdout)?;
+                update_screen(settings, &resources.config_plist, stdout)?;
                 stdout.flush().unwrap();
             }
         }
@@ -413,16 +398,6 @@ fn process(
 }
 
 fn main() {
-    let mut stdout = stdout().into_raw_mode().unwrap();
-    write!(
-        stdout,
-        "{}{}{}",
-        termion::clear::All,
-        termion::cursor::Hide,
-        termion::cursor::Goto(1, 1)
-    )
-    .unwrap();
-
     let current_dir = env::current_dir().unwrap();
     let working_dir;
     #[cfg(not(debug_assertions))]
@@ -436,11 +411,60 @@ fn main() {
     }
     env::set_current_dir(&working_dir).unwrap();
 
-    let mut config_file = Path::new(&match env::args().nth(1) {
-        Some(s) => current_dir.join(s),
-        None => working_dir.join("INPUT/config.plist"),
-    })
-    .to_owned();
+    let mut setup = Settings {
+        config_file_name: String::new(),
+        sec_num: [0; 5],
+        depth: 0,
+        sec_key: Default::default(),
+        item_clone: plist::Value::Boolean(false),
+        held_item: None,
+        held_key: Default::default(),
+        sec_length: [0; 5],
+        resource_sections: vec![],
+        build_type: "release".to_string(),
+        can_expand: false,
+        find_string: Default::default(),
+        modified: false,
+    };
+
+    let ver = "0.2.0";
+    let mut config_file = working_dir.join("INPUT/config.plist");
+    let args: Vec<String> = env::args().skip(1).collect();
+    for arg in args {
+        if arg.to_string().starts_with('-') {
+            for c in arg.to_string().chars() {
+                match c {
+                    'v' => {
+                        println!("\noctool v{}", ver);
+                        match status("nvram", &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"]) {
+                            Ok(s) => println!("\ncurrent loaded OpenCore version\n{}", String::from_utf8_lossy(&s.stdout)),
+                            Err(_) => (),
+                        }
+                        std::process::exit(0);
+                    }
+                    'd' => setup.build_type = "debug".to_string(),
+                    'h' => {
+                        println!("SYNOPSIS\n\t./octool [options] [config.plist]\n");
+                        println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-v  show version info");
+                        std::process::exit(0);
+                    }
+                    _ => (),
+                }
+            }
+        } else {
+            config_file = current_dir.join(arg);
+        }
+    }
+
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    write!(
+        stdout,
+        "{}{}{}",
+        termion::clear::All,
+        termion::cursor::Hide,
+        termion::cursor::Goto(1, 1)
+    )
+    .unwrap();
 
     if !config_file.exists() {
         write!(
@@ -449,7 +473,7 @@ fn main() {
             config_file
         )
         .unwrap();
-        config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_owned();
+        config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_path_buf();
     }
     write!(
         stdout,
@@ -459,9 +483,9 @@ fn main() {
     .unwrap();
     stdout.flush().unwrap();
 
-    match process(&config_file, &current_dir, &mut stdout) {
+    match process(&config_file, &current_dir, &mut setup, &mut stdout) {
         Ok(()) => (),
-        Err(e) => write!(stdout, "\n{:?}\r\n", e).unwrap(),
+        Err(e) => eprintln!("\r\n\x1B[31mERROR:\x1B[0m while processing plist: {:?}", e),
     }
     write!(stdout, "{}", termion::cursor::Show).unwrap();
 }

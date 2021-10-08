@@ -1,4 +1,4 @@
-use crate::draw::{get_lossy_string, hex_str_with_style, Position};
+use crate::draw::{get_lossy_string, hex_str_with_style, Settings};
 use crate::res::Resources;
 use plist::{Integer, Value};
 use termion::event::Key;
@@ -28,16 +28,16 @@ impl Found {
 }
 
 pub fn extract_value(
-    position: &mut Position,
+    settings: &mut Settings,
     mut plist_val: &Value,
     first: bool,
     preserve: bool,
 ) -> bool {
     let mut extracted = true;
-    for i in 0..position.depth {
+    for i in 0..settings.depth {
         match plist_val {
             Value::Dictionary(d) => {
-                plist_val = match d.get(&position.sec_key[i]) {
+                plist_val = match d.get(&settings.sec_key[i]) {
                     Some(k) => k,
                     None => panic!("failure to get Value from Sample.plist"),
                 }
@@ -54,12 +54,12 @@ pub fn extract_value(
             let key = if first {
                 d.keys().next().expect("Didn't get first key").clone()
             } else {
-                position.sec_key[position.depth].clone()
+                settings.sec_key[settings.depth].clone()
             };
             match d.get(&key) {
                 Some(v) => {
-                    position.held_item = Some(v.to_owned());
-                    position.held_key = key.to_owned();
+                    settings.held_item = Some(v.to_owned());
+                    settings.held_key = key.to_owned();
                 }
                 None => extracted = false,
             };
@@ -68,10 +68,9 @@ pub fn extract_value(
             let num = if first {
                 0
             } else {
-                position.sec_num[position.depth]
+                settings.sec_num[settings.depth]
             };
             let mut ex_item = a.get(num).expect("No elment in Sample.plist").to_owned();
-            //            position.held_item = Some(a.get(num).expect("No elment in Sample.plist").to_owned());
             match ex_item.as_dictionary_mut() {
                 Some(c) => {
                     if !preserve {
@@ -83,8 +82,8 @@ pub fn extract_value(
                             }
                         }
                     }
-                    position.held_item = Some(ex_item);
-                    position.held_key = position.sec_key[position.depth].clone();
+                    settings.held_item = Some(ex_item);
+                    settings.held_key = settings.sec_key[settings.depth].clone();
                 }
                 None => extracted = false,
             }
@@ -94,18 +93,18 @@ pub fn extract_value(
     extracted
 }
 
-pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add: bool) -> bool {
+pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add: bool) -> bool {
     let mut changed = false;
-    for i in 0..position.depth {
+    for i in 0..settings.depth {
         match plist_val {
             Value::Dictionary(d) => {
-                plist_val = match d.get_mut(&position.sec_key[i]) {
+                plist_val = match d.get_mut(&settings.sec_key[i]) {
                     Some(k) => k,
                     None => panic!("failure to get Value from Dict"),
                 }
             }
             Value::Array(a) => {
-                plist_val = a.get_mut(position.sec_num[i]).unwrap();
+                plist_val = a.get_mut(settings.sec_num[i]).unwrap();
             }
             _ => (),
         }
@@ -113,37 +112,37 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     match plist_val {
         Value::Dictionary(d) => {
             if add {
-                match position.held_item.clone() {
+                match settings.held_item.clone() {
                     Some(item) => {
-                        if d.insert(position.held_key.to_owned(), item) == None {
+                        if d.insert(settings.held_key.to_owned(), item) == None {
                             changed = true;
                         }
                     }
                     None => (),
                 }
             } else {
-                position.held_item = Some(d.remove(&position.sec_key[position.depth]).unwrap());
-                position.held_key = position.sec_key[position.depth].to_owned();
+                settings.held_item = Some(d.remove(&settings.sec_key[settings.depth]).unwrap());
+                settings.held_key = settings.sec_key[settings.depth].to_owned();
                 changed = true;
             }
             d.sort_keys();
             if changed {
-                position.sec_num[position.depth] =
-                    d.keys().position(|k| k == &position.held_key).unwrap_or(0);
+                settings.sec_num[settings.depth] =
+                    d.keys().position(|k| k == &settings.held_key).unwrap_or(0);
             };
         }
         Value::Array(a) => {
             if add {
-                match position.held_item.clone() {
+                match settings.held_item.clone() {
                     Some(item) => {
-                        a.insert(position.sec_num[position.depth], item);
+                        a.insert(settings.sec_num[settings.depth], item);
                         changed = true;
                     }
                     None => (),
                 }
             } else {
-                position.held_item = Some(a.remove(position.sec_num[position.depth]));
-                position.held_key = position.sec_key[position.depth].to_owned();
+                settings.held_item = Some(a.remove(settings.sec_num[settings.depth]));
+                settings.held_key = settings.sec_key[settings.depth].to_owned();
                 changed = true;
             }
         }
@@ -152,12 +151,12 @@ pub fn add_delete_value(position: &mut Position, mut plist_val: &mut Value, add:
     changed
 }
 pub fn find(
-    position: &mut Position,
+    settings: &mut Settings,
     resource: &plist::Value,
     found: &mut Vec<Found>,
     stdout: &mut RawTerminal<Stdout>,
 ) {
-    position.find_string = String::new();
+    settings.find_string = String::new();
     write!(
         stdout,
         "{}\r\x1B[2KEnter search term: {}\r\n\x1B[2K\x1B8",
@@ -165,9 +164,9 @@ pub fn find(
         cursor::Save
     )
     .unwrap();
-    edit_string(&mut position.find_string, stdout).unwrap();
-    if position.find_string.len() > 0 {
-        let search = position.find_string.to_lowercase();
+    edit_string(&mut settings.find_string, stdout).unwrap();
+    if settings.find_string.len() > 0 {
+        let search = settings.find_string.to_lowercase();
         let resource = resource.as_dictionary().unwrap();
         for (i, key) in resource.keys().enumerate() {
             let low_key = key.to_lowercase();
@@ -260,18 +259,18 @@ pub fn find(
 }
 
 pub fn add_item(
-    mut position: &mut Position,
+    mut settings: &mut Settings,
     resources: &mut Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) {
-    position.modified = true;
+    settings.modified = true;
     let mut selection = 1;
     let mut item_types = Vec::<&str>::new();
     let new_res_msg = format!(
         "New {} {} template from Sample.plist",
-        position.sec_key[0], position.sec_key[1]
+        settings.sec_key[0], settings.sec_key[1]
     );
-    if position.is_resource() {
+    if settings.is_resource() {
         item_types.push(&new_res_msg);
     }
     for s in [
@@ -323,7 +322,7 @@ pub fn add_item(
         return;
     };
     if item_types[selection - 1] == &new_res_msg {
-        if !extract_value(&mut position, &resources.sample_plist, true, false) {
+        if !extract_value(&mut settings, &resources.sample_plist, true, false) {
             return;
         }
     } else {
@@ -338,8 +337,8 @@ pub fn add_item(
         stdout.flush().unwrap();
         let mut key = String::new();
         edit_string(&mut key, stdout).unwrap();
-        position.held_key = String::from(key.trim());
-        position.held_item = Some(match item_types[selection - 1] {
+        settings.held_key = String::from(key.trim());
+        settings.held_item = Some(match item_types[selection - 1] {
             "Array" => plist::Value::Array(vec![]),
             "Boolean" => false.into(),
             "Data" => plist::Value::Data(vec![]),
@@ -350,13 +349,13 @@ pub fn add_item(
         });
         write!(stdout, "{}", cursor::Hide).unwrap();
     }
-    if add_delete_value(position, &mut resources.config_plist, true) {
-        position.add();
+    if add_delete_value(settings, &mut resources.config_plist, true) {
+        settings.add();
     }
 }
 
 pub fn edit_value(
-    position: &Position,
+    settings: &Settings,
     mut val: &mut Value,
     stdout: &mut RawTerminal<Stdout>,
     space: bool,
@@ -368,11 +367,11 @@ pub fn edit_value(
         inv = style::Invert,
         res = style::Reset,
     )?;
-    for i in 0..position.depth + 1 {
+    for i in 0..settings.depth + 1 {
         match val {
             Value::Dictionary(d) => {
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
-                    [position.sec_num[i]]
+                    [settings.sec_num[i]]
                     .clone();
                 val = match d.get_mut(&key) {
                     Some(k) => k,
@@ -380,7 +379,7 @@ pub fn edit_value(
                 }
             }
             Value::Array(a) => {
-                val = a.get_mut(position.sec_num[i]).unwrap();
+                val = a.get_mut(settings.sec_num[i]).unwrap();
             }
             _ => (),
         }

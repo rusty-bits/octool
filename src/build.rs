@@ -1,3 +1,4 @@
+use crate::draw::Settings;
 use crate::res::{get_or_update_local_parent, get_res_path, status, Resources};
 
 use fs_extra::copy_items;
@@ -9,6 +10,7 @@ use std::path::Path;
 use termion::raw::RawTerminal;
 
 pub fn build_output(
+    settings: &Settings,
     resources: &Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
@@ -56,7 +58,7 @@ pub fn build_output(
                 if &sub == "Drivers" && res == "OpenCanopy.efi" {
                     has_open_canopy = true;
                 }
-                match get_res_path(&resources, res, &sec, stdout) {
+                match get_res_path(&settings, &resources, res, &sec, stdout) {
                     Some(res) => {
                         from_paths.push(res);
                     }

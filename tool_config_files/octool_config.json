@@ -1,6 +1,4 @@
 {
-  "build_type": "release",
-
   "acpi_path": "Docs/AcpiSamples/Binaries",
   "drivers_path": "X64/EFI/OC/Drivers",
   "tools_path": "X64/EFI/OC/Tools",

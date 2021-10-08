@@ -9,7 +9,7 @@ use termion::input::TermRead;
 use termion::raw::RawTerminal;
 use termion::{style, terminal_size};
 
-use crate::draw::Position;
+use crate::draw::Settings;
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
@@ -17,7 +17,7 @@ use crate::draw::Position;
 /// TODO: keep highlighted item on screen so it can be edited while looking at definition
 /// TODO: display info of NVRAM variables
 pub fn show_info(
-    position: &Position,
+    settings: &Settings,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
     let mut showing_info = true;
@@ -29,12 +29,12 @@ pub fn show_info(
 
     let mut sub_search = "\\subsection{".to_string();
 
-    match position.depth {
+    match settings.depth {
         //        0 => sub_search.push_str("Introduction}\\"),
         0 => (),
         1 => sub_search.push_str("Properties}\\"),
         2 | 3 => {
-            sub_search.push_str(&position.sec_key[1]);
+            sub_search.push_str(&settings.sec_key[1]);
             sub_search.push_str(" Properties}\\");
         }
         _ => return Ok(false),
@@ -43,7 +43,7 @@ pub fn show_info(
     row += 1;
 
     let mut sec_search = "\\section{".to_string();
-    sec_search.push_str(&position.sec_key[0]);
+    sec_search.push_str(&settings.sec_key[0]);
 
     let mut lines = contents.lines();
 
@@ -58,7 +58,7 @@ pub fn show_info(
         }
     }
 
-    if position.depth != 0 {
+    if settings.depth != 0 {
         loop {
             match lines.next() {
                 Some(line) => {
@@ -71,7 +71,7 @@ pub fn show_info(
         }
 
         let mut text_search = "texttt{".to_string();
-        text_search.push_str(&position.sec_key[position.depth]);
+        text_search.push_str(&settings.sec_key[settings.depth]);
         text_search.push_str(&"}\\");
         loop {
             match lines.next() {
@@ -153,7 +153,7 @@ pub fn show_info(
                 }
                 stdout.flush()?;
                 match std::io::stdin().keys().next().unwrap().unwrap() {
-                    Key::Char('q') | Key::Esc => {
+                    Key::Char('q') | Key::Char('i') | Key::Esc => {
                         hit_bottom = false;
                         showing_info = false;
                         break;
@@ -214,7 +214,6 @@ pub fn show_info(
 fn parse_line(line: &str, columns: i32) -> String {
     let mut ret = String::new();
     let mut build_key = false;
-    //    let mut build_name = false;
     let mut key = String::new();
     let width = terminal_size().unwrap().0 as i32;
     let mut col_width = 0;

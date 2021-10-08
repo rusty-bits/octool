@@ -5,30 +5,27 @@ use std::path::{Path, PathBuf};
 use plist::Value;
 use termion::raw::RawTerminal;
 
-use crate::draw::Position;
+use crate::draw::Settings;
 use crate::res::{self, Resources};
 
 pub fn init(
     config_plist: &PathBuf,
     resources: &mut Resources,
-    position: &mut Position,
+    settings: &mut Settings,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
-    resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
-    position.build_type = resources.octool_config["build_type"]
-        .as_str()
-        .unwrap_or("release")
-        .to_string();
     write!(
         stdout,
         "\x1B[32mbuild_type set to\x1B[0m {}\r\n",
-        position.build_type
+        settings.build_type
     )?;
+    resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
+    resources.other = res::get_serde_json("tool_config_files/other.json", stdout)?;
     let config_res_sections: Vec<(String, String, String, String)> =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
     for (mut sec, sub, _, _) in config_res_sections {
         sec.push_str(&sub);
-        position.resource_sections.push(sec);
+        settings.resource_sections.push(sec);
     }
 
     write!(
@@ -81,7 +78,7 @@ pub fn init(
     let path = res::get_or_update_local_parent(
         "OpenCorePkg",
         &resources.dortania,
-        &position.build_type,
+        &settings.build_type,
         stdout,
     )?;
 
@@ -97,8 +94,8 @@ pub fn init(
     )?;
     validate_plist(&config_plist, &resources, stdout)?;
 
-    position.config_file_name = config_plist.to_str().unwrap().to_owned();
-    position.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
+    settings.config_file_name = config_plist.to_str().unwrap().to_owned();
+    settings.sec_length[0] = resources.config_plist.as_dictionary().unwrap().keys().len();
     let mut found_key = false;
     let keys: Vec<String> = resources
         .config_plist
@@ -110,7 +107,7 @@ pub fn init(
     for (i, k) in keys.iter().enumerate() {
         if !found_key {
             if !k.starts_with('#') {
-                position.sec_num[0] = i;
+                settings.sec_num[0] = i;
                 found_key = true;
             }
         }

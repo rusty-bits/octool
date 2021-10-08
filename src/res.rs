@@ -1,4 +1,4 @@
-use crate::draw::Position;
+use crate::draw::Settings;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
@@ -230,11 +230,11 @@ pub fn clone_or_pull(
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
-pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut RawTerminal<Stdout>) {
+pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut RawTerminal<Stdout>) {
     let mut res_path: Option<PathBuf>;
-    let section = position.sec_key[0].as_str();
+    let section = settings.sec_key[0].as_str();
     let mut ind_res = String::new();
-    position.res_name(&mut ind_res);
+    settings.res_name(&mut ind_res);
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
         .unwrap_or("");
@@ -271,7 +271,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
     if parent.len() > 0 {
         write!(stdout, "\x1B[2K\r\n").unwrap();
         write!(stdout, "{} in Dortania Builds? \x1B[0K", parent).unwrap();
-        match &resources.dortania[parent]["versions"][0]["links"][&position.build_type] {
+        match &resources.dortania[parent]["versions"][0]["links"][&settings.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
@@ -279,7 +279,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.dortania,
-                        &position.build_type,
+                        &settings.build_type,
                         stdout,
                     )
                     .unwrap();
@@ -294,7 +294,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
             parent
         )
         .unwrap();
-        match &resources.acidanthera[parent]["versions"][0]["links"][&position.build_type] {
+        match &resources.acidanthera[parent]["versions"][0]["links"][&settings.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
@@ -302,7 +302,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.acidanthera,
-                        &position.build_type,
+                        &settings.build_type,
                         stdout,
                     )
                     .unwrap();
@@ -312,7 +312,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
         }
 
         write!(stdout, "\x1B[0K\n{} in other? \x1B[0K", parent).unwrap();
-        match &resources.other[parent]["versions"][0]["links"][&position.build_type] {
+        match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
@@ -320,7 +320,7 @@ pub fn show_res_path(resources: &Resources, position: &Position, stdout: &mut Ra
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.other,
-                        &position.build_type,
+                        &settings.build_type,
                         stdout,
                     )
                     .unwrap();
@@ -438,6 +438,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
 
 /// this seems redundant to the `show_res_path` function, can I combine or eliminate?
 pub fn get_res_path(
+    settings: &Settings,
     resources: &Resources,
     ind_res: &str,
     section: &str,
@@ -448,9 +449,9 @@ pub fn get_res_path(
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
         .unwrap_or("");
-    let build_type = resources.octool_config["build_type"]
-        .as_str()
-        .unwrap_or("release");
+//    let build_type = resources.octool_config["build_type"]
+//        .as_str()
+//        .unwrap_or("release");
     let mut path = resources.working_dir.join("INPUT").join(ind_res);
     if path.exists() {
         from_input = true;
@@ -486,15 +487,15 @@ pub fn get_res_path(
     }
     if res_path == None {
         res_path =
-            get_or_update_local_parent(parent, &resources.dortania, build_type, stdout).unwrap();
+            get_or_update_local_parent(parent, &resources.dortania, &settings.build_type, stdout).unwrap();
     }
     if res_path == None {
         res_path =
-            get_or_update_local_parent(parent, &resources.acidanthera, build_type, stdout).unwrap();
+            get_or_update_local_parent(parent, &resources.acidanthera, &settings.build_type, stdout).unwrap();
     }
     if res_path == None {
         res_path =
-            get_or_update_local_parent(parent, &resources.other, build_type, stdout).unwrap();
+            get_or_update_local_parent(parent, &resources.other, &settings.build_type, stdout).unwrap();
     }
     match res_path {
         None => None,

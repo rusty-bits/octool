@@ -6,7 +6,7 @@ use std::error::Error;
 use std::io::{Stdout, Write};
 
 #[derive(Debug)]
-pub struct Position {
+pub struct Settings {
     pub config_file_name: String,       // name of config.plist
     pub sec_num: [usize; 5],            // selected section for each depth
     pub depth: usize,                   // depth of plist section we are looking at
@@ -22,7 +22,7 @@ pub struct Position {
     pub modified: bool,                 // true if plist changed and not saved
 }
 
-impl Position {
+impl Settings {
     pub fn up(&mut self) {
         if self.sec_num[self.depth] > 0 {
             self.sec_num[self.depth] -= 1;
@@ -93,12 +93,12 @@ impl Position {
 /// so any special comments can be included in the Header
 /// which is drawn last
 pub fn update_screen(
-    position: &mut Position,
+    settings: &mut Settings,
     plist: &Value,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
     let rows: i32 = terminal_size().unwrap().1.into();
-    position.can_expand = false;
+    settings.can_expand = false;
 
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
@@ -118,14 +118,14 @@ pub fn update_screen(
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         if row < rows {
-            row += display_value(k, None, position, list.get(k).unwrap(), stdout, i, 0).unwrap();
+            row += display_value(k, None, settings, list.get(k).unwrap(), stdout, i, 0).unwrap();
         }
     }
     #[cfg(debug_assertions)]
     write!(
         stdout,
         "debug-> {:?} {} {:?}",
-        position.sec_length, position.depth, position.sec_num
+        settings.sec_length, settings.depth, settings.sec_num
     )?;
 
     let mut blanks = rows - row - 1;
@@ -136,7 +136,7 @@ pub fn update_screen(
     write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?; // clear rows up to footer
                                                                   // lastly draw the header
     let mut info = String::new();
-    position.res_name(&mut info);
+    settings.res_name(&mut info);
     if info.len() > 20 {
         info = info[0..17].to_string();
         info.push_str("...");
@@ -145,19 +145,19 @@ pub fn update_screen(
         stdout,
         "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
         color::Fg(color::Green),
-        &position.config_file_name,
+        &settings.config_file_name,
         style::Underline,
         &info,
         style::Reset,
     )
     .unwrap();
-    if position.depth > 0 {
+    if settings.depth > 0 {
         write!(stdout, "  \x1B[7mleft\x1B[0m collapse").unwrap();
     }
     write!(
         stdout,
         "{}",
-        match position.item_clone {
+        match settings.item_clone {
             Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
             Value::Integer(_) | Value::String(_) => "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit",
             Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
@@ -167,29 +167,26 @@ pub fn update_screen(
         }
     )
     .unwrap();
-    if position.depth == 2 {
-        if position.is_resource() {
+    if settings.depth == 2 {
+        if settings.is_resource() {
             write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
         }
     }
-    //    if position.is_resource() {
-    //        write!(stdout, "  \x1B[7ma\x1B[0m add resource").unwrap();
-    //    }
-    if position.find_string.len() > 0 {
+    if settings.find_string.len() > 0 {
         write!(
             stdout,
             "  \x1B[7mn\x1B[0m jump to next {}{}\x1B[0m",
             style::Underline,
-            position.find_string
+            settings.find_string
         )
         .unwrap();
     }
-    if position.held_key.len() > 0 {
+    if settings.held_key.len() > 0 {
         write!(
             stdout,
             "  \x1B[7mp\x1B[0m paste {}{}\x1B[0m",
             style::Underline,
-            position.held_key
+            settings.held_key
         )
         .unwrap();
     }
@@ -200,7 +197,7 @@ pub fn update_screen(
 fn display_value(
     key: &String,
     key_color: Option<bool>,
-    position: &mut Position,
+    settings: &mut Settings,
     plist_value: &Value,
     stdout: &mut RawTerminal<Stdout>,
     item_num: usize,
@@ -213,26 +210,26 @@ fn display_value(
     let mut pre_key = '>';
     let mut row = 1;
     write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(d))?; // indent to section and clear rest of line
-    if position.sec_num[d] == item_num {
+    if settings.sec_num[d] == item_num {
         selected_item = true;
-        position.sec_key[d] = key.to_string();
+        settings.sec_key[d] = key.to_string();
         key_style.push_str("\x1B[7m");
         // is current live item
-        if d == position.depth {
+        if d == settings.depth {
             live_item = true;
-            position.item_clone = plist_value.clone();
+            settings.item_clone = plist_value.clone();
             save_curs_pos = "\x1B7".to_string(); // save cursor position for editing and info display
         }
     }
     match plist_value {
         Value::Array(v) => {
             if selected_item {
-                position.sec_length[d + 1] = v.len();
+                settings.sec_length[d + 1] = v.len();
             }
             if live_item {
-                position.can_expand = true;
+                settings.can_expand = true;
             }
-            if position.depth > d && position.sec_num[d] == item_num {
+            if settings.depth > d && settings.sec_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -244,7 +241,7 @@ fn display_value(
                 v.len(),
                 save_curs_pos
             )?;
-            if position.depth > d && position.sec_num[d] == item_num {
+            if settings.depth > d && settings.sec_num[d] == item_num {
                 if v.len() == 0 {
                     write!(
                         stdout,
@@ -258,7 +255,7 @@ fn display_value(
                     let mut key = String::new();
                     for i in 0..v.len() {
                         let color = get_array_key(&mut key, &v[i], i);
-                        row += display_value(&key, color, position, &v[i], stdout, i, d + 1)?;
+                        row += display_value(&key, color, settings, &v[i], stdout, i, d + 1)?;
                     }
                 }
             }
@@ -306,12 +303,12 @@ fn display_value(
         }
         Value::Dictionary(v) => {
             if selected_item {
-                position.sec_length[d + 1] = v.keys().len();
+                settings.sec_length[d + 1] = v.keys().len();
             }
             if live_item {
-                position.can_expand = true;
+                settings.can_expand = true;
             }
-            if position.depth > d && position.sec_num[d] == item_num {
+            if settings.depth > d && settings.sec_num[d] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -329,7 +326,7 @@ fn display_value(
                 save_curs_pos
             )
             .unwrap();
-            if position.depth > d && position.sec_num[d] == item_num {
+            if settings.depth > d && settings.sec_num[d] == item_num {
                 if v.keys().len() == 0 {
                     write!(
                         stdout,
@@ -345,7 +342,7 @@ fn display_value(
                         row += display_value(
                             &k,
                             None,
-                            position,
+                            settings,
                             v.get(&k).unwrap(),
                             stdout,
                             i,

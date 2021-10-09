@@ -14,3 +14,9 @@ sha2 = "^0"
 fs_extra = "^1"
 termion = "^1"
 rand = "*"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+

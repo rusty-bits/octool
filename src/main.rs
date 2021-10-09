@@ -212,8 +212,10 @@ fn process(
                     edit::edit_value(settings, &mut resources.config_plist, stdout, false, true)?
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
-                    if edit::add_delete_value(settings, &mut resources.config_plist, false) {
-                        settings.delete();
+                    if settings.sec_length[settings.depth] > 0 {
+                        if edit::add_delete_value(settings, &mut resources.config_plist, false) {
+                            settings.delete();
+                        }
                     }
                 }
                 Key::Char('x') | Key::Char('d') => {
@@ -257,8 +259,8 @@ fn process(
                         )?;
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
-                            settings.modified = true;
                             if edit::extract_value(settings, &resources.config_plist, false, true) {
+                                settings.modified = true;
                                 let tmp_item = settings.held_item.clone();
                                 let tmp_key = settings.held_key.clone();
                                 if edit::extract_value(
@@ -280,7 +282,6 @@ fn process(
                     }
                 }
                 Key::Char('m') => {
-                    //todo - need to check for array or dict, now assumes dict -checks for dict now
                     //    it might not make sense to merge an array, maybe use 'r'eset instead?
                     let initial_depth = settings.depth;
                     let initial_key = settings.held_key.to_owned();

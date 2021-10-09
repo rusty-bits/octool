@@ -39,7 +39,7 @@ pub fn extract_value(
             Value::Dictionary(d) => {
                 plist_val = match d.get(&settings.sec_key[i]) {
                     Some(k) => k,
-                    None => panic!("failure to get Value from Sample.plist"),
+                    None => return false,
                 }
             }
             Value::Array(a) => {
@@ -70,22 +70,26 @@ pub fn extract_value(
             } else {
                 settings.sec_num[settings.depth]
             };
-            let mut ex_item = a.get(num).expect("No elment in Sample.plist").to_owned();
-            match ex_item.as_dictionary_mut() {
-                Some(c) => {
-                    if !preserve {
-                        for val in c.values_mut() {
-                            match val {
-                                Value::String(_) => *val = Value::String("".to_string()),
-                                Value::Boolean(_) => *val = Value::Boolean(false),
-                                _ => (),
+            if num < a.len() {
+                let mut ex_item = a.get(num).unwrap().to_owned();
+                match ex_item.as_dictionary_mut() {
+                    Some(d) => {
+                        if !preserve {
+                            for val in d.values_mut() {
+                                match val {
+                                    Value::String(_) => *val = Value::String("".to_string()),
+                                    Value::Boolean(_) => *val = Value::Boolean(false),
+                                    _ => (),
+                                }
                             }
                         }
+                        settings.held_item = Some(ex_item);
+                        settings.held_key = settings.sec_key[settings.depth].clone();
                     }
-                    settings.held_item = Some(ex_item);
-                    settings.held_key = settings.sec_key[settings.depth].clone();
+                    None => extracted = false,
                 }
-                None => extracted = false,
+            } else {
+                extracted = false;
             }
         }
         _ => extracted = false,
@@ -100,7 +104,7 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
             Value::Dictionary(d) => {
                 plist_val = match d.get_mut(&settings.sec_key[i]) {
                     Some(k) => k,
-                    None => panic!("failure to get Value from Dict"),
+                    None => return false,
                 }
             }
             Value::Array(a) => {

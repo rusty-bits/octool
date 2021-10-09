@@ -66,6 +66,8 @@ Usage:
  - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
  - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) Configuration.tex file.  
 
+'K' `Key` - capital K - edit the name of the highlighted key  
+
 'm' `merge` - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
 
 'n' `next` - jump to the next found item if more than one occurance was found  

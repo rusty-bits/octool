@@ -1,5 +1,4 @@
 use crate::draw::Settings;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -12,11 +11,11 @@ use termion::{color, style};
 use sha2::Digest;
 
 pub struct Resources {
-    pub acidanthera: Value,           // Acidanthera parent child json
-    pub dortania: Value,              // Dortania builds config.json file
-    pub octool_config: Value,         // config file for octool itself
-    pub resource_list: Value,         // list linking resources to their parents
-    pub other: Value,                 // list of other party parent/childs
+    pub acidanthera: serde_json::Value,           // Acidanthera parent child json
+    pub dortania: serde_json::Value,              // Dortania builds config.json file
+    pub octool_config: serde_json::Value,         // config file for octool itself
+    pub resource_list: serde_json::Value,         // list linking resources to their parents
+    pub other: serde_json::Value,                 // list of other party parent/childs
     pub config_plist: plist::Value,   // current active config.plist
     pub sample_plist: plist::Value,   // latest Sample.plist
     pub working_dir: PathBuf,         // location of octool and files
@@ -25,7 +24,7 @@ pub struct Resources {
 
 pub fn get_or_update_local_parent(
     parent: &str,
-    single_resource: &Value,
+    single_resource: &serde_json::Value,
     build_type: &str,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
@@ -272,7 +271,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
         write!(stdout, "\x1B[2K\r\n").unwrap();
         write!(stdout, "{} in Dortania Builds? \x1B[0K", parent).unwrap();
         match &resources.dortania[parent]["versions"][0]["links"][&settings.build_type] {
-            Value::String(url) => {
+            serde_json::Value::String(url) => {
                 write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
@@ -295,7 +294,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
         )
         .unwrap();
         match &resources.acidanthera[parent]["versions"][0]["links"][&settings.build_type] {
-            Value::String(url) => {
+            serde_json::Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
@@ -313,7 +312,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
 
         write!(stdout, "\x1B[0K\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
-            Value::String(url) => {
+            serde_json::Value::String(url) => {
                 write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
@@ -415,7 +414,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
     let build_type = resources.octool_config["build_type"]
         .as_str()
         .unwrap_or("release");
-    let m: HashMap<String, Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
+    let m: HashMap<String, serde_json::Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
     for (name, val) in m {
         write!(
             stdout,
@@ -424,7 +423,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
         )
         .unwrap();
     }
-    let m: HashMap<String, Value> =
+    let m: HashMap<String, serde_json::Value> =
         serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
     for (name, val) in m {
         write!(

@@ -11,7 +11,7 @@ pub struct Settings {
     pub sec_num: [usize; 5],            // selected section for each depth
     pub depth: usize,                   // depth of plist section we are looking at
     pub sec_key: [String; 5],           // key of selected section
-    pub item_clone: Value,              // copy of highlighted item (can we get rid of this?)
+    pub item_instructions: String,      // item instructions for display in header
     pub held_item: Option<Value>,       // last deleted or placed item value
     pub held_key: String,               // last deleted or placed key
     pub sec_length: [usize; 5],         // number of items in current section
@@ -103,7 +103,7 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}x{res}cut {inv}c{res}opy {inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}x{res}cut {inv}c{res}opy {inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),
@@ -154,19 +154,7 @@ pub fn update_screen(
     if settings.depth > 0 {
         write!(stdout, "  \x1B[7mleft\x1B[0m collapse").unwrap();
     }
-    write!(
-        stdout,
-        "{}",
-        match settings.item_clone {
-            Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
-            Value::Integer(_) | Value::String(_) => "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit",
-            Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
-            Value::Data(_) =>
-                "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit  \x1B[7mtab\x1B[0m switch hex/string",
-            _ => "  XXXunknownXXX",
-        }
-    )
-    .unwrap();
+    write!(stdout, "{}", settings.item_instructions,).unwrap();
     if settings.depth == 2 {
         if settings.is_resource() {
             write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
@@ -217,7 +205,14 @@ fn display_value(
         // is current live item
         if d == settings.depth {
             live_item = true;
-            settings.item_clone = plist_value.clone();
+            settings.item_instructions = match plist_value {
+            Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
+            Value::Integer(_) | Value::String(_) => "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit",
+            Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
+            Value::Data(_) =>
+                "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit  \x1B[7mtab\x1B[0m switch hex/string",
+            _ => "  XXXunknownXXX",
+        }.to_string();
             save_curs_pos = "\x1B7".to_string(); // save cursor position for editing and info display
         }
     }

@@ -1,4 +1,4 @@
-use crate::draw::{get_lossy_string, hex_str_with_style, Settings};
+use crate::draw::{self, Settings};
 use crate::res::Resources;
 use plist::{Integer, Value};
 use termion::event::Key;
@@ -274,18 +274,18 @@ pub fn add_item(
         item_types.push(&new_res_msg);
     }
     for s in [
-        "Array",
-        "Boolean",
-        "Data",
-        "Dictionary",
-        "Integer",
-        "String",
+        "plist array",
+        "plist boolean",
+        "plist data",
+        "plist dict",
+        "plist integer",
+        "plist string",
     ] {
         item_types.push(s);
     }
     write!(
         stdout,
-        "\r\nSelect new item type:\x1B[0K\r\n{}",
+        "\r\nSelect type of item to add to plist:\x1B[0K\r\n{}",
         cursor::Save
     )
     .unwrap();
@@ -339,12 +339,12 @@ pub fn add_item(
         edit_string(&mut key, stdout).unwrap();
         settings.held_key = String::from(key.trim());
         settings.held_item = Some(match item_types[selection - 1] {
-            "Array" => plist::Value::Array(vec![]),
-            "Boolean" => false.into(),
-            "Data" => plist::Value::Data(vec![]),
-            "Dictionary" => plist::Value::Dictionary(plist::Dictionary::default()),
-            "Integer" => 0.into(),
-            "String" => plist::Value::String("".to_string()),
+            "plist array" => plist::Value::Array(vec![]),
+            "plist boolean" => false.into(),
+            "plist data" => plist::Value::Data(vec![]),
+            "plist dict" => plist::Value::Dictionary(plist::Dictionary::default()),
+            "plist integer" => 0.into(),
+            "plist string" => plist::Value::String("".to_string()),
             _ => panic!("How did you select this?"),
         });
         write!(stdout, "{}", cursor::Hide).unwrap();
@@ -355,10 +355,11 @@ pub fn add_item(
 }
 
 pub fn edit_value(
-    settings: &Settings,
+    settings: &mut Settings,
     mut val: &mut Value,
     stdout: &mut RawTerminal<Stdout>,
-    space: bool,
+    space_pressed: bool,
+    edit_key: bool,
 ) -> Result<(), Box<dyn Error>> {
     write!(
         stdout,
@@ -367,7 +368,11 @@ pub fn edit_value(
         inv = style::Invert,
         res = style::Reset,
     )?;
-    for i in 0..settings.depth + 1 {
+    let mut search_depth = settings.depth + 1;
+    if edit_key {
+        search_depth -= 1;
+    }
+    for i in 0..search_depth {
         match val {
             Value::Dictionary(d) => {
                 let key = d.keys().map(|s| s.to_string()).collect::<Vec<String>>()
@@ -376,7 +381,7 @@ pub fn edit_value(
                 val = match d.get_mut(&key) {
                     Some(k) => k,
                     None => panic!("failure to get Value from Dict"),
-                }
+                };
             }
             Value::Array(a) => {
                 val = a.get_mut(settings.sec_num[i]).unwrap();
@@ -385,13 +390,33 @@ pub fn edit_value(
         }
     }
 
-    if space {
+    if space_pressed {
         match val {
             Value::Boolean(b) => *b = !*b,
             Value::Dictionary(d) => match d.get_mut("Enabled") {
                 Some(Value::Boolean(b)) => *b = !*b,
                 _ => (),
             },
+            _ => (),
+        }
+    } else if edit_key {
+        match val {
+            Value::Dictionary(d) => {
+                let mut key = settings.sec_key[search_depth].to_owned();
+                let hold = d.remove(&key);
+                //        write!(stdout, "\r\n{:?}\r\n{:?}\r\n", hold, val)?;
+                match hold {
+                    Some(v) => {
+                        write!(stdout, "\x1B8\r{}| \x1B7", "    ".repeat(settings.depth))?;
+                        edit_string(&mut key, stdout)?;
+                        d.insert(key.clone(), v);
+                        d.sort_keys();
+                        settings.sec_num[settings.depth] =
+                            d.keys().position(|k| k == &key).unwrap_or(0);
+                    }
+                    None => (),
+                }
+            }
             _ => (),
         }
     } else {
@@ -404,6 +429,7 @@ pub fn edit_value(
     }
 
     write!(stdout, "{}", cursor::Hide)?;
+    settings.modified = true;
     Ok(())
 }
 
@@ -421,8 +447,8 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
         write!(
             stdout,
             "\x1B8\x1B[G{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
-            hex_str_with_style(edit_hex.clone()),
-            get_lossy_string(&tmp_val),
+            draw::hex_str_with_style(edit_hex.clone()),
+            draw::get_lossy_string(&tmp_val),
             mag = color::Fg(color::Magenta),
             res = style::Reset,
         )?;

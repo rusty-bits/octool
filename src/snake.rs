@@ -4,17 +4,16 @@ use rand::prelude::*;
 use std::collections::VecDeque;
 use std::error::Error;
 use std::io::{Read, Stdout, Write};
-use std::ops::Add;
+use std::ops;
 use std::thread::sleep;
 use std::time::Duration;
 
-use termion::raw::RawTerminal;
-use termion::{async_stdin, terminal_size};
+use termion::{async_stdin, raw::RawTerminal, terminal_size};
 // blame mahasvan for this "secret" snake option
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct CoordinateVector(pub i32, pub i32);
-impl Add for CoordinateVector {
+impl ops::Add for CoordinateVector {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {

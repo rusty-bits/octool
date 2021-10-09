@@ -15,35 +15,28 @@ use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
-use crate::build::build_output;
-use crate::draw::{update_screen, Settings};
-use crate::edit::{add_delete_value, add_item, edit_value, extract_value, Found};
-use crate::init::init;
-use crate::res::{Resources, status};
-use crate::snake::snake;
-
 fn process(
     config_plist: &PathBuf,
     current_dir: &PathBuf,
-    settings: &mut Settings,
+    settings: &mut draw::Settings,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
-    let mut found = vec![Found::new()];
+    let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
     let stdin = stdin();
-    let mut resources = Resources {
-        acidanthera: serde_json::Value::Bool(false),
-        dortania: serde_json::Value::Bool(false),
-        octool_config: serde_json::Value::Bool(false),
-        resource_list: serde_json::Value::Bool(false),
-        other: serde_json::Value::Bool(false),
+    let mut resources = res::Resources {
+        acidanthera: serde_json::json!(null),
+        dortania: serde_json::json!(null),
+        octool_config: serde_json::json!(null),
+        resource_list: serde_json::json!(null),
+        other: serde_json::json!(null),
         config_plist: plist::Value::Boolean(false),
         sample_plist: plist::Value::Boolean(false),
         working_dir: env::current_dir()?,
         open_core_pkg: PathBuf::new(),
     };
 
-    init(&config_plist, &mut resources, settings, stdout)?;
+    init::init(&config_plist, &mut resources, settings, stdout)?;
 
     writeln!(
         stdout,
@@ -53,7 +46,7 @@ fn process(
     let key = std::io::stdin().keys().next().unwrap().unwrap();
 
     if key != Key::Char('q') {
-        update_screen(settings, &resources.config_plist, stdout)?;
+        draw::update_screen(settings, &resources.config_plist, stdout)?;
         stdout.flush().unwrap();
         let mut showing_info = false;
         for key in stdin.keys() {
@@ -76,7 +69,7 @@ fn process(
                     }
                 }
                 Key::Char('G') => {
-                    let build_okay = build_output(&settings, &resources, stdout)?;
+                    let build_okay = build::build_output(&settings, &resources, stdout)?;
                     writeln!(
                         stdout,
                         "\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist\r"
@@ -117,7 +110,7 @@ fn process(
                     }
                     break;
                 }
-                Key::Char('a') => add_item(settings, &mut resources, stdout),
+                Key::Char('a') => edit::add_item(settings, &mut resources, stdout),
                 Key::Char('f') => {
                     found = vec![];
                     found_id = 0;
@@ -184,13 +177,12 @@ fn process(
                     }
                 }
                 Key::Char('v') | Key::Char('p') | Key::Ctrl('v') => {
-                    if add_delete_value(settings, &mut resources.config_plist, true) {
+                    if edit::add_delete_value(settings, &mut resources.config_plist, true) {
                         settings.add();
                     }
                 }
                 Key::Char('P') => {
                     res::print_parents(&resources, stdout);
-                    //                    write!(stdout, "{:?}", resources.config_plist).unwrap();
                     stdout.flush().unwrap();
                     std::io::stdin().keys().next().unwrap().unwrap();
                 }
@@ -204,18 +196,23 @@ fn process(
                 }
                 Key::Char(' ') => {
                     if !showing_info {
-                        //                   showing_info = false;
-                        //               } else {
-                        edit_value(&settings, &mut resources.config_plist, stdout, true)?;
-                        settings.modified = true;
+                        edit::edit_value(
+                            settings,
+                            &mut resources.config_plist,
+                            stdout,
+                            true,
+                            false,
+                        )?;
                     }
                 }
                 Key::Char('\n') | Key::Char('\t') => {
-                    edit_value(&settings, &mut resources.config_plist, stdout, false)?;
-                    settings.modified = true;
+                    edit::edit_value(settings, &mut resources.config_plist, stdout, false, false)?
+                }
+                Key::Char('K') => {
+                    edit::edit_value(settings, &mut resources.config_plist, stdout, false, true)?
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
-                    if add_delete_value(settings, &mut resources.config_plist, false) {
+                    if edit::add_delete_value(settings, &mut resources.config_plist, false) {
                         settings.delete();
                     }
                 }
@@ -232,14 +229,15 @@ fn process(
                         stdout.flush()?;
                         let kp = std::io::stdin().keys().next().unwrap().unwrap();
                         if kp == Key::Char('d') || kp == Key::Char('x') {
-                            if add_delete_value(settings, &mut resources.config_plist, false) {
+                            if edit::add_delete_value(settings, &mut resources.config_plist, false)
+                            {
                                 settings.delete();
                             }
                         }
                     }
                 }
                 Key::Char('c') | Key::Char('y') | Key::Ctrl('c') => {
-                    let _ = extract_value(settings, &mut resources.config_plist, false, true);
+                    let _ = edit::extract_value(settings, &mut resources.config_plist, false, true);
                 }
                 Key::Char('r') => {
                     if settings.depth < 4 {
@@ -260,16 +258,16 @@ fn process(
                         stdout.flush()?;
                         if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
                             settings.modified = true;
-                            if extract_value(settings, &resources.config_plist, false, true) {
+                            if edit::extract_value(settings, &resources.config_plist, false, true) {
                                 let tmp_item = settings.held_item.clone();
                                 let tmp_key = settings.held_key.clone();
-                                if extract_value(
+                                if edit::extract_value(
                                     settings,
                                     &resources.sample_plist,
                                     false,
                                     true,
                                 ) {
-                                    let _ = add_delete_value(
+                                    let _ = edit::add_delete_value(
                                         settings,
                                         &mut resources.config_plist,
                                         true,
@@ -290,11 +288,11 @@ fn process(
                     if !settings.can_expand && settings.depth > 0 {
                         settings.depth -= 1;
                     }
-                    if extract_value(settings, &resources.config_plist, false, true) {
+                    if edit::extract_value(settings, &resources.config_plist, false, true) {
                         match settings.held_item.clone().unwrap() {
                             plist::Value::Dictionary(mut d) => {
                                 stdout.flush()?;
-                                if extract_value(
+                                if edit::extract_value(
                                     settings,
                                     &resources.sample_plist,
                                     false,
@@ -311,7 +309,7 @@ fn process(
                                         }
                                         _ => (),
                                     }
-                                    let _ = add_delete_value(
+                                    let _ = edit::add_delete_value(
                                         settings,
                                         &mut resources.config_plist,
                                         false,
@@ -319,7 +317,7 @@ fn process(
                                     d.sort_keys();
                                     settings.held_item =
                                         Some(plist::Value::Dictionary(d.to_owned()));
-                                    let _ = add_delete_value(
+                                    let _ = edit::add_delete_value(
                                         settings,
                                         &mut resources.config_plist,
                                         true,
@@ -352,7 +350,7 @@ fn process(
                     }
                 }
                 Key::Char('M') => {
-                    snake(stdout)?;
+                    snake::snake(stdout)?;
                     std::io::stdin().keys().next().unwrap().unwrap();
                     write!(stdout, "\x1B[2J")?;
                 }
@@ -385,7 +383,7 @@ fn process(
                 showing_info = false;
             }
             if !showing_info {
-                update_screen(settings, &resources.config_plist, stdout)?;
+                draw::update_screen(settings, &resources.config_plist, stdout)?;
                 stdout.flush().unwrap();
             }
         }
@@ -411,12 +409,12 @@ fn main() {
     }
     env::set_current_dir(&working_dir).unwrap();
 
-    let mut setup = Settings {
+    let mut setup = draw::Settings {
         config_file_name: String::new(),
         sec_num: [0; 5],
         depth: 0,
         sec_key: Default::default(),
-        item_clone: plist::Value::Boolean(false),
+        item_instructions: String::new(),
         held_item: None,
         held_key: Default::default(),
         sec_length: [0; 5],
@@ -436,8 +434,14 @@ fn main() {
                 match c {
                     'v' => {
                         println!("\noctool v{}", ver);
-                        match status("nvram", &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"]) {
-                            Ok(s) => println!("\ncurrent loaded OpenCore version\n{}", String::from_utf8_lossy(&s.stdout)),
+                        match res::status(
+                            "nvram",
+                            &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
+                        ) {
+                            Ok(s) => println!(
+                                "\ncurrent loaded OpenCore version\n{}",
+                                String::from_utf8_lossy(&s.stdout)
+                            ),
                             Err(_) => (),
                         }
                         std::process::exit(0);

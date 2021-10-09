@@ -1,8 +1,7 @@
 use crate::draw::Settings;
 use crate::res::{get_or_update_local_parent, get_res_path, status, Resources};
 
-use fs_extra::copy_items;
-use fs_extra::dir::{copy, CopyOptions};
+use fs_extra::dir::{self, CopyOptions};
 use std::error::Error;
 use std::fs;
 use std::io::{self, Stdout, Write};
@@ -14,19 +13,19 @@ pub fn build_output(
     resources: &Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
-    fs_extra::dir::remove("OUTPUT")?;
-    std::fs::create_dir_all("OUTPUT/EFI")?;
+    dir::remove("OUTPUT")?;
+    fs::create_dir_all("OUTPUT/EFI")?;
     let mut has_open_canopy = false;
     let mut build_okay = true;
     let mut missing_files: Vec<&str> = vec![];
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
-    copy(&resources.open_core_pkg.join("X64/EFI"), "OUTPUT", &options)?;
-    fs_extra::dir::remove("OUTPUT/EFI/OC/Drivers")?;
-    fs_extra::dir::remove("OUTPUT/EFI/OC/Tools")?;
-    std::fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
-    std::fs::create_dir_all("OUTPUT/EFI/OC/Tools")?;
+    dir::copy(&resources.open_core_pkg.join("X64/EFI"), "OUTPUT", &options)?;
+    dir::remove("OUTPUT/EFI/OC/Drivers")?;
+    dir::remove("OUTPUT/EFI/OC/Tools")?;
+    fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
+    fs::create_dir_all("OUTPUT/EFI/OC/Tools")?;
     resources
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;
@@ -78,7 +77,7 @@ pub fn build_output(
         from_paths.dedup();
         let mut to_path = "OUTPUT/EFI/OC/".to_string();
         to_path.push_str(&out_pth);
-        copy_items(&from_paths, &to_path, &options)?;
+        fs_extra::copy_items(&from_paths, &to_path, &options)?;
         let mut s = "";
         if from_paths.len() > 1 {
             s = "s";
@@ -142,7 +141,7 @@ pub fn build_output(
                 s
             )?;
             stdout.flush()?;
-            copy_items(&entries, out_path.join(res), &options)?;
+            fs_extra::copy_items(&entries, out_path.join(res), &options)?;
             write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
             stdout.flush()?;
         }

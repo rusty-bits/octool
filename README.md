@@ -9,7 +9,7 @@ You can build from the included source by running `cargo build --release` (if yo
 
 -d  use `debug` versions for EFI instead of `release` versions  
 -h  print help message  
--o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
+-o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4` instead of latest version  
 -v  print version information  
 
 octool takes a path to a `config.plist` to use if desired.
@@ -47,9 +47,9 @@ Usage:
 'a' `add` - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
  - if in some other section, select a type and key name to add to the working plist  
 
-'c' `copy` - copy the highlighted field or section  
+'ctrl-c' `copy` - copy the highlighted field or section  
 
-'d' `delete` - will delete the highlighted field or section after confirmation.  The deleted data can be replaced by using the 'p' paste command  
+'d' `delete` - will delete the highlighted field or section after confirmation (`dd` command).  The deleted data can be replaced by using the 'p' paste command  
 
 'f' `find` - find all occurances of a string in the plist  
 - if there is only one occurance, it will jump to the location  
@@ -65,7 +65,7 @@ Usage:
 
 'i' show `info` of highlighted item.  
  - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
- - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) Configuration.tex file.  
+ - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
 
 'K' `Key` - capital K - edit the name of the highlighted key  
 
@@ -73,7 +73,7 @@ Usage:
 
 'n' `next` - jump to the next found item if more than one occurance was found  
 
-'p' `paste` - places the last deleted or modified etc. item into the plist  
+'p' `paste` - places the last deleted or modified etc. item into the plist (for those familiar with vi commands)  
 
 'P' (capital P) prints out some `tool_config_files/resource_list.json` data for debugging  
 
@@ -86,11 +86,11 @@ Usage:
  - `modified_` will be added to the begining of the saved file unless you are already working on a `modified_` file  
  - the saved file will be checked with `ocvalidate` for any errors  
 
-'x' `cut` - remove the highlighted field or section from the plist  
+'ctrl-x' `cut` - remove the highlighted field or section from the plist  
 
 'y' `yank` - copy the highlighted field or section (included for those vim users used to 'y' for copying)  
 
-'v' `paste` - place the last cut, copied, etc. item into the plist  
+'ctrl-v' `paste` - place the last cut, copied, etc. item into the plist  
 
 ## To Do: ##  
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  

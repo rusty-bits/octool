@@ -337,5 +337,8 @@
   },
   "AtherosE2200Ethernet.kext": {
     "parent": "AtherosEthernetE2200"
+  },
+  "USBToolBox.kext": {
+    "parent": "USBToolBox"
   }
 }

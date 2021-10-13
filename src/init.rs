@@ -104,7 +104,9 @@ pub fn init(
         let mut url = "https://github.com/acidanthera/OpenCorePkg/archive/refs/tags/".to_owned();
         url.push_str(&settings.build_version);
         url.push_str(".zip");
-        res::get_file_and_unzip(&url, "", &path, stdout)?;
+        if !path.parent().unwrap().exists() {
+            res::get_file_and_unzip(&url, "", &path, stdout)?;
+        }
     }
 
     resources

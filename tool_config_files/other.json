@@ -46,21 +46,40 @@
     ]
   },
   "SmallTreeIntel82576": {
-          "versions": [
-                  {
-                          "links": {
-                                  "debug": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip",
-                                  "release": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip"
-                          },
-                          "hashes": {
-                                  "debug": {
-                                          "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
-                                  },
-                                  "release": {
-                                          "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
-                                  }
-                          }
-                  }
-          ]
+    "versions": [
+      {
+        "links": {
+          "debug": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip",
+          "release": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip"
+        },
+        "hashes": {
+          "debug": {
+            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
+          },
+          "release": {
+            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
+          }
+        }
+      }
+    ]
+  },
+  "USBToolBox": {
+    "versions": [
+      {
+        "version": "1.0.1",
+        "links": {
+          "debug": "https://github.com/USBToolBox/kext/releases/download/1.1.0/USBToolBox-1.0.1-DEBUG.zip",
+          "release": "https://github.com/USBToolBox/kext/releases/download/1.1.0/USBToolBox-1.0.1-RELEASE.zip"
+        },
+        "hashes": {
+          "debug": {
+            "sha256": "58b24231a49228aabb8bb96df1d47c8b8f4188be739d47f970616d7900723b90"
+          },
+          "release": {
+            "sha256": "540a34fd83ab590b80fbf9d91ba6f4ae97acb05fa52840f8874ca0a08f8cd6a0"
+          }
+        }
+      }
+    ]
   }
 }

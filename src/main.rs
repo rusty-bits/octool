@@ -399,7 +399,11 @@ fn process(
     write!(stdout, "\n\r\x1B[0J")?;
     stdout.flush()?;
 
-    println!("HashMap {:?}", resources.resource_ver_indexes);
+    #[cfg(debug_assertions)]
+    {
+        println!("HashMap {:?}", resources.resource_ver_indexes);
+    }
+
     Ok(())
 }
 

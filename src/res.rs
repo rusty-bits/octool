@@ -11,30 +11,33 @@ use termion::{color, style};
 use sha2::Digest;
 
 pub struct Resources {
-    pub acidanthera: serde_json::Value,           // Acidanthera parent child json
-    pub dortania: serde_json::Value,              // Dortania builds config.json file
-    pub octool_config: serde_json::Value,         // config file for octool itself
-    pub resource_list: serde_json::Value,         // list linking resources to their parents
-    pub other: serde_json::Value,                 // list of other party parent/childs
-    pub config_plist: plist::Value,   // current active config.plist
-    pub sample_plist: plist::Value,   // latest Sample.plist
-    pub working_dir: PathBuf,         // location of octool and files
-    pub open_core_pkg: PathBuf,       // location of the OpenCorePkg
+    pub acidanthera: serde_json::Value, // Acidanthera parent child json
+    pub dortania: serde_json::Value,    // Dortania builds config.json file
+    pub octool_config: serde_json::Value, // config file for octool itself
+    pub resource_list: serde_json::Value, // list linking resources to their parents
+    pub other: serde_json::Value,       // list of other party parent/childs
+    pub config_plist: plist::Value,     // current active config.plist
+    pub sample_plist: plist::Value,     // latest Sample.plist
+    pub working_dir_path: PathBuf,      // location of octool and files
+    pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
+    pub open_core_source_path: PathBuf, // location of OpenCore source files
+    pub resource_ver_indexes: HashMap<&'static str, usize>,
 }
 
 pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &serde_json::Value,
     build_type: &str,
+    build_index: &usize,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
-    let url = single_resource[parent]["versions"][0]["links"][build_type]
+    let url = single_resource[parent]["versions"][build_index]["links"][build_type]
         .as_str()
         .unwrap_or("");
     if url == "" {
         return Ok(None);
     }
-    let hash = single_resource[parent]["versions"][0]["hashes"][build_type]["sha256"]
+    let hash = single_resource[parent]["versions"][build_index]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
     /*    write!(
@@ -110,7 +113,7 @@ pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
     Ok(Command::new(command).args(args).output()?)
 }
 
-fn get_file_and_unzip(
+pub fn get_file_and_unzip(
     url: &str,
     hash: &str,
     path: &Path,
@@ -126,17 +129,19 @@ fn get_file_and_unzip(
     {
         panic!("failed to get {:?}", path);
     }
-    let mut f = File::open(path)?;
-    let mut data = Vec::new();
-    f.read_to_end(&mut data).unwrap();
-    let sum = format!("{:x}", sha2::Sha256::digest(&data));
-    write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
-    if sum != hash {
-        panic!("Sum of {:?} does not match {}", path, hash);
-    } else {
-        let sum_file = path.parent().unwrap().join("sum256");
-        let mut sum_file = File::create(sum_file)?;
-        sum_file.write_all(sum.as_bytes())?;
+    if hash != "" {
+        let mut f = File::open(path)?;
+        let mut data = Vec::new();
+        f.read_to_end(&mut data).unwrap();
+        let sum = format!("{:x}", sha2::Sha256::digest(&data));
+        write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
+        if sum != hash {
+            panic!("Sum of {:?} does not match {}", path, hash);
+        } else {
+            let sum_file = path.parent().unwrap().join("sum256");
+            let mut sum_file = File::create(sum_file)?;
+            sum_file.write_all(sum.as_bytes())?;
+        }
     }
 
     if status(
@@ -152,8 +157,10 @@ fn get_file_and_unzip(
     .status
     .code()
     .unwrap()
-        != 0
+        == 0
     {
+        std::fs::remove_file(&path)?;
+    } else {
         panic!("failed to unzip {:?}", path);
     }
     Ok(())
@@ -226,7 +233,6 @@ pub fn clone_or_pull(
     Ok(())
 }
 
-
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
 pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut RawTerminal<Stdout>) {
@@ -246,9 +252,9 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
     )
     .unwrap();
 
-    res_path = res_exists(&resources.working_dir, "INPUT", &ind_res, stdout);
+    res_path = res_exists(&resources.working_dir_path, "INPUT", &ind_res, stdout);
 
-    let open_core_pkg = &resources.open_core_pkg;
+    let open_core_pkg = &resources.open_core_binaries_path;
 
     if res_path == None {
         let path;
@@ -279,6 +285,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                         parent,
                         &resources.dortania,
                         &settings.build_type,
+                        &0,
                         stdout,
                     )
                     .unwrap();
@@ -302,6 +309,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                         parent,
                         &resources.acidanthera,
                         &settings.build_type,
+                        &0,
                         stdout,
                     )
                     .unwrap();
@@ -320,6 +328,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                         parent,
                         &resources.other,
                         &settings.build_type,
+                        &0,
                         stdout,
                     )
                     .unwrap();
@@ -414,7 +423,8 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
     let build_type = resources.octool_config["build_type"]
         .as_str()
         .unwrap_or("release");
-    let m: HashMap<String, serde_json::Value> = serde_json::from_value(resources.dortania.to_owned()).unwrap();
+    let m: HashMap<String, serde_json::Value> =
+        serde_json::from_value(resources.dortania.to_owned()).unwrap();
     for (name, val) in m {
         write!(
             stdout,
@@ -448,10 +458,7 @@ pub fn get_res_path(
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
         .unwrap_or("");
-//    let build_type = resources.octool_config["build_type"]
-//        .as_str()
-//        .unwrap_or("release");
-    let mut path = resources.working_dir.join("INPUT").join(ind_res);
+    let mut path = resources.working_dir_path.join("INPUT").join(ind_res);
     if path.exists() {
         from_input = true;
         res_path = Some(path.clone());
@@ -462,19 +469,19 @@ pub fn get_res_path(
         match section {
             "ACPI" => {
                 path = resources
-                    .open_core_pkg
+                    .open_core_binaries_path
                     .join(resources.octool_config["acpi_path"].as_str().unwrap())
                     .join(&ind_res)
             }
             "Misc" => {
                 path = resources
-                    .open_core_pkg
+                    .open_core_binaries_path
                     .join(resources.octool_config["tools_path"].as_str().unwrap())
                     .join(&ind_res);
             }
             "UEFI" => {
                 path = resources
-                    .open_core_pkg
+                    .open_core_binaries_path
                     .join(resources.octool_config["drivers_path"].as_str().unwrap())
                     .join(&ind_res);
             }
@@ -485,16 +492,29 @@ pub fn get_res_path(
         }
     }
     if res_path == None {
-        res_path =
-            get_or_update_local_parent(parent, &resources.dortania, &settings.build_type, stdout).unwrap();
+        res_path = get_or_update_local_parent(
+            parent,
+            &resources.dortania,
+            &settings.build_type,
+            &0,
+            stdout,
+        )
+        .unwrap();
+    }
+    if res_path == None {
+        res_path = get_or_update_local_parent(
+            parent,
+            &resources.acidanthera,
+            &settings.build_type,
+            &0,
+            stdout,
+        )
+        .unwrap();
     }
     if res_path == None {
         res_path =
-            get_or_update_local_parent(parent, &resources.acidanthera, &settings.build_type, stdout).unwrap();
-    }
-    if res_path == None {
-        res_path =
-            get_or_update_local_parent(parent, &resources.other, &settings.build_type, stdout).unwrap();
+            get_or_update_local_parent(parent, &resources.other, &settings.build_type, &0, stdout)
+                .unwrap();
     }
     match res_path {
         None => None,

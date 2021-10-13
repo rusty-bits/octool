@@ -32,18 +32,24 @@ fn process(
         other: serde_json::json!(null),
         config_plist: plist::Value::Boolean(false),
         sample_plist: plist::Value::Boolean(false),
-        working_dir: env::current_dir()?,
-        open_core_pkg: PathBuf::new(),
+        working_dir_path: env::current_dir()?,
+        open_core_binaries_path: PathBuf::new(),
+        open_core_source_path: PathBuf::new(),
+        resource_ver_indexes: Default::default(),
     };
 
     init::init(&config_plist, &mut resources, settings, stdout)?;
 
-    writeln!(
+    let mut key = Key::Char('q');
+
+    if settings.build_version != "not found" {
+        writeln!(
         stdout,
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
-    stdout.flush()?;
-    let key = std::io::stdin().keys().next().unwrap().unwrap();
+        stdout.flush()?;
+        key = std::io::stdin().keys().next().unwrap().unwrap();
+    }
 
     if key != Key::Char('q') {
         draw::update_screen(settings, &resources.config_plist, stdout)?;
@@ -176,7 +182,7 @@ fn process(
                         settings.sec_num = found[found_id - 1].section;
                     }
                 }
-                Key::Char('v') | Key::Char('p') | Key::Ctrl('v') => {
+                Key::Char('p') | Key::Ctrl('v') => {
                     if edit::add_delete_value(settings, &mut resources.config_plist, true) {
                         settings.add();
                     }
@@ -218,9 +224,9 @@ fn process(
                         }
                     }
                 }
-                Key::Char('x') | Key::Char('d') => {
+                Key::Char('d') => {
                     if settings.sec_length[settings.depth] > 0 {
-                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' or '{grn}x{res}' to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
+                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
                             obj = &settings.sec_key[settings.depth],
                             yel = color::Fg(color::Yellow),
                             grn = color::Fg(color::Green),
@@ -238,7 +244,7 @@ fn process(
                         }
                     }
                 }
-                Key::Char('c') | Key::Char('y') | Key::Ctrl('c') => {
+                Key::Char('y') | Key::Ctrl('c') => {
                     let _ = edit::extract_value(settings, &mut resources.config_plist, false, true);
                 }
                 Key::Char('r') => {
@@ -393,22 +399,28 @@ fn process(
     write!(stdout, "\n\r\x1B[0J")?;
     stdout.flush()?;
 
+    println!("HashMap {:?}", resources.resource_ver_indexes);
     Ok(())
 }
 
 fn main() {
-    let current_dir = env::current_dir().unwrap();
+    let current_dir = env::current_dir().expect("Didn't find current directory");
+
     let working_dir;
     #[cfg(not(debug_assertions))]
     {
-        working_dir = env::current_exe().unwrap().parent().unwrap().to_path_buf();
+        working_dir = env::current_exe()
+            .unwrap()
+            .parent()
+            .expect("Didn't find working directory")
+            .to_path_buf();
     }
 
     #[cfg(debug_assertions)]
     {
         working_dir = current_dir.to_owned();
     }
-    env::set_current_dir(&working_dir).unwrap();
+    env::set_current_dir(&working_dir).expect("Unable to set environment");
 
     let mut setup = draw::Settings {
         config_file_name: String::new(),
@@ -421,47 +433,59 @@ fn main() {
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
+        build_version: "latest".to_string(),
+        build_version_res_index: 0,
         can_expand: false,
         find_string: Default::default(),
         modified: false,
     };
 
-    let ver = "0.2.0";
+    let ver = "0.2.1";
     let mut config_file = working_dir.join("INPUT/config.plist");
-    let args: Vec<String> = env::args().skip(1).collect();
-    for arg in args {
-        if arg.to_string().starts_with('-') {
-            for c in arg.to_string().chars() {
-                match c {
-                    'v' => {
-                        println!("\noctool v{}", ver);
-                        match res::status(
-                            "nvram",
-                            &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
-                        ) {
-                            Ok(s) => println!(
-                                "\ncurrent loaded OpenCore version\n{}",
-                                String::from_utf8_lossy(&s.stdout)
-                            ),
-                            Err(_) => (),
+    let args = env::args().skip(1).collect::<Vec<String>>();
+    let mut args = args.iter();
+    loop {
+        if let Some(arg) = args.next() {
+            //    for arg in args {
+            if arg.starts_with('-') {
+                for c in arg.chars() {
+                    match c {
+                        'o' => {
+                            let version = args.next().expect("Didn't get version option");
+                            setup.build_version = version.to_owned();
                         }
-                        std::process::exit(0);
+                        'v' => {
+                            println!("\noctool v{}", ver);
+                            match res::status(
+                                "nvram",
+                                &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
+                            ) {
+                                Ok(s) => println!(
+                                    "\ncurrent loaded OpenCore version\n{}",
+                                    String::from_utf8_lossy(&s.stdout)
+                                ),
+                                Err(_) => (),
+                            }
+                            std::process::exit(0);
+                        }
+                        'd' => setup.build_type = "debug".to_string(),
+                        'h' => {
+                            println!("SYNOPSIS\n\t./octool [options] [-o x.y.z] [config.plist]\n");
+                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-o x.y.z  select OpenCore version number\n\t-v  show version info");
+                            std::process::exit(0);
+                        }
+                        _ => (),
                     }
-                    'd' => setup.build_type = "debug".to_string(),
-                    'h' => {
-                        println!("SYNOPSIS\n\t./octool [options] [config.plist]\n");
-                        println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-v  show version info");
-                        std::process::exit(0);
-                    }
-                    _ => (),
                 }
+            } else {
+                config_file = current_dir.join(arg);
             }
         } else {
-            config_file = current_dir.join(arg);
+            break;
         }
     }
 
-    let mut stdout = stdout().into_raw_mode().unwrap();
+    let mut stdout = stdout().into_raw_mode().expect("Couldn't set stdout");
     write!(
         stdout,
         "{}{}{}",

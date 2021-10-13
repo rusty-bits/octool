@@ -21,7 +21,11 @@ pub fn build_output(
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
-    dir::copy(&resources.open_core_pkg.join("X64/EFI"), "OUTPUT", &options)?;
+    dir::copy(
+        &resources.open_core_binaries_path.join("X64/EFI"),
+        "OUTPUT",
+        &options,
+    )?;
     dir::remove("OUTPUT/EFI/OC/Drivers")?;
     dir::remove("OUTPUT/EFI/OC/Tools")?;
     fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
@@ -99,8 +103,13 @@ pub fn build_output(
             stdout,
             "\x1B[32mFound\x1B[0m OpenCanopy.efi Enabled in UEFI->Drivers\r\n"
         )?;
-        let _ =
-            get_or_update_local_parent("OcBinaryData", &resources.acidanthera, "release", stdout)?;
+        get_or_update_local_parent(
+            "OcBinaryData",
+            &resources.acidanthera,
+            "release",
+            &0,
+            stdout,
+        )?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()
             .unwrap_or("en");
@@ -232,7 +241,7 @@ fn compute_vault_plist(
     stdout.flush()?;
     let _ = status(
         &resources
-            .open_core_pkg
+            .open_core_binaries_path
             .join("Utilities/CreateVault/create_vault.sh")
             .to_str()
             .unwrap(),
@@ -240,7 +249,7 @@ fn compute_vault_plist(
     );
     let _ = status(
         &resources
-            .open_core_pkg
+            .open_core_binaries_path
             .join("Utilities/CreateVault/RsaTool")
             .to_str()
             .unwrap(),

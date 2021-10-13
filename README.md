@@ -5,10 +5,11 @@ You can build from the included source by running `cargo build --release` (if yo
 
 ## Command line options ##  
 
-./octool [options] [config.plist]  
+./octool [options] [-o x.y.z] [config.plist]  
 
 -d  use `debug` versions for EFI instead of `release` versions  
 -h  print help message  
+-o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
 -v  print version information  
 
 octool takes a path to a `config.plist` to use if desired.
@@ -93,6 +94,5 @@ Usage:
 
 ## To Do: ##  
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  
- - add the ability to choose which version of OpenCore is used, e.g. `0.7.1 0.7.2 0.7.3 0.7.4 0.7.5` etc., currently octool just uses the latest build from the Dortania builds and then falls back to the latest releases from Acidanthera for anything not included in Dortania  
  - cross compile the tool for windows/linux use, currently only built for macOS  
  - highlight if the kext/driver/etc exists in the known repos  

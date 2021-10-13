@@ -17,6 +17,8 @@ pub struct Settings {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
+    pub build_version: String,          // version of OpenCorePkg to use
+    pub build_version_res_index: usize, // index of OpenCorePkg we are using
     pub can_expand: bool,               // true if highlighted field can have children
     pub find_string: String,            // last entered search string
     pub modified: bool,                 // true if plist changed and not saved
@@ -26,20 +28,17 @@ impl Settings {
     pub fn up(&mut self) {
         if self.sec_num[self.depth] > 0 {
             self.sec_num[self.depth] -= 1;
-            //            self.sec_length[self.depth + 1] = 0;
         }
     }
     pub fn down(&mut self) {
         if self.sec_length[self.depth] > 0 {
             if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
                 self.sec_num[self.depth] += 1;
-                //                self.sec_length[self.depth + 1] = 0;
             }
         }
     }
     pub fn left(&mut self) {
         if self.depth > 0 {
-            //            self.sec_length[self.depth + 1] = 0;
             self.sec_key[self.depth].clear();
             self.depth -= 1;
         }
@@ -62,9 +61,6 @@ impl Settings {
             self.up();
         }
         self.modified = true;
-        //        if self.sec_length[self.depth] == 0 {
-        //            self.left();
-        //        }
     }
     /// return true if current selected item is a resource
     pub fn is_resource(&self) -> bool {
@@ -141,9 +137,14 @@ pub fn update_screen(
         info = info[0..17].to_string();
         info.push_str("...");
     }
+    write!(stdout,
+           "\x1b[1;{}H\x1b[2Kv{}",
+          (terminal_size().unwrap().0 - settings.build_version.len() as u16).to_string(),
+          settings.build_version,
+          ).unwrap();
     write!(
         stdout,
-        "\x1B[H\x1B[0K{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
+        "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
         color::Fg(color::Green),
         &settings.config_file_name,
         style::Underline,

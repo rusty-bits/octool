@@ -1,9 +1,12 @@
 use plist::Value;
+use std::collections::HashMap;
 use termion::{color, terminal_size};
 use termion::{raw::RawTerminal, style};
 
 use std::error::Error;
 use std::io::{Stdout, Write};
+
+use crate::res::{self, Resources};
 
 #[derive(Debug)]
 pub struct Settings {
@@ -17,11 +20,13 @@ pub struct Settings {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
-    pub build_version: String,          // version of OpenCorePkg to use
-    pub build_version_res_index: usize, // index of OpenCorePkg we are using
-    pub can_expand: bool,               // true if highlighted field can have children
-    pub find_string: String,            // last entered search string
-    pub modified: bool,                 // true if plist changed and not saved
+    pub oc_build_version: String,       // version of OpenCorePkg to use
+    pub oc_build_date: String,
+    pub oc_build_version_res_index: usize, // index of OpenCorePkg we are using
+    pub resource_ver_indexes: HashMap<String, usize>,
+    pub can_expand: bool,    // true if highlighted field can have children
+    pub find_string: String, // last entered search string
+    pub modified: bool,      // true if plist changed and not saved
 }
 
 impl Settings {
@@ -90,9 +95,10 @@ impl Settings {
 /// which is drawn last
 pub fn update_screen(
     settings: &mut Settings,
-    plist: &Value,
+    resources: &Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<(), Box<dyn Error>> {
+    let plist = &resources.config_plist;
     let rows: i32 = terminal_size().unwrap().1.into();
     settings.can_expand = false;
 
@@ -114,7 +120,17 @@ pub fn update_screen(
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
         if row < rows {
-            row += display_value(k, None, settings, list.get(k).unwrap(), stdout, i, 0).unwrap();
+            row += display_value(
+                k,
+                None,
+                settings,
+                resources,
+                list.get(k).unwrap(),
+                stdout,
+                i,
+                0,
+            )
+            .unwrap();
         }
     }
     #[cfg(debug_assertions)]
@@ -137,11 +153,13 @@ pub fn update_screen(
         info = info[0..17].to_string();
         info.push_str("...");
     }
-    write!(stdout,
-           "\x1b[1;{}H\x1b[2Kv{}",
-          (terminal_size().unwrap().0 - settings.build_version.len() as u16).to_string(),
-          settings.build_version,
-          ).unwrap();
+    write!(
+        stdout,
+        "\x1b[1;{}H\x1b[2Kv{}",
+        (terminal_size().unwrap().0 - settings.oc_build_version.len() as u16).to_string(),
+        settings.oc_build_version,
+    )
+    .unwrap();
     write!(
         stdout,
         "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
@@ -187,10 +205,11 @@ fn display_value(
     key: &String,
     key_color: Option<bool>,
     settings: &mut Settings,
+    resources: &Resources,
     plist_value: &Value,
     stdout: &mut RawTerminal<Stdout>,
     item_num: usize,
-    d: usize,
+    display_depth: usize,
 ) -> Result<i32, Box<dyn Error>> {
     let mut live_item = false;
     let mut selected_item = false;
@@ -198,13 +217,13 @@ fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
-    write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(d))?; // indent to section and clear rest of line
-    if settings.sec_num[d] == item_num {
+    write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(display_depth))?; // indent to section and clear rest of line
+    if settings.sec_num[display_depth] == item_num {
         selected_item = true;
-        settings.sec_key[d] = key.to_string();
+        settings.sec_key[display_depth] = key.to_string();
         key_style.push_str("\x1B[7m");
         // is current live item
-        if d == settings.depth {
+        if display_depth == settings.depth {
             live_item = true;
             settings.item_instructions = match plist_value {
             Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
@@ -220,12 +239,12 @@ fn display_value(
     match plist_value {
         Value::Array(v) => {
             if selected_item {
-                settings.sec_length[d + 1] = v.len();
+                settings.sec_length[display_depth + 1] = v.len();
             }
             if live_item {
                 settings.can_expand = true;
             }
-            if settings.depth > d && settings.sec_num[d] == item_num {
+            if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 pre_key = 'v';
             }
             write!(
@@ -237,12 +256,12 @@ fn display_value(
                 v.len(),
                 save_curs_pos
             )?;
-            if settings.depth > d && settings.sec_num[d] == item_num {
+            if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 if v.len() == 0 {
                     write!(
                         stdout,
                         "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
-                        "    ".repeat(d + 1),
+                        "    ".repeat(display_depth + 1),
                         save_curs_pos
                     )
                     .unwrap();
@@ -251,7 +270,16 @@ fn display_value(
                     let mut key = String::new();
                     for i in 0..v.len() {
                         let color = get_array_key(&mut key, &v[i], i);
-                        row += display_value(&key, color, settings, &v[i], stdout, i, d + 1)?;
+                        row += display_value(
+                            &key,
+                            color,
+                            settings,
+                            resources,
+                            &v[i],
+                            stdout,
+                            i,
+                            display_depth + 1,
+                        )?;
                     }
                 }
             }
@@ -299,17 +327,17 @@ fn display_value(
         }
         Value::Dictionary(v) => {
             if selected_item {
-                settings.sec_length[d + 1] = v.keys().len();
+                settings.sec_length[display_depth + 1] = v.keys().len();
             }
             if live_item {
                 settings.can_expand = true;
             }
-            if settings.depth > d && settings.sec_num[d] == item_num {
+            if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 pre_key = 'v';
             }
             write!(
                 stdout,
-                "{} {}{}{}\x1B[0m  [{}]{} ",
+                "{} {}{}{}\x1B[0m {} [{}]{} ",
                 pre_key,
                 key_style,
                 match key_color {
@@ -318,16 +346,60 @@ fn display_value(
                     None => color::Fg(color::Reset).to_string(),
                 },
                 key,
+                //                settings.resource_ver_indexes.get(key.as_str()),
+                res::res_version(settings, &resources, &key),
+/*                if let Some(parent_res) = resources.resource_list[key]["parent"].as_str() {
+                    match settings.resource_ver_indexes.get(parent_res) {
+                        Some(p_index) => {
+                            if let Some(v) =
+                                resources.dortania[parent_res]["versions"][p_index]["version"].as_str()
+                            {
+                                ver = v.to_owned();
+                            } else {
+                                ver = "".to_owned();
+                            }
+                        }
+                        None => {
+                            let mut p_index = 0;
+                            loop {
+                                if let Some(date) = resources.dortania[parent_res]["versions"][p_index]
+                                    ["date_built"]
+                                    .as_str()
+                                {
+                                    if date[..11] <= settings.oc_build_date[..11] {
+                                        settings.resource_ver_indexes.insert(parent_res.to_owned(), p_index);
+                                        if let Some(s) = resources.dortania[parent_res]["versions"][p_index]
+                                            ["version"]
+                                            .as_str()
+                                        {
+                                            ver = s.to_owned();
+                                        } else {
+                                            ver = "".to_owned();
+                                        }
+                                        break;
+                                    } else {
+                                        p_index += 1;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    &ver
+                } else {
+                    ""
+                },*/
                 v.len(),
                 save_curs_pos
             )
             .unwrap();
-            if settings.depth > d && settings.sec_num[d] == item_num {
+            if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 if v.keys().len() == 0 {
                     write!(
                         stdout,
                         "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
-                        "    ".repeat(d + 1),
+                        "    ".repeat(display_depth + 1),
                         save_curs_pos
                     )
                     .unwrap();
@@ -339,10 +411,11 @@ fn display_value(
                             &k,
                             None,
                             settings,
+                            resources,
                             v.get(&k).unwrap(),
                             stdout,
                             i,
-                            d + 1,
+                            display_depth + 1,
                         )?;
                     }
                 }

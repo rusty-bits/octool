@@ -81,5 +81,54 @@
         }
       }
     ]
+  },
+  "VoodooI2C": {
+    "versions": [
+      {
+        "version": "2.4.4",
+        "hashes": {
+          "debug": {
+            "sha256": "83cca05be19525c6e27153ac6b5f47cef8ca82cc4204757c23ffe3efc0cf0db8"
+          },
+          "release": {
+            "sha256": "4a335b0553961bdf7028a0264d50b7c8664dcfe32bccca908046b057c0997d32"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.4.4/VoodooI2C-Debug-Symbols-2.4.4.zip",
+          "release": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.4.4/VoodooI2C-2.4.4.zip"
+        }
+      }
+    ]
+  },
+  "SidecarFixup": {
+    "latestSource": "https://github.com/acidanthera/SidecarFixup",
+    "versions": [
+      {
+        "version": "1.0.2",
+        "hashes": {
+          "debug": {
+            "sha256": "847907f3ddb7d2062a5dad4c16ab1f7752b33f4b85232c6d837666d690005212"
+          },
+          "release": {
+            "sha256": "24f4a68fff83228bb9f7771f9292212dd8a4f6559b250dd7a9f4472a6d5eeba6"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-DEBUG.zip",
+          "release": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-RELEASE.zip"
+        }
+      }
+    ]
+  },
+  "OcBinaryData": {
+    "versions": [
+      {
+        "links": {
+          "debug": "https://github.com/acidanthera/OcBinaryData.git",
+          "release": "https://github.com/acidanthera/OcBinaryData.git"
+        }
+      }
+    ]
   }
 }

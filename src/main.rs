@@ -7,7 +7,7 @@ mod res;
 mod snake;
 
 use fs_extra::dir::{copy, CopyOptions};
-use std::io::{stdin, stdout, Stdout, Write};
+use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
 use termion::event::Key;
@@ -23,9 +23,8 @@ fn process(
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
-    let stdin = stdin();
     let mut resources = res::Resources {
-        acidanthera: serde_json::json!(null),
+//        acidanthera: serde_json::json!(null),
         dortania: serde_json::json!(null),
         octool_config: serde_json::json!(null),
         resource_list: serde_json::json!(null),
@@ -35,14 +34,14 @@ fn process(
         working_dir_path: env::current_dir()?,
         open_core_binaries_path: PathBuf::new(),
         open_core_source_path: PathBuf::new(),
-        resource_ver_indexes: Default::default(),
+//        resource_ver_indexes: Default::default(),
     };
 
     init::init(&config_plist, &mut resources, settings, stdout)?;
 
     let mut key = Key::Char('q');
 
-    if settings.build_version != "not found" {
+    if settings.oc_build_version != "not found" {
         writeln!(
         stdout,
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
@@ -52,11 +51,14 @@ fn process(
     }
 
     if key != Key::Char('q') {
-        draw::update_screen(settings, &resources.config_plist, stdout)?;
-        stdout.flush().unwrap();
         let mut showing_info = false;
-        for key in stdin.keys() {
-            let key = key.unwrap();
+        let mut keys = std::io::stdin().keys();
+        loop {
+            if !showing_info {
+                draw::update_screen(settings, &mut resources, stdout)?;
+                stdout.flush().unwrap();
+            }
+            let key = keys.next().unwrap().unwrap();
             match key {
                 Key::Char('q') => {
                     if showing_info {
@@ -75,7 +77,7 @@ fn process(
                     }
                 }
                 Key::Char('G') => {
-                    let build_okay = build::build_output(&settings, &resources, stdout)?;
+                    let build_okay = build::build_output(settings, &resources, stdout)?;
                     writeln!(
                         stdout,
                         "\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist\r"
@@ -382,16 +384,11 @@ fn process(
                         stdout,
                     )?;
                     showing_info = true;
-                    //                    break;
                 }
                 _ => (),
             }
             if key != Key::Char('i') && key != Key::Char(' ') && key != Key::Char('s') {
                 showing_info = false;
-            }
-            if !showing_info {
-                draw::update_screen(settings, &resources.config_plist, stdout)?;
-                stdout.flush().unwrap();
             }
         }
     }
@@ -401,7 +398,8 @@ fn process(
 
     #[cfg(debug_assertions)]
     {
-        println!("HashMap {:?}", resources.resource_ver_indexes);
+        println!("HashMap {:?}", settings.resource_ver_indexes);
+        println!("Date {}", settings.oc_build_date);
     }
 
     Ok(())
@@ -437,8 +435,10 @@ fn main() {
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
-        build_version: "latest".to_string(),
-        build_version_res_index: 0,
+        oc_build_version: "latest".to_string(),
+        oc_build_date: String::new(),
+        oc_build_version_res_index: 0,
+        resource_ver_indexes: Default::default(),
         can_expand: false,
         find_string: Default::default(),
         modified: false,
@@ -456,7 +456,7 @@ fn main() {
                     match c {
                         'o' => {
                             let version = args.next().expect("Didn't get version option");
-                            setup.build_version = version.to_owned();
+                            setup.oc_build_version = version.to_owned();
                         }
                         'v' => {
                             println!("\noctool v{}", ver);

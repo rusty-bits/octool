@@ -11,7 +11,7 @@ use termion::{color, style};
 use sha2::Digest;
 
 pub struct Resources {
-    pub acidanthera: serde_json::Value, // Acidanthera parent child json
+//    pub acidanthera: serde_json::Value, // Acidanthera parent child json
     pub dortania: serde_json::Value,    // Dortania builds config.json file
     pub octool_config: serde_json::Value, // config file for octool itself
     pub resource_list: serde_json::Value, // list linking resources to their parents
@@ -21,7 +21,7 @@ pub struct Resources {
     pub working_dir_path: PathBuf,      // location of octool and files
     pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
     pub open_core_source_path: PathBuf, // location of OpenCore source files
-    pub resource_ver_indexes: HashMap<&'static str, usize>,
+                                        //    pub resource_ver_indexes: HashMap<&'static str, usize>,
 }
 
 pub fn get_or_update_local_parent(
@@ -294,7 +294,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
             _ => write!(stdout, "{}false\x1B[0m\r\n", color::Fg(color::Red)).unwrap(),
         }
 
-        write!(
+/*        write!(
             stdout,
             "\x1B[0K\n{} in Acidanthera Releases? \x1B[0K",
             parent
@@ -317,7 +317,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
             }
             _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
         }
-
+*/
         write!(stdout, "\x1B[0K\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
@@ -418,6 +418,53 @@ fn res_exists(
     }
 }
 
+pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) -> String {
+    let mut ver = String::new();
+    if let Some(parent_res) = resources.resource_list[res]["parent"].as_str() {
+        match settings.resource_ver_indexes.get(parent_res) {
+            Some(p_index) => {
+                if let Some(v) =
+                    resources.dortania[parent_res]["versions"][p_index]["version"].as_str()
+                {
+                    ver = v.to_owned();
+                } else {
+                    ver = "".to_owned();
+                }
+            }
+            None => {
+                let mut p_index = 0;
+                loop {
+                    if let Some(date) =
+                        resources.dortania[parent_res]["versions"][p_index]["date_built"].as_str()
+                    {
+                        if date[..11] <= settings.oc_build_date[..11] {
+                            settings
+                                .resource_ver_indexes
+                                .insert(parent_res.to_owned(), p_index);
+                            if let Some(s) = resources.dortania[parent_res]["versions"][p_index]
+                                ["version"]
+                                .as_str()
+                            {
+                                ver = s.to_owned();
+                            } else {
+                                ver = "".to_owned();
+                            }
+                            break;
+                        } else {
+                            p_index += 1;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        ver
+    } else {
+        "".to_owned()
+    }
+}
+
 /// Print the Dortania and Acidanthera top level parent child
 pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
     let build_type = resources.octool_config["build_type"]
@@ -433,7 +480,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
         )
         .unwrap();
     }
-    let m: HashMap<String, serde_json::Value> =
+/*    let m: HashMap<String, serde_json::Value> =
         serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
     for (name, val) in m {
         write!(
@@ -442,7 +489,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
             name, val["versions"][0]["links"][build_type]
         )
         .unwrap();
-    }
+    }*/
 }
 
 /// this seems redundant to the `show_res_path` function, can I combine or eliminate?
@@ -496,12 +543,12 @@ pub fn get_res_path(
             parent,
             &resources.dortania,
             &settings.build_type,
-            &0,
+            &settings.resource_ver_indexes.get(parent).unwrap_or(&0),
             stdout,
         )
         .unwrap();
     }
-    if res_path == None {
+/*    if res_path == None {
         res_path = get_or_update_local_parent(
             parent,
             &resources.acidanthera,
@@ -510,7 +557,7 @@ pub fn get_res_path(
             stdout,
         )
         .unwrap();
-    }
+    }*/
     if res_path == None {
         res_path =
             get_or_update_local_parent(parent, &resources.other, &settings.build_type, &0, stdout)

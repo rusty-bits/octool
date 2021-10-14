@@ -1,5 +1,5 @@
 use crate::draw::Settings;
-use crate::res::{get_or_update_local_parent, get_res_path, status, Resources};
+use crate::res::{res_version, get_or_update_local_parent, get_res_path, status, Resources};
 
 use fs_extra::dir::{self, CopyOptions};
 use std::error::Error;
@@ -9,7 +9,7 @@ use std::path::Path;
 use termion::raw::RawTerminal;
 
 pub fn build_output(
-    settings: &Settings,
+    settings: &mut Settings,
     resources: &Resources,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
@@ -61,13 +61,14 @@ pub fn build_output(
                 if &sub == "Drivers" && res == "OpenCanopy.efi" {
                     has_open_canopy = true;
                 }
-                match get_res_path(&settings, &resources, res, &sec, stdout) {
+                res_version(settings, &resources, &res);
+                match get_res_path(&settings, &resources, &res, &sec, stdout) {
                     Some(res) => {
                         from_paths.push(res);
                     }
                     None => {
                         build_okay = false;
-                        missing_files.push(res);
+                        missing_files.push(&res);
                         write!(
                             stdout,
                             "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
@@ -105,7 +106,7 @@ pub fn build_output(
         )?;
         get_or_update_local_parent(
             "OcBinaryData",
-            &resources.acidanthera,
+            &resources.other,
             "release",
             &0,
             stdout,

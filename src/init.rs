@@ -54,12 +54,12 @@ pub fn init(
     let test_ver = resources.dortania["OpenCorePkg"]["versions"][0]["version"]
         .as_str()
         .unwrap();
-    if test_ver == &settings.build_version {
-        settings.build_version = "latest".to_owned();
+    if test_ver == &settings.oc_build_version {
+        settings.oc_build_version = "latest".to_owned();
     }
 
-    if settings.build_version == "latest" {
-        settings.build_version = resources.dortania["OpenCorePkg"]["versions"][0]["version"]
+    if settings.oc_build_version == "latest" {
+        settings.oc_build_version = resources.dortania["OpenCorePkg"]["versions"][0]["version"]
             .as_str()
             .unwrap()
             .to_owned();
@@ -77,46 +77,47 @@ pub fn init(
     } else {
         loop {
             if let Some(v) = resources.dortania["OpenCorePkg"]["versions"]
-                [settings.build_version_res_index]["version"]
+                [settings.oc_build_version_res_index]["version"]
                 .as_str()
             {
-                if v == settings.build_version {
+                if v == settings.oc_build_version {
                     break;
                 }
             } else {
                 write!(
                     stdout,
                     "Version {} of OpenCorePkg not found in repos, please check your input",
-                    settings.build_version
+                    settings.oc_build_version
                 )
                 .unwrap();
-                settings.build_version = "not found".to_owned();
+                settings.oc_build_version = "not found".to_owned();
                 return Ok(());
             }
-            settings.build_version_res_index += 1;
+            settings.oc_build_version_res_index += 1;
         }
         let mut path = "tool_config_files/OpenCorePkg-".to_owned();
-        path.push_str(&settings.build_version);
+        path.push_str(&settings.oc_build_version);
         resources.open_core_source_path = Path::new(&path).to_path_buf();
         path.push_str(".zip");
         let path = Path::new(&path).to_path_buf();
 
         let mut url = "https://github.com/acidanthera/OpenCorePkg/archive/refs/tags/".to_owned();
-        url.push_str(&settings.build_version);
+        url.push_str(&settings.oc_build_version);
         url.push_str(".zip");
-        if !path.parent().unwrap().exists() {
+        if !resources.open_core_source_path.exists() {
             res::get_file_and_unzip(&url, "", &path, stdout)?;
         }
     }
 
-    resources
+    settings
         .resource_ver_indexes
-        .insert("OpenCorePkg", settings.build_version_res_index);
+        .insert("OpenCorePkg".to_owned(), settings.oc_build_version_res_index);
+settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"][settings.oc_build_version_res_index]["date_built"].as_str().unwrap_or("").to_owned();
 
     write!(
         stdout,
         "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
-        settings.build_type, settings.build_version,
+        settings.build_type, settings.oc_build_version,
     )?;
 
     resources.config_plist = Value::from_file(&config_plist)
@@ -124,15 +125,15 @@ pub fn init(
     let sample_plist = &resources.open_core_source_path.join("Docs/Sample.plist");
     resources.sample_plist = Value::from_file(sample_plist)
         .expect(format!("Didn't find Sample.plist at {:?}", sample_plist).as_str());
-    resources.acidanthera =
-        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
+//    resources.acidanthera =
+//        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 
     write!(stdout, "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg\r\n")?;
     let path = res::get_or_update_local_parent(
         "OpenCorePkg",
         &resources.dortania,
         &settings.build_type,
-        resources.resource_ver_indexes.get("OpenCorePkg").unwrap(),
+        settings.resource_ver_indexes.get("OpenCorePkg").unwrap(),
         stdout,
     )?;
 

@@ -16,7 +16,7 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::{clear, color, cursor, style};
 
 fn process(
-    config_plist: &PathBuf,
+    config_plist: &mut PathBuf,
     current_dir: &PathBuf,
     settings: &mut draw::Settings,
     stdout: &mut RawTerminal<Stdout>,
@@ -37,7 +37,7 @@ fn process(
 //        resource_ver_indexes: Default::default(),
     };
 
-    init::init(&config_plist, &mut resources, settings, stdout)?;
+    init::init(config_plist, &mut resources, settings, stdout)?;
 
     let mut key = Key::Char('q');
 
@@ -502,21 +502,17 @@ fn main() {
     if !config_file.exists() {
         write!(
             stdout,
-            "\x1B[31mDid not find config at\x1B[0m {:?}\r\n",
+            "\x1B[31mDid not find config at\x1B[0m {:?}\r\nWill use the Sample.plist from the OpenCorePkg\r\n",
             config_file
         )
         .unwrap();
-        config_file = Path::new("tool_config_files/OpenCorePkg/Docs/Sample.plist").to_path_buf();
+        config_file = Path::new("").to_path_buf();
+    } else {
+        write!(stdout, "Using {:?}\r\n", config_file).unwrap();
     }
-    write!(
-        stdout,
-        "\x1B[32mUsing\x1B[0m {}\r\n",
-        config_file.to_str().unwrap()
-    )
-    .unwrap();
     stdout.flush().unwrap();
 
-    match process(&config_file, &current_dir, &mut setup, &mut stdout) {
+    match process(&mut config_file, &current_dir, &mut setup, &mut stdout) {
         Ok(()) => (),
         Err(e) => eprintln!("\r\n\x1B[31mERROR:\x1B[0m while processing plist: {:?}", e),
     }

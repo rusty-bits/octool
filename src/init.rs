@@ -9,7 +9,7 @@ use crate::draw::Settings;
 use crate::res::{self, Resources};
 
 pub fn init(
-    config_plist: &PathBuf,
+    config_plist: &mut PathBuf,
     resources: &mut Resources,
     settings: &mut Settings,
     stdout: &mut RawTerminal<Stdout>,
@@ -109,24 +109,29 @@ pub fn init(
         }
     }
 
-    settings
-        .resource_ver_indexes
-        .insert("OpenCorePkg".to_owned(), settings.oc_build_version_res_index);
-settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"][settings.oc_build_version_res_index]["date_built"].as_str().unwrap_or("").to_owned();
+    settings.resource_ver_indexes.insert(
+        "OpenCorePkg".to_owned(),
+        settings.oc_build_version_res_index,
+    );
+    settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"]
+        [settings.oc_build_version_res_index]["date_built"]
+        .as_str()
+        .unwrap_or("")
+        .to_owned();
 
-    write!(
-        stdout,
-        "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
-        settings.build_type, settings.oc_build_version,
-    )?;
-
-    resources.config_plist = Value::from_file(&config_plist)
-        .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
     let sample_plist = &resources.open_core_source_path.join("Docs/Sample.plist");
     resources.sample_plist = Value::from_file(sample_plist)
         .expect(format!("Didn't find Sample.plist at {:?}", sample_plist).as_str());
-//    resources.acidanthera =
-//        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
+    if !config_plist.exists() {
+        resources.config_plist = Value::from_file(sample_plist)
+            .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
+        *config_plist = sample_plist.clone();
+    } else {
+        resources.config_plist = Value::from_file(&config_plist)
+            .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
+    }
+    //    resources.acidanthera =
+    //        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 
     write!(stdout, "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg\r\n")?;
     let path = res::get_or_update_local_parent(
@@ -144,8 +149,14 @@ settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"][settings.
 
     write!(
         stdout,
-        "\n\x1B[32mValidating\x1B[0m {:?} with latest acidanthera/ocvalidate\r\n",
-        config_plist
+        "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        settings.build_type, settings.oc_build_version,
+    )?;
+
+    write!(
+        stdout,
+        "\n\x1B[32mValidating\x1B[0m {:?} with {} acidanthera/ocvalidate\r\n",
+        config_plist, settings.oc_build_version,
     )?;
     validate_plist(&config_plist, &resources, stdout)?;
 
@@ -178,24 +189,30 @@ pub fn validate_plist(
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
     let mut config_okay = true;
-    let out = res::status(
-        resources
-            .open_core_binaries_path
-            .join("Utilities/ocvalidate/ocvalidate")
-            .to_str()
-            .unwrap(),
-        &[&config_plist.to_str().unwrap()],
-    )?;
-    stdout.suspend_raw_mode()?;
-    write!(stdout, "{}\r\n", String::from_utf8(out.stdout).unwrap())?;
-    stdout.activate_raw_mode()?;
-    if out.status.code().unwrap() != 0 {
-        config_okay = false;
+    let ocvalidate_bin = resources
+        .open_core_binaries_path
+        .join("Utilities/ocvalidate/ocvalidate");
+    if ocvalidate_bin.exists() {
+        let out = res::status(
+            ocvalidate_bin.to_str().unwrap(),
+            &[&config_plist.to_str().unwrap()],
+        )?;
+        stdout.suspend_raw_mode()?;
+        write!(stdout, "{}\r\n", String::from_utf8(out.stdout).unwrap())?;
+        stdout.activate_raw_mode()?;
+        if out.status.code().unwrap() != 0 {
+            config_okay = false;
+            write!(
+                stdout,
+                "\x1B[31mERROR: Problems(s) found in config.plist!\x1B[0m\r\n"
+            )?;
+            write!(stdout, "{}\r\n", String::from_utf8(out.stderr).unwrap())?;
+        }
+    } else {
         write!(
             stdout,
-            "\x1B[31mERROR: Problems(s) found in config.plist!\x1B[0m\r\n"
+            "\r\nocvalidate not found for this version of OpenCore, skipping.\r\n"
         )?;
-        write!(stdout, "{}\r\n", String::from_utf8(out.stderr).unwrap())?;
     }
     Ok(config_okay)
 }

@@ -1,5 +1,5 @@
 use crate::draw::Settings;
-use crate::res::{res_version, get_or_update_local_parent, get_res_path, status, Resources};
+use crate::res::{get_or_update_local_parent, get_res_path, res_version, status, Resources};
 
 use fs_extra::dir::{self, CopyOptions};
 use std::error::Error;
@@ -21,8 +21,14 @@ pub fn build_output(
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
+    let in_path;
+    if resources.open_core_binaries_path.join("X64/EFI").exists() {
+        in_path = "X64/EFI";
+    } else {
+        in_path = "EFI"; // older OpenCorePkg versions
+    }
     dir::copy(
-        &resources.open_core_binaries_path.join("X64/EFI"),
+        &resources.open_core_binaries_path.join(in_path),
         "OUTPUT",
         &options,
     )?;
@@ -49,32 +55,44 @@ pub fn build_output(
             .unwrap()[&sub]
             .as_array()
             .unwrap();
+        let mut res;
         for val in enabled_resources {
-            let enabled_res = val.as_dictionary().unwrap();
-            if enabled_res["Enabled"].as_boolean().unwrap() {
-                let res = enabled_res[&pth]
-                    .as_string()
-                    .unwrap()
-                    .split('/')
-                    .next()
-                    .unwrap();
-                if &sub == "Drivers" && res == "OpenCanopy.efi" {
-                    has_open_canopy = true;
+//            write!(stdout, "{:?}\r\n", val).unwrap();
+            match val {
+                // oc 0.7.3 and above
+                plist::Value::Dictionary(d) => {
+                    if d["Enabled"].as_boolean().unwrap() {
+                        res = d[&pth].as_string().unwrap().split('/').next().unwrap();
+                    } else {
+                        continue;
+                    }
                 }
-                res_version(settings, &resources, &res);
-                match get_res_path(&settings, &resources, &res, &sec, stdout) {
-                    Some(res) => {
-                        from_paths.push(res);
+                //oc 0.7.2 and below
+                plist::Value::String(s) => {
+                    if !s.to_string().starts_with('#') {
+                        res = s.as_str();
+                    } else {
+                        continue;
                     }
-                    None => {
-                        build_okay = false;
-                        missing_files.push(&res);
-                        write!(
-                            stdout,
-                            "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
-                            res
-                        )?;
-                    }
+                }
+                _ => continue,
+            }
+            if &sub == "Drivers" && res == "OpenCanopy.efi" {
+                has_open_canopy = true;
+            }
+            res_version(settings, &resources, &res);
+            match get_res_path(&settings, &resources, &res, &sec, stdout) {
+                Some(res) => {
+                    from_paths.push(res);
+                }
+                None => {
+                    build_okay = false;
+                    missing_files.push(&res);
+                    write!(
+                        stdout,
+                        "\x1B[31mERROR: {} not found, skipping\x1B[0m\r\n",
+                        res
+                    )?;
                 }
             }
         }
@@ -104,13 +122,7 @@ pub fn build_output(
             stdout,
             "\x1B[32mFound\x1B[0m OpenCanopy.efi Enabled in UEFI->Drivers\r\n"
         )?;
-        get_or_update_local_parent(
-            "OcBinaryData",
-            &resources.other,
-            "release",
-            &0,
-            stdout,
-        )?;
+        get_or_update_local_parent("OcBinaryData", &resources.other, "release", &0, stdout)?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()
             .unwrap_or("en");

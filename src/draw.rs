@@ -105,7 +105,7 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}x{res}cut {inv}c{res}opy {inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
         inv = style::Invert,
         res = style::Reset,
         grn = color::Fg(color::Green),

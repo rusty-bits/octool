@@ -18,13 +18,13 @@ If you run octool with no path provided `./octool` will first look for a `config
 ## Here's a rundown of the current process octool uses. ##  
 
 At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the prebuilt binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
- - If it finds it locally, it updates it if needed 
- - If it doesn't find it locally, octool pulls the `build-repo` into the `tool_config_files` folder.  
+ - If it finds it locally it updates it if needed 
+ - If it doesn't find it locally octool pulls the `build-repo` into the `tool_config_files` folder.  
 
-Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg) in order to have the corresponding Sample.plist and Configuration.tex files, etc. for the version of OpenCore that you are building.  There will be placed into then `resources` folder.  Thanks to the [people of Acidanthera](https://github.com/acidanthera), and also the corresponding binaries of the OpenCorePkg from the Dortania builds (if needed) so it will have compiled tools to use while building the EFI, such as the ocvalitate and CreateVault tools.   Thanks, again [dhinakg](https://github.com/dhinakg).  
+Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg), thanks to the [people of Acidanthera](https://github.com/acidanthera), in order to have the corresponding Sample.plist and Configuration.tex files, etc. for the version of OpenCore that you are building.  They will be placed into then `resources` folder along with the corresponding binaries from the Dortania builds.  This will allow `octool` to use Acidanthera tools while building the EFI, such as the ocvalitate and CreateVault tools.   Thanks, again [dhinakg](https://github.com/dhinakg).  
 
 As a last step, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.  
-If you continue, you then enter the config.plist editor...  
+If you continue you then enter the config.plist editor...  
 ```
 Navigation: arrow keys or some standard vi keys
           'up'/'k'            jump to top of section

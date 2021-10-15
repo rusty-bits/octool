@@ -98,8 +98,8 @@ Usage:
  - `build-repo` folder - contains the `config.json` file from the Dortania builds repo with url, version, hash, date created, etc. info for the parent resources  
  - `other.json` - contains a list of additional parent resources not included in the Dortania `build--repo`  
 
-`INPUT` folder - place `config.plist` here along with other files to be included in the `OUTPUT` EFI, such as custom SSDT files, custom Drivers, custom OpenCanopy themes, etc.  
- - `octool` will not overwrite the input config.plist on save, insdead it will save a version called `modified_config.plist` in this folder so the original `config.plist` can still be used if needed  
+`INPUT` folder - place `config.plist` here along with other files to be included in the `OUTPUT EFI`, such as custom SSDT files, custom Drivers, custom OpenCanopy themes, etc.  
+ - `octool` will not overwrite the input config.plist on save, instead it will save a version called `modified_config.plist` in this folder so the original `config.plist` can still be used if needed  
  - `octool` will also automatically save a config.plist titled `last_built_config.plist` when the build command is run for easy reference to a copy of the config.plist that is in the OUTPUT/EFI folder  
 
 `OUTPUT` folder - location where `octool` will put the created `EFI` folder 

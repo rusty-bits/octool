@@ -9,7 +9,7 @@ use termion::input::TermRead;
 use termion::raw::RawTerminal;
 use termion::{style, terminal_size};
 
-use crate::draw::Settings;
+use crate::{draw::Settings, res::Resources};
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
@@ -17,6 +17,7 @@ use crate::draw::Settings;
 /// TODO: keep highlighted item on screen so it can be edited while looking at definition
 /// TODO: display info of NVRAM variables
 pub fn show_info(
+    resources: &Resources,
     settings: &Settings,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
@@ -24,7 +25,8 @@ pub fn show_info(
     let rows = terminal_size()?.1;
     let mut row = 0;
 
-    let contents = fs::read_to_string("tool_config_files/OpenCorePkg/Docs/Configuration.tex")?;
+    let tex_path = &resources.open_core_source_path.join("Docs/Configuration.tex");
+    let contents = fs::read_to_string(tex_path)?;
     let mut result = vec![];
 
     let mut sub_search = "\\subsection{".to_string();

@@ -57,7 +57,7 @@ pub fn build_output(
             .unwrap();
         let mut res;
         for val in enabled_resources {
-//            write!(stdout, "{:?}\r\n", val).unwrap();
+            //            write!(stdout, "{:?}\r\n", val).unwrap();
             match val {
                 // oc 0.7.3 and above
                 plist::Value::Dictionary(d) => {
@@ -122,7 +122,14 @@ pub fn build_output(
             stdout,
             "\x1B[32mFound\x1B[0m OpenCanopy.efi Enabled in UEFI->Drivers\r\n"
         )?;
-        get_or_update_local_parent("OcBinaryData", &resources.other, "release", &0, stdout)?;
+        get_or_update_local_parent(
+            "OcBinaryData",
+            &resources.other,
+            "release",
+            &0,
+            true,
+            stdout,
+        )?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()
             .unwrap_or("en");

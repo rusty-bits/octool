@@ -95,7 +95,7 @@ pub fn init(
             }
             settings.oc_build_version_res_index += 1;
         }
-        let mut path = "tool_config_files/OpenCorePkg-".to_owned();
+        let mut path = "resources/OpenCorePkg-".to_owned();
         path.push_str(&settings.oc_build_version);
         resources.open_core_source_path = Path::new(&path).to_path_buf();
         path.push_str(".zip");
@@ -104,8 +104,18 @@ pub fn init(
         let mut url = "https://github.com/acidanthera/OpenCorePkg/archive/refs/tags/".to_owned();
         url.push_str(&settings.oc_build_version);
         url.push_str(".zip");
+        write!(stdout, "\x1B[32mChecking\x1B[0m OpenCorePkg {} source\r\n", settings.oc_build_version)?;
         if !resources.open_core_source_path.exists() {
+            write!(
+                stdout,
+                "\x1B[32mDownloading\x1B[0m OpenCorePkg {} source from Acidanthera ... ",
+                settings.oc_build_version
+            )?;
+            stdout.flush()?;
             res::get_file_and_unzip(&url, "", &path, stdout)?;
+            write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
+        } else {
+            write!(stdout, "Already up to date.\r\n")?;
         }
     }
 
@@ -133,12 +143,17 @@ pub fn init(
     //    resources.acidanthera =
     //        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 
-    write!(stdout, "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg\r\n")?;
+    write!(
+        stdout,
+        "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg {} binaries\r\n",
+        settings.oc_build_version
+    )?;
     let path = res::get_or_update_local_parent(
         "OpenCorePkg",
         &resources.dortania,
         &settings.build_type,
         settings.resource_ver_indexes.get("OpenCorePkg").unwrap(),
+        true,
         stdout,
     )?;
 

@@ -1,30 +1,29 @@
 octool written in Rust  
 
-A small project to help me learn the Rust language and to hopefully provide better features than the older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner)    
-You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the included `octool` binary, which I will try to keep current with the code.
+A small project to help me learn the Rust language and to hopefully provide better features than the older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
+You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the included `octool` binary, which I will try to keep current with the code.  
 
 ## Command line options ##  
 
 ./octool [options] [-o x.y.z] [config.plist]  
 
 -d  use `debug` versions for EFI instead of `release` versions  
--h  print help message  
+-h  print help/usage message  
 -o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4` instead of latest version  
--v  print version information  
+-v  print octool version information and booted OpenCore version if the var is in NVRAM  
 
 octool takes a path to a `config.plist` to use if desired.
-If you run octool with no path provided `./octool` will first look for a `config.plist` in the `INPUT` folder, if it doesn't find one there it will use the latest `OpenCorePkg/Docs/Sample.plist` file.  
+If you run octool with no path provided `./octool` will first look for a `config.plist` in the `INPUT` folder, if it doesn't find one there it will use the corresponding `OpenCorePkg/Docs/Sample.plist` file.  
 
 ## Here's a rundown of the current process octool uses. ##  
 
-At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the latest binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
- - If it finds it locally, it checks it for updates  
- - If it doesn't find it locally, octool pulls the repo into the `tool_config_files` folder.  
+At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the prebuilt binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
+ - If it finds it locally, it updates it if needed 
+ - If it doesn't find it locally, octool pulls the `build-repo` into the `tool_config_files` folder.  
 
-Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg) in order to have the latest Sample.plist and Configuration.tex files, etc.  Thanks to the [people of Acidanthera](https://github.com/acidanthera)  
+Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg) in order to have the corresponding Sample.plist and Configuration.tex files, etc. for the version of OpenCore that you are building.  There will be placed into then `resources` folder.  Thanks to the [people of Acidanthera](https://github.com/acidanthera), and also the corresponding binaries of the OpenCorePkg from the Dortania builds (if needed) so it will have compiled tools to use while building the EFI, such as the ocvalitate and CreateVault tools.   Thanks, again [dhinakg](https://github.com/dhinakg).  
 
-octool then pulls the latest build of the OpenCorePkg from the Dortania builds so it will have compiled tools to use while building the EFI, such as the ocvalitate and CreateVault tools.    
-Lastly, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.  
+As a last step, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.  
 If you continue, you then enter the config.plist editor...  
 ```
 Navigation: arrow keys or some standard vi keys
@@ -92,7 +91,22 @@ Usage:
 
 'ctrl-v' `paste` - place the last cut, copied, etc. item into the plist  
 
+## File and Folder Descriptions ##  
+`tool_config_files` folder - contains various json formatted files  
+ - `octool_config.json` - settings for octool itself  
+ - `resource_list.json` - list of resources by full name e.g. `Lilu.kext` and their parent resource  
+ - `build-repo` folder - contains the `config.json` file from the Dortania builds repo with url, version, hash, date created, etc. info for the parent resources  
+ - `other.json` - contains a list of additional parent resources not included in the Dortania `build--repo`  
+
+`INPUT` folder - place `config.plist` here along with other files to be included in the `OUTPUT` EFI, such as custom SSDT files, custom Drivers, custom OpenCanopy themes, etc.  
+ - `octool` will not overwrite the input config.plist on save, insdead it will save a version called `modified_config.plist` in this folder so the original `config.plist` can still be used if needed  
+ - `octool` will also automatically save a config.plist titled `last_built_config.plist` when the build command is run for easy reference to a copy of the config.plist that is in the OUTPUT/EFI folder  
+
+`OUTPUT` folder - location where `octool` will put the created `EFI` folder 
+
+`resources` folder - location where `octool` places the resources needed to create the `OUTPUT/EFI` folder. 
+
 ## To Do: ##  
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  
  - cross compile the tool for windows/linux use, currently only built for macOS  
- - highlight if the kext/driver/etc exists in the known repos  
+ - highlight if the kext/driver/etc exists in the known repos (currently shows the version number of the resource that will be used, maybe add some flag for resources that don't exist and need to be placed in the INPUT folder by the user)

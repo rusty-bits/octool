@@ -11,17 +11,17 @@ use termion::{color, style};
 use sha2::Digest;
 
 pub struct Resources {
-//    pub acidanthera: serde_json::Value, // Acidanthera parent child json
-    pub dortania: serde_json::Value,    // Dortania builds config.json file
+    //    pub acidanthera: serde_json::Value, // Acidanthera parent child json
+    pub dortania: serde_json::Value, // Dortania builds config.json file
     pub octool_config: serde_json::Value, // config file for octool itself
     pub resource_list: serde_json::Value, // list linking resources to their parents
-    pub other: serde_json::Value,       // list of other party parent/childs
-    pub config_plist: plist::Value,     // current active config.plist
-    pub sample_plist: plist::Value,     // latest Sample.plist
-    pub working_dir_path: PathBuf,      // location of octool and files
+    pub other: serde_json::Value,    // list of other party parent/childs
+    pub config_plist: plist::Value,  // current active config.plist
+    pub sample_plist: plist::Value,  // latest Sample.plist
+    pub working_dir_path: PathBuf,   // location of octool and files
     pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
     pub open_core_source_path: PathBuf, // location of OpenCore source files
-                                        //    pub resource_ver_indexes: HashMap<&'static str, usize>,
+                                     //    pub resource_ver_indexes: HashMap<&'static str, usize>,
 }
 
 pub fn get_or_update_local_parent(
@@ -29,6 +29,7 @@ pub fn get_or_update_local_parent(
     single_resource: &serde_json::Value,
     build_type: &str,
     build_index: &usize,
+    verbose: bool,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
     let url = single_resource[parent]["versions"][build_index]["links"][build_type]
@@ -74,9 +75,11 @@ pub fn get_or_update_local_parent(
                         grn = color::Fg(color::Green),
                     )?;
                     get_file_and_unzip(url, hash, &path, stdout)?;
-                } /*  else {
-                      write!(stdout, "Already up to date.\x1B[0K\r\n")?;
-                  }   */
+                } else {
+                    if verbose {
+                        write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                    }
+                }
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
@@ -205,13 +208,18 @@ pub fn clone_or_pull(
             path.parent().unwrap(),
             url
         )?;
+        let out_path = Path::new(path.components().next().unwrap().as_os_str());
+        if !out_path.exists() {
+            std::fs::create_dir_all(out_path)?;
+        }
         let out = status(
             "git",
             &[
                 "-c",
                 "color.ui=always",
                 "-C",
-                path.to_str().unwrap().split('/').next().unwrap(),
+                //                path.to_str().unwrap().split('/').next().unwrap(),
+                out_path.to_str().unwrap(),
                 "clone",
                 "--progress",
                 "--depth",
@@ -276,7 +284,8 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
     if parent.len() > 0 {
         write!(stdout, "\x1B[2K\r\n").unwrap();
         write!(stdout, "{} in Dortania Builds? \x1B[0K", parent).unwrap();
-        match &resources.dortania[parent]["versions"][0]["links"][&settings.build_type] {
+        let res_index = settings.resource_ver_indexes.get(parent).unwrap_or(&0);
+        match &resources.dortania[parent]["versions"][res_index]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
                 write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
@@ -285,43 +294,44 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                         parent,
                         &resources.dortania,
                         &settings.build_type,
-                        &0,
+                        res_index,
+                        false,
                         stdout,
                     )
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "{}false\x1B[0m\r\n", color::Fg(color::Red)).unwrap(),
+            _ => write!(stdout, "{}false\x1B[0m\x1b0K\r\n", color::Fg(color::Red)).unwrap(),
         }
 
-/*        write!(
-            stdout,
-            "\x1B[0K\n{} in Acidanthera Releases? \x1B[0K",
-            parent
-        )
-        .unwrap();
-        match &resources.acidanthera[parent]["versions"][0]["links"][&settings.build_type] {
-            serde_json::Value::String(url) => {
-                write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
-                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
-                if res_path == None {
-                    res_path = get_or_update_local_parent(
-                        parent,
-                        &resources.acidanthera,
-                        &settings.build_type,
-                        &0,
-                        stdout,
-                    )
-                    .unwrap();
+        /*        write!(
+                    stdout,
+                    "\x1B[0K\n{} in Acidanthera Releases? \x1B[0K",
+                    parent
+                )
+                .unwrap();
+                match &resources.acidanthera[parent]["versions"][0]["links"][&settings.build_type] {
+                    serde_json::Value::String(url) => {
+                        write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
+                        write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
+                        if res_path == None {
+                            res_path = get_or_update_local_parent(
+                                parent,
+                                &resources.acidanthera,
+                                &settings.build_type,
+                                &0,
+                                stdout,
+                            )
+                            .unwrap();
+                        }
+                    }
+                    _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
                 }
-            }
-            _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
-        }
-*/
-        write!(stdout, "\x1B[0K\n{} in other? \x1B[0K", parent).unwrap();
+        */
+        write!(stdout, "\x1B[0K\r\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
-                write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
@@ -329,6 +339,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                         &resources.other,
                         &settings.build_type,
                         &0,
+                        false,
                         stdout,
                     )
                     .unwrap();
@@ -359,7 +370,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
             .unwrap();
             write!(
                 stdout,
-                "{}\r\n",
+                "{}\x1B[0K\r\n",
                 String::from_utf8(out.stdout)
                     .unwrap()
                     .lines()
@@ -437,7 +448,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                     if let Some(date) =
                         resources.dortania[parent_res]["versions"][p_index]["date_built"].as_str()
                     {
-                        if date[..11] <= settings.oc_build_date[..11] {
+                        if date[..10] <= settings.oc_build_date[..10] {
                             settings
                                 .resource_ver_indexes
                                 .insert(parent_res.to_owned(), p_index);
@@ -480,7 +491,7 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
         )
         .unwrap();
     }
-/*    let m: HashMap<String, serde_json::Value> =
+    /*    let m: HashMap<String, serde_json::Value> =
         serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
     for (name, val) in m {
         write!(
@@ -544,11 +555,12 @@ pub fn get_res_path(
             &resources.dortania,
             &settings.build_type,
             &settings.resource_ver_indexes.get(parent).unwrap_or(&0),
+            false,
             stdout,
         )
         .unwrap();
     }
-/*    if res_path == None {
+    /*    if res_path == None {
         res_path = get_or_update_local_parent(
             parent,
             &resources.acidanthera,
@@ -559,9 +571,15 @@ pub fn get_res_path(
         .unwrap();
     }*/
     if res_path == None {
-        res_path =
-            get_or_update_local_parent(parent, &resources.other, &settings.build_type, &0, stdout)
-                .unwrap();
+        res_path = get_or_update_local_parent(
+            parent,
+            &resources.other,
+            &settings.build_type,
+            &0,
+            false,
+            stdout,
+        )
+        .unwrap();
     }
     match res_path {
         None => None,

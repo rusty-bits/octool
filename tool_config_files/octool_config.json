@@ -9,7 +9,7 @@
 
   "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
   "opencorepkg_branch": "master",
-  "opencorepkg_path": "tool_config_files/OpenCorePkg/.git",
+  "opencorepkg_path": "resources/OpenCorePkg/.git",
 
   "canopy_language": "en",
   "global_audio_files": [

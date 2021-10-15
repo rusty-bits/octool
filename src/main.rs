@@ -350,7 +350,7 @@ fn process(
                             let _ = res::show_res_path(&resources, &settings, stdout);
                             showing_info = true;
                         } else {
-                            showing_info = parse_tex::show_info(&settings, stdout)?;
+                            showing_info = parse_tex::show_info(&resources, &settings, stdout)?;
                         }
                         write!(stdout, "{}\x1B[0K", "_".repeat(70))?;
                         stdout.flush()?;
@@ -399,7 +399,7 @@ fn process(
     #[cfg(debug_assertions)]
     {
         println!("HashMap {:?}", settings.resource_ver_indexes);
-        println!("Date {}", settings.oc_build_date);
+        println!("Date {}", settings.oc_build_date[0..10].to_string());
     }
 
     Ok(())

@@ -30,7 +30,7 @@ pub fn init(
     //load dortania build_repo package
     write!(
         stdout,
-        "\n\x1B[32mChecking local\x1B[0m dortania/build_repo/config.json\r\n"
+        "\n\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -86,7 +86,7 @@ pub fn init(
             } else {
                 write!(
                     stdout,
-                    "Version {} of OpenCorePkg not found in repos, please check your input",
+                    "\r\n\x1b[33mERROR:\x1b[0m Version \x1b[32m{}\x1b[0m of OpenCorePkg not found in repos, please check your input\r\n\ne.g. './octool -o \x1b[4m0.7.4\x1b[0m'\n",
                     settings.oc_build_version
                 )
                 .unwrap();
@@ -104,7 +104,11 @@ pub fn init(
         let mut url = "https://github.com/acidanthera/OpenCorePkg/archive/refs/tags/".to_owned();
         url.push_str(&settings.oc_build_version);
         url.push_str(".zip");
-        write!(stdout, "\x1B[32mChecking\x1B[0m OpenCorePkg {} source\r\n", settings.oc_build_version)?;
+        write!(
+            stdout,
+            "\x1B[32mChecking\x1B[0m OpenCorePkg {} source\r\n",
+            settings.oc_build_version
+        )?;
         if !resources.open_core_source_path.exists() {
             write!(
                 stdout,
@@ -164,7 +168,7 @@ pub fn init(
 
     write!(
         stdout,
-        "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        "\r\n\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
         settings.build_type, settings.oc_build_version,
     )?;
 

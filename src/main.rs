@@ -24,7 +24,7 @@ fn process(
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
     let mut resources = res::Resources {
-//        acidanthera: serde_json::json!(null),
+        //        acidanthera: serde_json::json!(null),
         dortania: serde_json::json!(null),
         octool_config: serde_json::json!(null),
         resource_list: serde_json::json!(null),
@@ -34,7 +34,7 @@ fn process(
         working_dir_path: env::current_dir()?,
         open_core_binaries_path: PathBuf::new(),
         open_core_source_path: PathBuf::new(),
-//        resource_ver_indexes: Default::default(),
+        //        resource_ver_indexes: Default::default(),
     };
 
     init::init(config_plist, &mut resources, settings, stdout)?;
@@ -398,8 +398,7 @@ fn process(
 
     #[cfg(debug_assertions)]
     {
-        println!("HashMap {:?}", settings.resource_ver_indexes);
-        println!("Date {}", settings.oc_build_date[0..10].to_string());
+        println!("debug:   HashMap {:?}", settings.resource_ver_indexes);
     }
 
     Ok(())
@@ -444,7 +443,7 @@ fn main() {
         modified: false,
     };
 
-    let ver = "0.2.1";
+    let ver = "0.3.0";
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();
@@ -454,10 +453,16 @@ fn main() {
             if arg.starts_with('-') {
                 for c in arg.chars() {
                     match c {
-                        'o' => {
-                            let version = args.next().expect("Didn't get version option");
-                            setup.oc_build_version = version.to_owned();
-                        }
+                        'o' => match args.next() {
+                            Some(version) => setup.oc_build_version = version.to_owned(),
+                            _ => {
+                                println!(
+                                    "\n\x1B[33mERROR:\x1b[0m You need to supply a version number with the -o option\n"
+                                );
+                                println!("e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\n");
+                                std::process::exit(0);
+                            }
+                        },
                         'v' => {
                             println!("\noctool v{}", ver);
                             match res::status(

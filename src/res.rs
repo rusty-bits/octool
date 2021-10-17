@@ -301,7 +301,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "{}false\x1B[0m\x1b0K\r\n", color::Fg(color::Red)).unwrap(),
+            _ => write!(stdout, "{}false\x1B[0m\x1b[0K\r\n", color::Fg(color::Red)).unwrap(),
         }
 
         /*        write!(

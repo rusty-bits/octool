@@ -578,22 +578,24 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut RawTermi
                 if hex_val.contains(' ') {
                     hex_val = hex_val.split(" ").next().unwrap().trim().to_owned();
                 }
-                let dec_val = i64::from_str_radix(&hex_val[2..], 16).unwrap();
-                if dec_val & new_int == dec_val {
-                    write!(stdout, "\x1b[32m").unwrap();
-                    if hit_space && i == selected {
-                        new_int -= dec_val;
-                        new = new_int.to_string();
-                        hit_space = false;
-                        write!(stdout, "\x1b[31m").unwrap();
-                    }
-                } else {
-                    write!(stdout, "\x1b[31m").unwrap();
-                    if hit_space && i == selected {
-                        new_int += dec_val;
-                        new = new_int.to_string();
-                        hit_space = false;
+                if hex_val.len() > 2 && &hex_val[..2] == "0x" {
+                    let dec_val = i64::from_str_radix(&hex_val[2..], 16).unwrap();
+                    if dec_val & new_int == dec_val {
                         write!(stdout, "\x1b[32m").unwrap();
+                        if hit_space && i == selected {
+                            new_int -= dec_val;
+                            new = new_int.to_string();
+                            hit_space = false;
+                            write!(stdout, "\x1b[31m").unwrap();
+                        }
+                    } else {
+                        write!(stdout, "\x1b[31m").unwrap();
+                        if hit_space && i == selected {
+                            new_int += dec_val;
+                            new = new_int.to_string();
+                            hit_space = false;
+                            write!(stdout, "\x1b[32m").unwrap();
+                        }
                     }
                 }
                 write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
@@ -661,7 +663,7 @@ fn edit_string(
     let mut selected = valid_values.len();
     if valid_values.len() > 0 {
         for (i, vals) in valid_values.iter().enumerate() {
-            if vals.contains(&new) {
+            if vals.split("---").next().unwrap().trim() == &new {
                 selected = i;
             }
         }

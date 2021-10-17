@@ -7,6 +7,7 @@ use termion::{input::TermRead, raw::RawTerminal, style};
 
 use std::{
     error::Error,
+    i64,
     io::{Stdout, Write},
 };
 
@@ -168,7 +169,8 @@ pub fn find(
         cursor::Save
     )
     .unwrap();
-    edit_string(&mut settings.find_string, stdout).unwrap();
+    let empty_vec = vec![];
+    edit_string(&mut settings.find_string, &empty_vec, stdout).unwrap();
     if settings.find_string.len() > 0 {
         let search = settings.find_string.to_lowercase();
         let resource = resource.as_dictionary().unwrap();
@@ -340,7 +342,8 @@ pub fn add_item(
         .unwrap();
         stdout.flush().unwrap();
         let mut key = String::new();
-        edit_string(&mut key, stdout).unwrap();
+        let empty_vec = vec![];
+        edit_string(&mut key, &empty_vec, stdout).unwrap();
         settings.held_key = String::from(key.trim());
         settings.held_item = Some(match item_types[selection - 1] {
             "plist array" => plist::Value::Array(vec![]),
@@ -361,6 +364,7 @@ pub fn add_item(
 pub fn edit_value(
     settings: &mut Settings,
     mut val: &mut Value,
+    valid_values: &Vec<String>,
     stdout: &mut RawTerminal<Stdout>,
     space_pressed: bool,
     edit_key: bool,
@@ -412,7 +416,7 @@ pub fn edit_value(
                 match hold {
                     Some(v) => {
                         write!(stdout, "\x1B8\r{}| \x1B7", "    ".repeat(settings.depth))?;
-                        edit_string(&mut key, stdout)?;
+                        edit_string(&mut key, valid_values, stdout)?;
                         d.insert(key.clone(), v);
                         d.sort_keys();
                         settings.sec_num[settings.depth] =
@@ -425,8 +429,8 @@ pub fn edit_value(
         }
     } else {
         match val {
-            Value::Integer(i) => edit_int(i, stdout),
-            Value::String(s) => edit_string(s, stdout)?,
+            Value::Integer(i) => edit_int(i, valid_values, stdout),
+            Value::String(s) => edit_string(s, valid_values, stdout)?,
             Value::Data(d) => edit_data(d, stdout)?,
             _ => (),
         }
@@ -555,12 +559,50 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
     Ok(())
 }
 
-fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
-    let mut new = val.to_string();
+fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut RawTerminal<Stdout>) {
+    let mut new_int = val.as_signed().unwrap();
     let mut keys = std::io::stdin().keys();
+    let mut selected = 0;
+    let mut hit_space = false;
+    let mut new = new_int.to_string();
     loop {
+        if valid_values.len() > 0 {
+            //            new_int = new.parse::<i64>().unwrap();
+            let mut hex_val;
+            write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
+            for (i, vals) in valid_values.iter().enumerate() {
+                if i == selected {
+                    write!(stdout, "\x1b[7m").unwrap();
+                }
+                hex_val = vals.split("---").next().unwrap().trim().to_owned();
+                if hex_val.contains(' ') {
+                    hex_val = hex_val.split(" ").next().unwrap().trim().to_owned();
+                }
+                let dec_val = i64::from_str_radix(&hex_val[2..], 16).unwrap();
+                if dec_val & new_int == dec_val {
+                    write!(stdout, "\x1b[32m").unwrap();
+                    if hit_space && i == selected {
+                        new_int -= dec_val;
+                        new = new_int.to_string();
+                        hit_space = false;
+                        write!(stdout, "\x1b[31m").unwrap();
+                    }
+                } else {
+                    write!(stdout, "\x1b[31m").unwrap();
+                    if hit_space && i == selected {
+                        new_int += dec_val;
+                        new = new_int.to_string();
+                        hit_space = false;
+                        write!(stdout, "\x1b[32m").unwrap();
+                    }
+                }
+                write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
+            }
+            write!(stdout, "\x1B[2K\r\n").unwrap();
+        }
         write!(stdout, "\x1B8{}\x1B[0K", new).unwrap();
         stdout.flush().unwrap();
+
         match keys.next().unwrap() {
             Ok(key) => match key {
                 Key::Char('\n') => {
@@ -574,11 +616,30 @@ fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
                     if new.len() > 0 {
                         let _ = new.pop().unwrap();
                     }
+                    if new.len() == 0 {
+                        new_int = 0;
+                    } else if &new != "-" {
+                        new_int = new.parse::<i64>().unwrap();
+                    }
                 }
-                Key::Char(c @ '0'..='9') => new.push(c),
+                Key::Char(' ') => hit_space = true,
+                Key::Char(c @ '0'..='9') => {
+                    new.push(c);
+                    new_int = new.parse::<i64>().unwrap();
+                }
                 Key::Char('-') => {
                     if new.len() == 0 {
                         new.push('-');
+                    }
+                }
+                Key::Up => {
+                    if selected > 0 {
+                        selected -= 1;
+                    }
+                }
+                Key::Down => {
+                    if selected < valid_values.len() - 1 {
+                        selected += 1;
                     }
                 }
                 Key::Esc => break,
@@ -589,11 +650,33 @@ fn edit_int(val: &mut Integer, stdout: &mut RawTerminal<Stdout>) {
     }
 }
 
-fn edit_string(val: &mut String, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
+fn edit_string(
+    val: &mut String,
+    valid_values: &Vec<String>,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
     let mut keys = std::io::stdin().keys();
+    let mut selected = valid_values.len();
+    if valid_values.len() > 0 {
+        for (i, vals) in valid_values.iter().enumerate() {
+            if vals.contains(&new) {
+                selected = i;
+            }
+        }
+    }
     loop {
+        if valid_values.len() > 0 {
+            write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
+            for (i, vals) in valid_values.iter().enumerate() {
+                if i == selected {
+                    write!(stdout, "\x1b[7m").unwrap();
+                }
+                write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
+            }
+            write!(stdout, "\x1B[2K\r\n").unwrap();
+        }
         write!(stdout, "\x1B8{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
@@ -617,6 +700,33 @@ fn edit_string(val: &mut String, stdout: &mut RawTerminal<Stdout>) -> Result<(),
                             let _ = new.remove(pos);
                         }
                     }
+                }
+                Key::Up => {
+                    if selected > 0 {
+                        selected -= 1;
+                        new = valid_values[selected]
+                            .split("---")
+                            .next()
+                            .unwrap()
+                            .trim()
+                            .to_owned();
+                        pos = new.len();
+                    }
+                }
+                Key::Down => {
+                    if selected < valid_values.len() - 1 {
+                        selected += 1;
+                    }
+                    if selected == valid_values.len() {
+                        selected = 0;
+                    }
+                    new = valid_values[selected]
+                        .split("---")
+                        .next()
+                        .unwrap()
+                        .trim()
+                        .to_owned();
+                    pos = new.len();
                 }
                 Key::Left => {
                     if pos > 0 {

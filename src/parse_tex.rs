@@ -13,19 +13,23 @@ use crate::{draw::Settings, res::Resources};
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
-/// TODO: parse tables instead of just printing &*&&&*&*&
 /// TODO: keep highlighted item on screen so it can be edited while looking at definition
 /// TODO: display info of NVRAM variables
+/// TODO: list valid values for String and Integer types from the Configuration.tex while editing
 pub fn show_info(
     resources: &Resources,
     settings: &Settings,
+    gather_valid: bool,
+    valid_values: &mut Vec<String>,
     stdout: &mut RawTerminal<Stdout>,
 ) -> Result<bool, Box<dyn Error>> {
     let mut showing_info = true;
     let rows = terminal_size()?.1;
     let mut row = 0;
 
-    let tex_path = &resources.open_core_source_path.join("Docs/Configuration.tex");
+    let tex_path = &resources
+        .open_core_source_path
+        .join("Docs/Configuration.tex");
     let contents = fs::read_to_string(tex_path)?;
     let mut result = vec![];
 
@@ -41,7 +45,9 @@ pub fn show_info(
         }
         _ => return Ok(false),
     }
-    write!(stdout, "\r-\r\n")?;
+    if !gather_valid {
+        write!(stdout, "\r-\r\n")?;
+    }
     row += 1;
 
     let mut sec_search = "\\section{".to_string();
@@ -88,8 +94,10 @@ pub fn show_info(
     }
 
     let mut itemize = 0;
+    let mut enumerate = 0;
     let mut hit_bottom = false;
     let mut columns = 0;
+    let mut lines_between_valid = 0;
 
     for line in lines {
         if line.contains("\\subsection{Introduction}") {
@@ -103,8 +111,13 @@ pub fn show_info(
             }
             continue;
         }
-        if line.contains("\\begin{item") || line.contains("\\begin{enum") {
+        // cheap hack to keep track of being in a list
+        if line.contains("\\begin{itemize}") {
             itemize += 1;
+            continue;
+        }
+        if line.contains("\\begin{enumerate}") {
+            enumerate += 1;
             continue;
         }
         if line.contains("\\begin{") {
@@ -114,98 +127,121 @@ pub fn show_info(
             columns = 0;
             continue;
         }
-        if line.contains("\\end{item") || line.contains("\\end{enum") {
+        if line.contains("\\end{itemize}") {
             itemize -= 1;
+            continue;
+        }
+        if line.contains("\\end{enumerate}") {
+            enumerate -= 1;
             continue;
         }
         if line.contains("\\end{") {
             continue;
         }
-        if line.contains("\\item") && itemize == 0 {
+        if line.contains("\\item") && (itemize == 0 && enumerate == 0) {
             break;
         }
         if line.contains("\\subsection{") || line.contains("\\section{") {
             break;
         }
-        let parsed_line = parse_line(line, columns);
-        if parsed_line.len() != 0 {
-            result.push(format!("\x1B[0K{}", parsed_line));
+        let parsed_line = parse_line(line, columns, gather_valid);
+        if gather_valid {
+            if itemize > 0 {
+                // we are inside an itemize bracket
+                if line.contains("---") {
+                    if lines_between_valid < 10 {
+                        valid_values.push(parsed_line);
+                    }
+                }
+            } else {
+                // stop gathering if there has been a big break
+                if valid_values.len() > 0 {
+                    lines_between_valid += 1;
+                }
+            }
+        } else {
+            if parsed_line.len() != 0 {
+                result.push(format!("\x1B[0K{}", parsed_line));
+            }
         }
     }
-    let mut start = 0;
-    loop {
-        for i in start..result.len() {
-            write!(stdout, "{}", result[i])?;
-            row += 1;
-            if row == rows {
-                if row == result.len() as u16 + 1 {
-                    break;
-                } else {
-                    hit_bottom = true;
-                }
-                if i == result.len() - 1 {
-                    write!(
-                        stdout,
-                        "{}END{} ... 'q' to quit\x1B[G",
-                        style::Invert,
-                        style::Reset,
-                    )?;
-                } else {
-                    write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset,)?;
-                }
-                stdout.flush()?;
-                match std::io::stdin().keys().next().unwrap().unwrap() {
-                    Key::Char('q') | Key::Char('i') | Key::Esc => {
-                        hit_bottom = false;
-                        showing_info = false;
+    if !gather_valid {
+        let mut start = 0;
+        loop {
+            for i in start..result.len() {
+                write!(stdout, "{}", result[i])?;
+                row += 1;
+                if row == rows {
+                    if row == result.len() as u16 + 1 {
                         break;
+                    } else {
+                        hit_bottom = true;
                     }
-                    Key::Down => {
-                        if i < result.len() - 1 {
-                            row -= 1;
-                            start += 1;
-                            if start > result.len() - rows as usize {
-                                start = result.len() - rows as usize;
+                    if i == result.len() - 1 {
+                        write!(
+                            stdout,
+                            "{}END{} ... 'q' to quit\x1B[G",
+                            style::Invert,
+                            style::Reset,
+                        )?;
+                    } else {
+                        write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset,)?;
+                    }
+                    stdout.flush()?;
+                    match std::io::stdin().keys().next().unwrap().unwrap() {
+                        Key::Char('q') | Key::Char('i') | Key::Esc => {
+                            hit_bottom = false;
+                            showing_info = false;
+                            break;
+                        }
+                        Key::Down => {
+                            if i < result.len() - 1 {
+                                row -= 1;
+                                start += 1;
+                                if start > result.len() - rows as usize {
+                                    start = result.len() - rows as usize;
+                                }
+                            } else {
+                                row = 0;
                             }
-                        } else {
+                        }
+                        Key::Up => {
                             row = 0;
-                        }
-                    }
-                    Key::Up => {
-                        row = 0;
-                        if start > 0 {
-                            start -= 1;
-                        }
-                        write!(stdout, "\x1B[1H")?;
-                        break;
-                    }
-                    Key::Char('b') => {
-                        if start > rows as usize {
-                            start -= rows as usize;
-                        } else {
-                            start = 0;
-                        }
-                        row = 0;
-                        write!(stdout, "\x1B[1H")?;
-                        break;
-                    }
-                    _ => {
-                        row = 0;
-                        if i < result.len() - 1 {
-                            start += rows as usize;
-                            if start > result.len() - rows as usize {
-                                start = result.len() - rows as usize;
+                            if start > 0 {
+                                start -= 1;
                             }
+                            write!(stdout, "\x1B[1H")?;
+                            break;
                         }
-                        break;
+                        Key::Char('b') => {
+                            if start > rows as usize {
+                                start -= rows as usize;
+                            } else {
+                                start = 0;
+                            }
+                            row = 0;
+                            write!(stdout, "\x1B[1H")?;
+                            break;
+                        }
+                        _ => {
+                            row = 0;
+                            if i < result.len() - 1 {
+                                start += rows as usize;
+                                if start > result.len() - rows as usize {
+                                    start = result.len() - rows as usize;
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
             }
-        }
-        if !hit_bottom {
-            break;
+            if !hit_bottom {
+                break;
+            }
         }
     }
+    //    write!(stdout, "{:?}", valid_values)?;
     stdout.flush()?;
     Ok(showing_info)
 }
@@ -213,7 +249,7 @@ pub fn show_info(
 /// Go through line 1 character at a time to apply .tex formatting
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
-fn parse_line(line: &str, columns: i32) -> String {
+fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();
@@ -230,14 +266,16 @@ fn parse_line(line: &str, columns: i32) -> String {
                 '{' => {
                     build_key = false;
                     //                    build_name = true;
-                    match key.as_str() {
-                        "textbf" => ret.push_str("\x1B[1m"),
-                        "emph" => ret.push_str("\x1B[7m"),
-                        "texttt" => ret.push_str("\x1B[4m"),
-                        "href" => ret.push_str("\x1B[34m"),
-                        "hyperlink" => build_key = true, // ignore link text
-                        _ => (),
-                    };
+                    if !gather_valid {
+                        match key.as_str() {
+                            "textbf" => ret.push_str("\x1B[1m"),
+                            "emph" => ret.push_str("\x1B[7m"),
+                            "texttt" => ret.push_str("\x1B[4m"),
+                            "href" => ret.push_str("\x1B[34m"),
+                            "hyperlink" => build_key = true, // ignore link text
+                            _ => (),
+                        };
+                    }
                     key.clear();
                 }
                 // end of key - may be special character or formatting
@@ -245,7 +283,11 @@ fn parse_line(line: &str, columns: i32) -> String {
                     build_key = false;
                     match key.as_str() {
                         "textbackslash" => ret.push('\\'),
-                        "item" => ret.push_str("• "),
+                        "item" => {
+                            if !gather_valid {
+                                ret.push_str("• ");
+                            }
+                        }
                         "" => ret.push(' '),
                         _ => (),
                     }
@@ -264,8 +306,16 @@ fn parse_line(line: &str, columns: i32) -> String {
         } else {
             match c {
                 '\\' => build_key = true,
-                '}' => ret.push_str("\x1B[0m"),
-                '{' => ret.push_str("\x1B[4m"),
+                '}' => {
+                    if !gather_valid {
+                        ret.push_str("\x1B[0m");
+                    }
+                }
+                '{' => {
+                    if !gather_valid {
+                        ret.push_str("\x1B[4m");
+                    }
+                }
                 '&' => {
                     if columns > 0 {
                         let fill = col_width - col_contents_len - 1;
@@ -285,14 +335,16 @@ fn parse_line(line: &str, columns: i32) -> String {
             }
         }
     }
-    if key == "tightlist" {
-        // ignore
-        ret.clear();
-    } else {
-        if key == "hline" {
-            ret.push_str(&"-".repeat(width as usize - 4));
+    if !gather_valid {
+        if key == "tightlist" {
+            // ignore
+            ret.clear();
+        } else {
+            if key == "hline" {
+                ret.push_str(&"-".repeat(width as usize - 4));
+            }
+            ret.push_str("\r\n");
         }
-        ret.push_str("\r\n");
     }
 
     ret

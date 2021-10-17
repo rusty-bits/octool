@@ -7,13 +7,16 @@ mod res;
 mod snake;
 
 use fs_extra::dir::{copy, CopyOptions};
-use std::io::{stdout, Stdout, Write};
+use std::io::{Stdout, Write, stdout};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::{IntoRawMode, RawTerminal};
-use termion::{clear, color, cursor, style};
+
+use termion::{
+    event::Key,
+    input::TermRead,
+    raw::{IntoRawMode, RawTerminal},
+    {clear, color, cursor, style},
+};
 
 fn process(
     config_plist: &mut PathBuf,
@@ -204,9 +207,11 @@ fn process(
                 }
                 Key::Char(' ') => {
                     if !showing_info {
+                        let empty_vec = vec![];
                         edit::edit_value(
                             settings,
                             &mut resources.config_plist,
+                            &empty_vec,
                             stdout,
                             true,
                             false,
@@ -214,10 +219,14 @@ fn process(
                     }
                 }
                 Key::Char('\n') | Key::Char('\t') => {
-                    edit::edit_value(settings, &mut resources.config_plist, stdout, false, false)?
+                    write!(stdout, "\x1b8\r\n")?;
+                    let mut valid_values = vec![];
+                    parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
+                    edit::edit_value(settings, &mut resources.config_plist, &valid_values, stdout, false, false)?
                 }
                 Key::Char('K') => {
-                    edit::edit_value(settings, &mut resources.config_plist, stdout, false, true)?
+                    let empty_vec = vec![];
+                    edit::edit_value(settings, &mut resources.config_plist, &empty_vec, stdout, false, true)?
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
                     if settings.sec_length[settings.depth] > 0 {
@@ -350,7 +359,14 @@ fn process(
                             let _ = res::show_res_path(&resources, &settings, stdout);
                             showing_info = true;
                         } else {
-                            showing_info = parse_tex::show_info(&resources, &settings, stdout)?;
+                            let mut empty_vec = vec![];
+                            showing_info = parse_tex::show_info(
+                                &resources,
+                                &settings,
+                                false,
+                                &mut empty_vec,
+                                stdout,
+                            )?;
                         }
                         write!(stdout, "{}\x1B[0K", "_".repeat(70))?;
                         stdout.flush()?;
@@ -443,7 +459,7 @@ fn main() {
         modified: false,
     };
 
-    let ver = "0.3.0";
+    let ver = "0.3.1";
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();

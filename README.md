@@ -64,7 +64,7 @@ Usage:
 
 'i' show `info` of highlighted item.  
  - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
- - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the latest [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
+ - If the highlighted item is a field of the config.plist, octool will show the relevant description and info from the corresponding [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
 
 'K' `Key` - capital K - edit the name of the highlighted key  
 

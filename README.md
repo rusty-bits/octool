@@ -37,9 +37,11 @@ Usage:
 'TAB/ENTER' will switch to edit mode for string, integer, or data fields. 'TAB' will also toggle between editing a data field as hex or as a string.  
  - 'ENTER' will save any changes made  
  - 'ESC' will discard and changes  
+ - if the selected field has valid values listed in the `Configuration.tex` file, octool will show a list that can be navigated with the up and down arrows
 
 'SPACE' will toggle a boolean value between true/false  
 - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list  
+- and will toggle binary values for fields that have bit values listed in the `Configuration.tex` file  
 
 'a' `add` - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
  - if in some other section, select a type and key name to add to the working plist  
@@ -77,7 +79,7 @@ Usage:
 'q' `quit` - if unsaved changes were made to the `config.plist` octool will show a warning and allow changes to be saved or ignored  
 
 'r' `reset` - if a single item is selected, reset its value to the same as the `Sample.plist` value  
- - if a section is highlighted, reset the whole section to the same as the `Sample.plist`  
+ - if a section is highlighted, reset the whole section to the same as the section in the `Sample.plist`  
 
 's' `save` a copy of the `config.plist` as `INPUT/modified_config.plist`  
  - `modified_` will be added to the begining of the saved file unless you are already working on a `modified_` file  

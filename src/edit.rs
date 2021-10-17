@@ -183,81 +183,85 @@ pub fn find(
                     keys: vec![key.to_owned()],
                 });
             }
-            let sub = resource.get(key).unwrap().as_dictionary().unwrap();
-            for (j, s_key) in sub.keys().enumerate() {
-                let low_key = s_key.to_lowercase();
-                if low_key.contains(&search) {
-                    found.push(Found {
-                        level: 1,
-                        section: [i, j, 0, 0, 0],
-                        keys: vec![key.to_owned(), s_key.to_owned()],
-                    });
-                }
-                let sub_sub = sub.get(s_key).unwrap();
-                match sub_sub {
-                    plist::Value::Dictionary(d) => {
-                        for (k, s_s_key) in d.keys().enumerate() {
-                            let low_key = s_s_key.to_lowercase();
-                            if low_key.contains(&search) {
-                                found.push(Found {
-                                    level: 2,
-                                    section: [i, j, k, 0, 0],
-                                    keys: vec![
-                                        key.to_owned(),
-                                        s_key.to_owned(),
-                                        s_s_key.to_owned(),
-                                    ],
-                                });
-                            }
-                            match d.get(s_s_key).unwrap() {
-                                plist::Value::Dictionary(sub_d) => {
-                                    for (l, sub_d_key) in sub_d.keys().enumerate() {
-                                        let low_key = sub_d_key.to_lowercase();
-                                        if low_key.contains(&search) {
-                                            found.push(Found {
-                                                level: 3,
-                                                section: [i, j, k, l, 0],
-                                                keys: vec![
-                                                    key.to_owned(),
-                                                    s_key.to_owned(),
-                                                    s_s_key.to_owned(),
-                                                    sub_d_key.to_owned(),
-                                                ],
-                                            });
+            match resource.get(key).unwrap().as_dictionary() {
+                Some(sub) => {
+                    for (j, s_key) in sub.keys().enumerate() {
+                        let low_key = s_key.to_lowercase();
+                        if low_key.contains(&search) {
+                            found.push(Found {
+                                level: 1,
+                                section: [i, j, 0, 0, 0],
+                                keys: vec![key.to_owned(), s_key.to_owned()],
+                            });
+                        }
+                        let sub_sub = sub.get(s_key).unwrap();
+                        match sub_sub {
+                            plist::Value::Dictionary(d) => {
+                                for (k, s_s_key) in d.keys().enumerate() {
+                                    let low_key = s_s_key.to_lowercase();
+                                    if low_key.contains(&search) {
+                                        found.push(Found {
+                                            level: 2,
+                                            section: [i, j, k, 0, 0],
+                                            keys: vec![
+                                                key.to_owned(),
+                                                s_key.to_owned(),
+                                                s_s_key.to_owned(),
+                                            ],
+                                        });
+                                    }
+                                    match d.get(s_s_key).unwrap() {
+                                        plist::Value::Dictionary(sub_d) => {
+                                            for (l, sub_d_key) in sub_d.keys().enumerate() {
+                                                let low_key = sub_d_key.to_lowercase();
+                                                if low_key.contains(&search) {
+                                                    found.push(Found {
+                                                        level: 3,
+                                                        section: [i, j, k, l, 0],
+                                                        keys: vec![
+                                                            key.to_owned(),
+                                                            s_key.to_owned(),
+                                                            s_s_key.to_owned(),
+                                                            sub_d_key.to_owned(),
+                                                        ],
+                                                    });
+                                                }
+                                            }
                                         }
+                                        _ => (),
                                     }
                                 }
-                                _ => (),
                             }
-                        }
-                    }
-                    plist::Value::Array(a) => {
-                        for (k, v) in a.iter().enumerate() {
-                            match v {
-                                plist::Value::Dictionary(d) => {
-                                    for (l, s_s_key) in d.keys().enumerate() {
-                                        let low_key = s_s_key.to_lowercase();
-                                        if low_key.contains(&search) {
-                                            found.push(Found {
-                                                level: 3,
-                                                section: [i, j, k, l, 0],
-                                                keys: vec![
-                                                    key.to_owned(),
-                                                    s_key.to_owned(),
-                                                    k.to_string(),
-                                                    s_s_key.to_owned(),
-                                                ],
-                                            });
+                            plist::Value::Array(a) => {
+                                for (k, v) in a.iter().enumerate() {
+                                    match v {
+                                        plist::Value::Dictionary(d) => {
+                                            for (l, s_s_key) in d.keys().enumerate() {
+                                                let low_key = s_s_key.to_lowercase();
+                                                if low_key.contains(&search) {
+                                                    found.push(Found {
+                                                        level: 3,
+                                                        section: [i, j, k, l, 0],
+                                                        keys: vec![
+                                                            key.to_owned(),
+                                                            s_key.to_owned(),
+                                                            k.to_string(),
+                                                            s_s_key.to_owned(),
+                                                        ],
+                                                    });
+                                                }
+                                            }
                                         }
+                                        _ => (),
                                     }
                                 }
-                                _ => (),
                             }
-                        }
-                    }
 
-                    _ => (),
+                            _ => (),
+                        }
+                    }
                 }
+                _ => (),
             }
         }
     }

@@ -137,13 +137,10 @@ pub fn init(
     resources.sample_plist = Value::from_file(sample_plist)
         .expect(format!("Didn't find Sample.plist at {:?}", sample_plist).as_str());
     if !config_plist.exists() {
-        resources.config_plist = Value::from_file(sample_plist)
-            .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
         *config_plist = sample_plist.clone();
-    } else {
-        resources.config_plist = Value::from_file(&config_plist)
-            .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
     }
+    resources.config_plist = Value::from_file(&config_plist)
+        .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
     //    resources.acidanthera =
     //        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 

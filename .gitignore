@@ -1,7 +1,7 @@
 /resources
 /target
 .DS_Store
-tool_config_files/build-repo
+tool_config_files/build-repo-builds
 INPUT/*
 !INPUT/README.md
 OUTPUT/

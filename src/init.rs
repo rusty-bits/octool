@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::io::{Stdout, Write};
+use std::io::{Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 
 use plist::Value;
@@ -37,38 +37,48 @@ pub fn init(
             .as_str()
             .unwrap(),
     );
-    if !path.exists() {
-        std::fs::create_dir_all(&path)?;
-    };
-    let url = resources.octool_config["current_dortania_config_json"]
+    let url = resources.octool_config["dortania_config_zip"]
         .as_str()
         .unwrap();
-    /*    let sum_file = path.join("sum256");
-    match File::open(&sum_file) {
-        Ok(mut sum_file) => {
-            let mut sum = String::new();
-            sum_file.read_to_string(&mut sum)?;
-            if sum != hash {
-                res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
-            } else {
-                write!(stdout, "Already up to date.\r\n")?;
+    if !path.exists() {
+        let path = path.parent().unwrap().join("builds.zip");
+        res::curl_file(&url, &path)?;
+        let z_file = std::fs::File::open(&path)?;
+        let mut z_archive = zip::ZipArchive::new(z_file)?;
+        match z_archive.extract(&path.parent().unwrap()) {
+            Ok(_) => std::fs::remove_file(&path)?,
+            Err(e) => panic!("{:?}", e),
+        }
+    } else {
+        let path = path.parent().unwrap();
+        let last_updated = resources.octool_config["dortania_last_updated"]
+            .as_str()
+            .unwrap();
+        res::curl_file(&last_updated, &path.join("last.txt"))?;
+        let mut old_file = std::fs::File::open(&path.join("build-repo-builds/last_updated.txt"))?;
+        let mut old_date = Vec::new();
+        old_file.read_to_end(&mut old_date).unwrap();
+        let mut new_file = std::fs::File::open(&path.join("last.txt"))?;
+        let mut new_date = Vec::new();
+        new_file.read_to_end(&mut new_date).unwrap();
+        std::fs::remove_file(&path.join("last.txt"))?;
+        if old_date != new_date {
+            write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
+            let path = path.join("builds.zip");
+            res::curl_file(&url, &path)?;
+            let z_file = std::fs::File::open(&path)?;
+            let mut z_archive = zip::ZipArchive::new(z_file)?;
+            match z_archive.extract(&path.parent().unwrap()) {
+                Ok(_) => std::fs::remove_file(&path)?,
+                Err(e) => panic!("{:?}", e),
             }
+            write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
+        } else {
+            write!(stdout, "Already up to date.\r\n")?;
         }
-        Err(_) => {
-            res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
-        }
-    }*/
-    res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+    };
 
     resources.dortania = res::get_serde_json(path.join("config.json").to_str().unwrap(), stdout)?;
-    //    let branch = resources.octool_config["dortania_config_branch"]
-    //        .as_str()
-    //        .unwrap();
-    //    res::clone_or_pull(url, path, branch, stdout)?;
-    //    resources.dortania = res::get_serde_json(
-    //        path.parent().unwrap().join("config.json").to_str().unwrap(),
-    //        stdout,
-    //    )?;
 
     // test if version selected is latest version, don't try to download zip of latest
     // it doesn't exist yet, clone it instead
@@ -102,14 +112,6 @@ pub fn init(
             .as_str()
             .unwrap();
         res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
-
-    //        let url = resources.octool_config["opencorepkg_url"].as_str().unwrap();
-    //        let branch = resources.octool_config["opencorepkg_branch"]
-    //            .as_str()
-    //            .unwrap();
-    //        res::clone_or_pull(url, path, branch, stdout)?;
-    //        res::get_file_and_unzip(url, "", path, stdout)?;
-    //        resources.open_core_source_path = Path::new(&path).parent().unwrap().to_path_buf();
     } else {
         loop {
             if let Some(v) = resources.dortania["OpenCorePkg"]["versions"]

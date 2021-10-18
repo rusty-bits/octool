@@ -16,3 +16,7 @@ termion = "^1"
 rand = "*"
 zip = "*"
 curl = "*"
+
+[profile.release]
+opt-level = "z"
+lto = true

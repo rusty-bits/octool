@@ -58,7 +58,6 @@ pub fn get_or_update_local_parent(
     }
     let file_name = Path::new(url).file_name().unwrap();
     let sum_file = path.join(dir).join("sum256");
-//    let git_file = path.join(dir).join(".git");
     let path = path.join(dir).join(file_name);
 
     match url.split('.').last().unwrap() {
@@ -100,12 +99,6 @@ pub fn get_or_update_local_parent(
                 _ => panic!("{}", e),
             },
         },
-/*        "git" => {
-            let branch = single_resource[parent]["branch"]
-                .as_str()
-                .unwrap_or("master");
-            clone_or_pull(url, &git_file, branch, stdout)?;
-        }*/
         _ => panic!("unknown parent type"),
     }
     Ok(Some(path))
@@ -143,15 +136,6 @@ pub fn get_file_and_unzip(
 
     curl_file(&url, &path)?;
 
-    /*    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?
-        .status
-        .code()
-        .unwrap()
-        != 0
-    {
-        panic!("failed to get {:?}", path);
-    }*/
-
     let mut z_file = File::open(path)?;
     if hash != "" {
         let mut data = Vec::new();
@@ -173,100 +157,8 @@ pub fn get_file_and_unzip(
         Ok(_) => std::fs::remove_file(&path)?,
         Err(e) => panic!("{:?}", e),
     }
-
-    /*    if status(
-        "unzip",
-        &[
-            "-o",
-            "-q",
-            path.to_str().unwrap(),
-            "-d",
-            path.parent().unwrap().to_str().unwrap(),
-        ],
-    )?
-    .status
-    .code()
-    .unwrap()
-        == 0
-    {
-        std::fs::remove_file(&path)?;
-    } else {
-        panic!("failed to unzip {:?}", path);
-    }*/
     Ok(())
 }
-
-/*
-/// If url-repo does not already exist locally, clone the repo into `path`
-/// If it already exist, do a `git pull` on it
-pub fn clone_or_pull(
-    url: &str,
-    path: &Path,
-    branch: &str,
-    stdout: &mut RawTerminal<Stdout>,
-) -> Result<(), Box<dyn Error>> {
-    if path.exists() {
-        write!(
-            stdout,
-            "\x1B[32mFound\x1B[0m {:?}, checking for updates\x1B[0K\r\n",
-            path.parent().unwrap()
-        )?;
-        let out = status(
-            "git",
-            &[
-                "-c",
-                "color.ui=always",
-                "-C",
-                path.parent().unwrap().to_str().unwrap(),
-                "pull",
-            ],
-        )?;
-
-        if out.status.code().unwrap() != 0 {
-            panic!("failed to update {:?}", path);
-        } else {
-            stdout.suspend_raw_mode()?;
-            write!(stdout, "{}\x1B[0K\r\n", String::from_utf8(out.stdout)?)?;
-            stdout.activate_raw_mode()?;
-        }
-    } else {
-        write!(
-            stdout,
-            "{:?} \x1B[33mlocal copy not found, \x1B[32mCloning\x1B[0m\x1B[0K\r\n{:?}\x1B[0K\r\n",
-            path.parent().unwrap(),
-            url
-        )?;
-        let out_path = Path::new(path.components().next().unwrap().as_os_str());
-        if !out_path.exists() {
-            std::fs::create_dir_all(out_path)?;
-        };
-        let out = status(
-            "git",
-            &[
-                "-c",
-                "color.ui=always",
-                "-C",
-                out_path.to_str().unwrap(),
-                "clone",
-                "--progress",
-                "--depth",
-                "1",
-                "--branch",
-                branch,
-                url,
-            ],
-        )?;
-
-        if out.status.code().unwrap() != 0 {
-            panic!("failed to clone {:?}", url);
-        } else {
-            stdout.suspend_raw_mode()?;
-            write!(stdout, "{}\x1B[0K", String::from_utf8(out.stderr)?)?;
-            stdout.activate_raw_mode()?;
-        }
-    };
-    Ok(())
-}*/
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
@@ -331,30 +223,6 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
             _ => write!(stdout, "{}false\x1B[0m\x1b[0K\r\n", color::Fg(color::Red)).unwrap(),
         }
 
-        /*        write!(
-                    stdout,
-                    "\x1B[0K\n{} in Acidanthera Releases? \x1B[0K",
-                    parent
-                )
-                .unwrap();
-                match &resources.acidanthera[parent]["versions"][0]["links"][&settings.build_type] {
-                    serde_json::Value::String(url) => {
-                        write!(stdout, "{}true\x1B[0K\r\n", color::Fg(color::Green)).unwrap();
-                        write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
-                        if res_path == None {
-                            res_path = get_or_update_local_parent(
-                                parent,
-                                &resources.acidanthera,
-                                &settings.build_type,
-                                &0,
-                                stdout,
-                            )
-                            .unwrap();
-                        }
-                    }
-                    _ => write!(stdout, "\x1B[31mfalse\x1B[0m\r\n").unwrap(),
-                }
-        */
         write!(stdout, "\x1B[0K\r\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
@@ -475,7 +343,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                     if let Some(date) =
                         resources.dortania[parent_res]["versions"][p_index]["date_built"].as_str()
                     {
-                        if date[..10] <= settings.oc_build_date[..10] {
+                        if settings.oc_build_version_res_index == 0 || date[..10] <= settings.oc_build_date[..10] {
                             settings
                                 .resource_ver_indexes
                                 .insert(parent_res.to_owned(), p_index);
@@ -518,16 +386,6 @@ pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
         )
         .unwrap();
     }
-    /*    let m: HashMap<String, serde_json::Value> =
-        serde_json::from_value(resources.acidanthera.to_owned()).unwrap();
-    for (name, val) in m {
-        write!(
-            stdout,
-            "name: {} {:?}\r\n",
-            name, val["versions"][0]["links"][build_type]
-        )
-        .unwrap();
-    }*/
 }
 
 /// this seems redundant to the `show_res_path` function, can I combine or eliminate?
@@ -587,16 +445,6 @@ pub fn get_res_path(
         )
         .unwrap();
     }
-    /*    if res_path == None {
-        res_path = get_or_update_local_parent(
-            parent,
-            &resources.acidanthera,
-            &settings.build_type,
-            &0,
-            stdout,
-        )
-        .unwrap();
-    }*/
     if res_path == None {
         res_path = get_or_update_local_parent(
             parent,

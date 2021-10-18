@@ -3,17 +3,12 @@
   "drivers_path": "X64/EFI/OC/Drivers",
   "tools_path": "X64/EFI/OC/Tools",
 
-  "dortania_config_url": "https://github.com/dortania/build-repo.git",
-  "dortania_config_branch": "builds",
-  "dortania_config_path": "tool_config_files/build-repo",
+  "dortania_config_path": "tool_config_files/build-repo-builds",
+  "dortania_config_json": "https://github.com/dortania/build-repo/raw/builds/config.json",
+  "dortania_config_zip": "https://github.com/dortania/build-repo/archive/refs/heads/builds.zip",
+  "dortania_last_updated": "https://raw.githubusercontent.com/dortania/build-repo/builds/last_updated.txt",
 
-  "current_dortania_config_json": "https://github.com/dortania/build-repo/raw/builds/config.json",
-  "dortania_config_json_test_hash": "006a2d077b43d59dbb39c8772dc859d7fd9843d9c420151cb11ce0465dce90f2",
-
-  "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
-  "opencorepkg_branch": "master",
   "opencorepkg_path": "resources/OpenCorePkg",
-
   "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",
   "current_sample_plist": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Sample.plist",
 

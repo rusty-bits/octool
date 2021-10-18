@@ -20,10 +20,10 @@ pub struct Settings {
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
-    pub oc_build_version: String,       // version of OpenCorePkg to use
-    pub oc_build_date: String,
-    pub oc_build_version_res_index: usize, // index of OpenCorePkg we are using
-    pub resource_ver_indexes: HashMap<String, usize>,
+    pub oc_build_version: String,       // version number of OpenCorePkg to use
+    pub oc_build_date: String,          // date binaries were built
+    pub oc_build_version_res_index: usize, // index of OpenCorePkg in config.json
+    pub resource_ver_indexes: HashMap<String, usize>, // index of other parent resources
     pub can_expand: bool,    // true if highlighted field can have children
     pub find_string: String, // last entered search string
     pub modified: bool,      // true if plist changed and not saved
@@ -347,50 +347,7 @@ fn display_value(
                     None => color::Fg(color::Reset).to_string(),
                 },
                 key,
-                //                settings.resource_ver_indexes.get(key.as_str()),
                 res::res_version(settings, &resources, &key),
-/*                if let Some(parent_res) = resources.resource_list[key]["parent"].as_str() {
-                    match settings.resource_ver_indexes.get(parent_res) {
-                        Some(p_index) => {
-                            if let Some(v) =
-                                resources.dortania[parent_res]["versions"][p_index]["version"].as_str()
-                            {
-                                ver = v.to_owned();
-                            } else {
-                                ver = "".to_owned();
-                            }
-                        }
-                        None => {
-                            let mut p_index = 0;
-                            loop {
-                                if let Some(date) = resources.dortania[parent_res]["versions"][p_index]
-                                    ["date_built"]
-                                    .as_str()
-                                {
-                                    if date[..11] <= settings.oc_build_date[..11] {
-                                        settings.resource_ver_indexes.insert(parent_res.to_owned(), p_index);
-                                        if let Some(s) = resources.dortania[parent_res]["versions"][p_index]
-                                            ["version"]
-                                            .as_str()
-                                        {
-                                            ver = s.to_owned();
-                                        } else {
-                                            ver = "".to_owned();
-                                        }
-                                        break;
-                                    } else {
-                                        p_index += 1;
-                                    }
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    &ver
-                } else {
-                    ""
-                },*/
                 v.len(),
                 save_curs_pos
             )

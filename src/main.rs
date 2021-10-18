@@ -7,7 +7,7 @@ mod res;
 mod snake;
 
 use fs_extra::dir::{copy, CopyOptions};
-use std::io::{Stdout, Write, stdout};
+use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
 
@@ -27,7 +27,6 @@ fn process(
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
     let mut resources = res::Resources {
-        //        acidanthera: serde_json::json!(null),
         dortania: serde_json::json!(null),
         octool_config: serde_json::json!(null),
         resource_list: serde_json::json!(null),
@@ -37,7 +36,6 @@ fn process(
         working_dir_path: env::current_dir()?,
         open_core_binaries_path: PathBuf::new(),
         open_core_source_path: PathBuf::new(),
-        //        resource_ver_indexes: Default::default(),
     };
 
     init::init(config_plist, &mut resources, settings, stdout)?;
@@ -109,7 +107,11 @@ fn process(
                     .unwrap();
                     resources.config_plist.to_file_xml(&save_file)?;
                     if !build_okay || !config_okay {
-                        writeln!(stdout, "\n\x1B[31mErrors occured while building OUTPUT/EFI, you should fix them before using it\x1B[0m\r")?;
+                        writeln!(
+                            stdout,
+                            "\n\x1B[31mErrors occured while building OUTPUT/EFI, \
+                                 you should fix them before using it\x1B[0m\r"
+                        )?;
                     } else {
                         writeln!(stdout, "\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m\r")?;
                         if &env::current_dir().unwrap() != current_dir {
@@ -205,6 +207,7 @@ fn process(
                 Key::End | Key::Char('b') => {
                     settings.sec_num[settings.depth] = settings.sec_length[settings.depth] - 1
                 }
+                // TODO: special check for driver section for OC 0.7.2 and earlier, uses # to enable/disable
                 Key::Char(' ') => {
                     if !showing_info {
                         let empty_vec = vec![];
@@ -222,11 +225,25 @@ fn process(
                     write!(stdout, "\x1b8\r\n")?;
                     let mut valid_values = vec![];
                     parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
-                    edit::edit_value(settings, &mut resources.config_plist, &valid_values, stdout, false, false)?
+                    edit::edit_value(
+                        settings,
+                        &mut resources.config_plist,
+                        &valid_values,
+                        stdout,
+                        false,
+                        false,
+                    )?
                 }
                 Key::Char('K') => {
                     let empty_vec = vec![];
-                    edit::edit_value(settings, &mut resources.config_plist, &empty_vec, stdout, false, true)?
+                    edit::edit_value(
+                        settings,
+                        &mut resources.config_plist,
+                        &empty_vec,
+                        stdout,
+                        false,
+                        true,
+                    )?
                 }
                 Key::Char('D') | Key::Ctrl('x') => {
                     if settings.sec_length[settings.depth] > 0 {
@@ -237,7 +254,9 @@ fn process(
                 }
                 Key::Char('d') => {
                     if settings.sec_length[settings.depth] > 0 {
-                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} back into plist{res}{clr}\r\n{clr}",
+                        write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, \
+                               any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} \
+                               back into plist{res}{clr}\r\n{clr}",
                             obj = &settings.sec_key[settings.depth],
                             yel = color::Fg(color::Yellow),
                             grn = color::Fg(color::Green),
@@ -265,7 +284,9 @@ fn process(
                             obj.push_str(&settings.sec_key[i]);
                             obj.push(' ');
                         }
-                        write!(stdout,"\r\n{und}Press{res} '{grn}r{res}' again to reset {yel}{obj}{res}to the Sample.plist values, any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
+                        write!(stdout,"\r\n{und}Press{res} '{grn}r{res}' again to reset {yel}{obj}{res}to \
+                               the Sample.plist values, any other key to cancel.{clr}\r\n{yel}You can use \
+                               '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
                             obj = &obj,
                             cur = &settings.sec_key[settings.depth],
                             yel = color::Fg(color::Yellow),
@@ -391,7 +412,12 @@ fn process(
                         config_file = tmp.to_owned();
                     }
                     let save_file = PathBuf::from("INPUT").join(&config_file);
-                    write!(stdout, "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32mValidating\x1B[0m {} with Acidanthera/ocvalidate\r\n", config_file)?;
+                    write!(
+                        stdout,
+                        "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32m\
+                           Validating\x1B[0m {} with Acidanthera/ocvalidate\r\n",
+                        config_file
+                    )?;
                     resources.config_plist.to_file_xml(&save_file)?;
                     settings.modified = false;
                     let _ = init::validate_plist(
@@ -481,6 +507,7 @@ fn main() {
                         },
                         'v' => {
                             println!("\noctool v{}", ver);
+                            // TODO: check if running on macOS
                             match res::status(
                                 "nvram",
                                 &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
@@ -496,7 +523,8 @@ fn main() {
                         'd' => setup.build_type = "debug".to_string(),
                         'h' => {
                             println!("SYNOPSIS\n\t./octool [options] [-o x.y.z] [config.plist]\n");
-                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-o x.y.z  select OpenCore version number\n\t-v  show version info");
+                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-o x.y.z  \
+                                     select OpenCore version number\n\t-v  show version info");
                             std::process::exit(0);
                         }
                         _ => (),

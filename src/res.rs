@@ -5,13 +5,16 @@ use std::fs::File;
 use std::io::{BufReader, Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
+
+use curl::easy::Easy;
 use termion::raw::RawTerminal;
 use termion::{color, style};
 
 use sha2::Digest;
 
+// TODO: much of this module needs refactoring, well, I'm learning
+// TODO: many of the functions seem redundant and need improvement, soon, lol
 pub struct Resources {
-    //    pub acidanthera: serde_json::Value, // Acidanthera parent child json
     pub dortania: serde_json::Value, // Dortania builds config.json file
     pub octool_config: serde_json::Value, // config file for octool itself
     pub resource_list: serde_json::Value, // list linking resources to their parents
@@ -21,9 +24,10 @@ pub struct Resources {
     pub working_dir_path: PathBuf,   // location of octool and files
     pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
     pub open_core_source_path: PathBuf, // location of OpenCore source files
-                                     //    pub resource_ver_indexes: HashMap<&'static str, usize>,
 }
 
+/// check if parent resource exists locally, if it does check for updates
+/// if it doesn't then retrieve it
 pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &serde_json::Value,
@@ -54,7 +58,7 @@ pub fn get_or_update_local_parent(
     }
     let file_name = Path::new(url).file_name().unwrap();
     let sum_file = path.join(dir).join("sum256");
-    let git_file = path.join(dir).join(".git");
+//    let git_file = path.join(dir).join(".git");
     let path = path.join(dir).join(file_name);
 
     match url.split('.').last().unwrap() {
@@ -96,12 +100,12 @@ pub fn get_or_update_local_parent(
                 _ => panic!("{}", e),
             },
         },
-        "git" => {
+/*        "git" => {
             let branch = single_resource[parent]["branch"]
                 .as_str()
                 .unwrap_or("master");
             clone_or_pull(url, &git_file, branch, stdout)?;
-        }
+        }*/
         _ => panic!("unknown parent type"),
     }
     Ok(Some(path))
@@ -116,6 +120,19 @@ pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
     Ok(Command::new(command).args(args).output()?)
 }
 
+pub fn curl_file(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+    let mut out_file = File::create(&path).unwrap();
+    let mut easy = Easy::new();
+    easy.url(url)?;
+    easy.follow_location(true)?;
+    easy.write_function(move |data| {
+        out_file.write_all(&data).unwrap();
+        Ok(data.len())
+    })?;
+    easy.perform()?;
+    Ok(())
+}
+
 pub fn get_file_and_unzip(
     url: &str,
     hash: &str,
@@ -124,18 +141,21 @@ pub fn get_file_and_unzip(
 ) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
-    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?
+    curl_file(&url, &path)?;
+
+    /*    if status("curl", &["-L", "-o", path.to_str().unwrap(), url])?
         .status
         .code()
         .unwrap()
         != 0
     {
         panic!("failed to get {:?}", path);
-    }
+    }*/
+
+    let mut z_file = File::open(path)?;
     if hash != "" {
-        let mut f = File::open(path)?;
         let mut data = Vec::new();
-        f.read_to_end(&mut data).unwrap();
+        z_file.read_to_end(&mut data).unwrap();
         let sum = format!("{:x}", sha2::Sha256::digest(&data));
         write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
         if sum != hash {
@@ -147,7 +167,14 @@ pub fn get_file_and_unzip(
         }
     }
 
-    if status(
+    //    let z_file = std::fs::File::open(&path).unwrap();
+    let mut z_archive = zip::ZipArchive::new(z_file)?;
+    match z_archive.extract(&path.parent().unwrap()) {
+        Ok(_) => std::fs::remove_file(&path)?,
+        Err(e) => panic!("{:?}", e),
+    }
+
+    /*    if status(
         "unzip",
         &[
             "-o",
@@ -165,10 +192,11 @@ pub fn get_file_and_unzip(
         std::fs::remove_file(&path)?;
     } else {
         panic!("failed to unzip {:?}", path);
-    }
+    }*/
     Ok(())
 }
 
+/*
 /// If url-repo does not already exist locally, clone the repo into `path`
 /// If it already exist, do a `git pull` on it
 pub fn clone_or_pull(
@@ -211,14 +239,13 @@ pub fn clone_or_pull(
         let out_path = Path::new(path.components().next().unwrap().as_os_str());
         if !out_path.exists() {
             std::fs::create_dir_all(out_path)?;
-        }
+        };
         let out = status(
             "git",
             &[
                 "-c",
                 "color.ui=always",
                 "-C",
-                //                path.to_str().unwrap().split('/').next().unwrap(),
                 out_path.to_str().unwrap(),
                 "clone",
                 "--progress",
@@ -239,7 +266,7 @@ pub fn clone_or_pull(
         }
     };
     Ok(())
-}
+}*/
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build

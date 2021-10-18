@@ -28,6 +28,10 @@ impl Found {
     }
 }
 
+/// find the current highlighted item in the given 'plist_val' plist
+/// and place it into the settings. held_item and held_key
+/// if 'first' is true get the first key of a dict or item 0 of an array
+/// if 'preserve' is true do not clear the held values to their defaults
 pub fn extract_value(
     settings: &mut Settings,
     mut plist_val: &Value,
@@ -98,6 +102,10 @@ pub fn extract_value(
     extracted
 }
 
+/// if 'add' is true,
+/// place the settings.held_item into the given 'plist_val' plist at the highlighted location
+/// if 'add' is false
+/// delete the highlighted value from the given 'plist_val' plist and place it in the settings.held_item
 pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add: bool) -> bool {
     let mut changed = false;
     for i in 0..settings.depth {
@@ -155,6 +163,10 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
     }
     changed
 }
+
+
+/// ask for a search string and give a scrollable list of locations to jump to in 'found'
+/// if only 1 result is found, jump immediately
 pub fn find(
     settings: &mut Settings,
     resource: &plist::Value,
@@ -268,6 +280,10 @@ pub fn find(
     write!(stdout, "{}", cursor::Hide).unwrap();
 }
 
+/// add an item of a user selected type to the loaded config.plist as the highlighted
+/// location.  If the highlighted location is inside a section that holds resources
+/// e.g. Kexts, Drivers, etc. then give an option to insert a blank template made from
+/// the format in the corresponding Sample.plist
 pub fn add_item(
     mut settings: &mut Settings,
     resources: &mut Resources,
@@ -365,6 +381,7 @@ pub fn add_item(
     }
 }
 
+/// edit the highlighted value in the loaded config.plist
 pub fn edit_value(
     settings: &mut Settings,
     mut val: &mut Value,

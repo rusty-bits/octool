@@ -5,11 +5,17 @@
 
   "dortania_config_url": "https://github.com/dortania/build-repo.git",
   "dortania_config_branch": "builds",
-  "dortania_config_path": "tool_config_files/build-repo/.git",
+  "dortania_config_path": "tool_config_files/build-repo",
+
+  "current_dortania_config_json": "https://github.com/dortania/build-repo/raw/builds/config.json",
+  "dortania_config_json_test_hash": "006a2d077b43d59dbb39c8772dc859d7fd9843d9c420151cb11ce0465dce90f2",
 
   "opencorepkg_url": "https://github.com/acidanthera/OpenCorePkg.git",
   "opencorepkg_branch": "master",
-  "opencorepkg_path": "resources/OpenCorePkg/.git",
+  "opencorepkg_path": "resources/OpenCorePkg",
+
+  "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",
+  "current_sample_plist": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Sample.plist",
 
   "canopy_language": "en",
   "global_audio_files": [

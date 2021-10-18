@@ -77,6 +77,7 @@ impl Settings {
             self.resource_sections.contains(&sec_sub)
         }
     }
+    /// strip resource name from full path
     pub fn res_name(&self, name: &mut String) {
         *name = self.sec_key[self.depth]
             .to_owned()

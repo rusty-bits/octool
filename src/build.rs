@@ -8,6 +8,9 @@ use std::io::{self, Stdout, Write};
 use std::path::Path;
 use termion::raw::RawTerminal;
 
+/// Create the OUTPUT/EFI from the loaded config.plist
+/// If octool is being run from a different directory then also copy the
+/// completed EFI to that location if it had no errors
 pub fn build_output(
     settings: &mut Settings,
     resources: &Resources,
@@ -32,8 +35,8 @@ pub fn build_output(
         "OUTPUT",
         &options,
     )?;
-    dir::remove("OUTPUT/EFI/OC/Drivers")?;
-    dir::remove("OUTPUT/EFI/OC/Tools")?;
+    dir::remove("OUTPUT/EFI/OC/Drivers")?; // cheap hack way of removing all drivers
+    dir::remove("OUTPUT/EFI/OC/Tools")?; // and tools from OUTPUT/EFI
     fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
     fs::create_dir_all("OUTPUT/EFI/OC/Tools")?;
     resources
@@ -178,6 +181,7 @@ pub fn build_output(
         stdout.flush()?;
     }
 
+    // TODO: need to check on OS version here, vault tools are macOS only, I think, but unsure
     match resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
         .unwrap()["Security"]

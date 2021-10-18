@@ -37,17 +37,38 @@ pub fn init(
             .as_str()
             .unwrap(),
     );
-    let url = resources.octool_config["dortania_config_url"]
+    if !path.exists() {
+        std::fs::create_dir_all(&path)?;
+    };
+    let url = resources.octool_config["current_dortania_config_json"]
         .as_str()
         .unwrap();
-    let branch = resources.octool_config["dortania_config_branch"]
-        .as_str()
-        .unwrap();
-    res::clone_or_pull(url, path, branch, stdout)?;
-    resources.dortania = res::get_serde_json(
-        path.parent().unwrap().join("config.json").to_str().unwrap(),
-        stdout,
-    )?;
+    /*    let sum_file = path.join("sum256");
+    match File::open(&sum_file) {
+        Ok(mut sum_file) => {
+            let mut sum = String::new();
+            sum_file.read_to_string(&mut sum)?;
+            if sum != hash {
+                res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+            } else {
+                write!(stdout, "Already up to date.\r\n")?;
+            }
+        }
+        Err(_) => {
+            res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+        }
+    }*/
+    res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+
+    resources.dortania = res::get_serde_json(path.join("config.json").to_str().unwrap(), stdout)?;
+    //    let branch = resources.octool_config["dortania_config_branch"]
+    //        .as_str()
+    //        .unwrap();
+    //    res::clone_or_pull(url, path, branch, stdout)?;
+    //    resources.dortania = res::get_serde_json(
+    //        path.parent().unwrap().join("config.json").to_str().unwrap(),
+    //        stdout,
+    //    )?;
 
     // test if version selected is latest version, don't try to download zip of latest
     // it doesn't exist yet, clone it instead
@@ -68,12 +89,27 @@ pub fn init(
                 .as_str()
                 .unwrap(),
         );
-        let url = resources.octool_config["opencorepkg_url"].as_str().unwrap();
-        let branch = resources.octool_config["opencorepkg_branch"]
+        resources.open_core_source_path = Path::new(&path).to_path_buf();
+        let path = path.join("Docs");
+        if !path.exists() {
+            std::fs::create_dir_all(&path)?;
+        }
+        let url = resources.octool_config["current_configuration_tex"]
             .as_str()
             .unwrap();
-        res::clone_or_pull(url, path, branch, stdout)?;
-        resources.open_core_source_path = Path::new(&path).parent().unwrap().to_path_buf();
+        res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+        let url = resources.octool_config["current_sample_plist"]
+            .as_str()
+            .unwrap();
+        res::curl_file(&url, &path.join(&url.split('/').last().unwrap()))?;
+
+    //        let url = resources.octool_config["opencorepkg_url"].as_str().unwrap();
+    //        let branch = resources.octool_config["opencorepkg_branch"]
+    //            .as_str()
+    //            .unwrap();
+    //        res::clone_or_pull(url, path, branch, stdout)?;
+    //        res::get_file_and_unzip(url, "", path, stdout)?;
+    //        resources.open_core_source_path = Path::new(&path).parent().unwrap().to_path_buf();
     } else {
         loop {
             if let Some(v) = resources.dortania["OpenCorePkg"]["versions"]
@@ -199,6 +235,9 @@ pub fn init(
     Ok(())
 }
 
+/// run loaded config.plist through the corresponding ocvalidate utility if it
+/// exists (no ocvalidate before oc 0.6.0, may be no ocvalidate available depending
+/// on what OS is currently being run)
 pub fn validate_plist(
     config_plist: &PathBuf,
     resources: &Resources,

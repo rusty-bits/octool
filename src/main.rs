@@ -485,7 +485,7 @@ fn main() {
         modified: false,
     };
 
-    let ver = "0.3.1";
+    let ver = "0.3.2";
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();

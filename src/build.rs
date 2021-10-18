@@ -125,32 +125,14 @@ pub fn build_output(
             stdout,
             "\x1B[32mFound\x1B[0m OpenCanopy.efi Enabled in UEFI->Drivers\r\n"
         )?;
-        let path = Path::new("resources/OcBinaryData-master");
-        if !path.exists() {
-            write!(stdout, "\x1b[32mDownloading\x1B[0m OcBinaryData ... ")?;
-            stdout.flush().unwrap();
-            let path = Path::new("resources/OcBinaryData-master.zip");
-
-            let url = resources.other["OcBinaryData"]["versions"][0]["links"]["release"]
-                .as_str()
-                .unwrap();
-            res::curl_file(&url, &path)?;
-            let z_file = std::fs::File::open(&path)?;
-            let mut z_archive = zip::ZipArchive::new(z_file)?;
-            match z_archive.extract(&path.parent().unwrap()) {
-                Ok(_) => std::fs::remove_file(&path)?,
-                Err(e) => panic!("{:?}", e),
-            }
-            write!(stdout, "\x1b[32mdone\x1B[0m\r\n")?;
-        }
-        /*        get_or_update_local_parent(
+        res::get_or_update_local_parent(
             "OcBinaryData",
             &resources.other,
             "release",
             &0,
             true,
             stdout,
-        )?;*/
+        )?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()
             .unwrap_or("en");
@@ -159,14 +141,14 @@ pub fn build_output(
         lang.push('_');
         let input_resources = Path::new("INPUT/Resources");
         for res in &["Audio", "Font", "Image", "Label"] {
-            let in_path = Path::new("resources/OcBinaryData-master/Resources");
+            let in_path = Path::new("resources/OcBinaryData/Resources");
             let out_path = Path::new("OUTPUT/EFI/OC/Resources");
             let mut entries = fs::read_dir(in_path.join(res))?
                 .map(|r| r.map(|p| p.path()))
                 .collect::<Result<Vec<_>, io::Error>>()?;
             if res == &"Audio" {
                 entries.retain(|p| p.to_str().unwrap().contains(&lang));
-                let f = Path::new("resources/OcBinaryData-master/Resources/Audio");
+                let f = Path::new("resources/OcBinaryData/Resources/Audio");
                 for file in resources.octool_config["global_audio_files"]
                     .as_array()
                     .unwrap()

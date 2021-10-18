@@ -51,55 +51,62 @@ pub fn get_or_update_local_parent(
             build_type, parent
         )?;
     */
-    let path = Path::new("resources");
+    let mut path = Path::new("resources").to_path_buf();
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
-    if dir.ends_with(".kext") {
-        dir = &dir[0..dir.len() - 5];
-    }
-    let file_name = Path::new(url).file_name().unwrap();
-    let sum_file = path.join(dir).join("sum256");
-    let path = path.join(dir).join(file_name);
+    if dir == "master" {
+        if !path.join(&parent).exists() {
+            get_master_and_unzip(&parent, &url, &path, stdout)?;
+        };
+        path = path.join(&parent).join(".zip");
+    } else {
+        if dir.ends_with(".kext") {
+            dir = &dir[0..dir.len() - 5];
+        }
+        let file_name = Path::new(url).file_name().unwrap();
+        let sum_file = path.join(dir).join("sum256");
+        path = path.join(dir).join(file_name);
 
-    match url.split('.').last().unwrap() {
-        "zip" => match File::open(&sum_file) {
-            Ok(mut sum_file) => {
-                let mut sum = String::new();
-                sum_file.read_to_string(&mut sum)?;
-                if sum != hash {
-                    write!(
-                        stdout,
-                        "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
-                        hash, sum
-                    )?;
-                    write!(
-                        stdout,
-                        "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
-                        yel = color::Fg(color::Yellow),
-                        grn = color::Fg(color::Green),
-                    )?;
-                    get_file_and_unzip(url, hash, &path, stdout)?;
-                } else {
-                    if verbose {
-                        write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+        match url.split('.').last().unwrap() {
+            "zip" => match File::open(&sum_file) {
+                Ok(mut sum_file) => {
+                    let mut sum = String::new();
+                    sum_file.read_to_string(&mut sum)?;
+                    if sum != hash {
+                        write!(
+                            stdout,
+                            "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                            hash, sum
+                        )?;
+                        write!(
+                            stdout,
+                            "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                            yel = color::Fg(color::Yellow),
+                            grn = color::Fg(color::Green),
+                        )?;
+                        get_file_and_unzip(url, hash, &path, stdout)?;
+                    } else {
+                        if verbose {
+                            write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                        }
                     }
                 }
-            }
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                    write!(
-                        stdout,
-                        "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
-                        dir,
-                        yel = color::Fg(color::Yellow),
-                        grn = color::Fg(color::Green),
-                    )?;
-                    write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
-                    get_file_and_unzip(url, hash, &path, stdout)?;
-                }
-                _ => panic!("{}", e),
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        write!(
+                            stdout,
+                            "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                            dir,
+                            yel = color::Fg(color::Yellow),
+                            grn = color::Fg(color::Green),
+                        )?;
+                        write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
+                        get_file_and_unzip(url, hash, &path, stdout)?;
+                    }
+                    _ => panic!("{}", e),
+                },
             },
-        },
-        _ => panic!("unknown parent type"),
+            _ => panic!("unknown parent type"),
+        }
     }
     Ok(Some(path))
 }
@@ -123,6 +130,45 @@ pub fn curl_file(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
         Ok(data.len())
     })?;
     easy.perform()?;
+    Ok(())
+}
+
+fn get_master_and_unzip(
+    parent: &str,
+    url: &str,
+    path: &Path,
+    stdout: &mut RawTerminal<Stdout>,
+) -> Result<(), Box<dyn Error>> {
+    if !path.exists() {
+        std::fs::create_dir_all(&path)?;
+    };
+
+    write!(
+        stdout,
+        "{} not found, \x1B[33mDownloading\x1b[0m ... ",
+        parent
+    )?;
+    stdout.flush()?;
+    let zip_path = path.join(&url.split('/').last().unwrap());
+
+    curl_file(&url, &zip_path)?;
+
+    let z_file = File::open(&zip_path)?;
+    //    let mut data = Vec::new();
+    //    z_file.read_to_end(&mut data).unwrap();
+
+    //    let z_file = std::fs::File::open(&path).unwrap();
+    let mut z_archive = zip::ZipArchive::new(z_file)?;
+    match z_archive.extract(&path) {
+        Ok(_) => std::fs::remove_file(&zip_path)?,
+        Err(e) => panic!("{:?}", e),
+    }
+    let mut old_name = String::from(parent);
+    old_name.push_str("-master");
+    if path.join(&old_name).exists() {
+        std::fs::rename(path.join(&old_name), path.join(&parent))?;
+    };
+    write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?;
     Ok(())
 }
 
@@ -343,7 +389,9 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                     if let Some(date) =
                         resources.dortania[parent_res]["versions"][p_index]["date_built"].as_str()
                     {
-                        if settings.oc_build_version_res_index == 0 || date[..10] <= settings.oc_build_date[..10] {
+                        if settings.oc_build_version_res_index == 0
+                            || date[..10] <= settings.oc_build_date[..10]
+                        {
                             settings
                                 .resource_ver_indexes
                                 .insert(parent_res.to_owned(), p_index);

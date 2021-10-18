@@ -41,6 +41,8 @@ pub fn init(
         .as_str()
         .unwrap();
     if !path.exists() {
+        write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
+        stdout.flush().unwrap();
         let path = path.parent().unwrap().join("builds.zip");
         res::curl_file(&url, &path)?;
         let z_file = std::fs::File::open(&path)?;
@@ -49,6 +51,7 @@ pub fn init(
             Ok(_) => std::fs::remove_file(&path)?,
             Err(e) => panic!("{:?}", e),
         }
+        write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
     } else {
         let path = path.parent().unwrap();
         let last_updated = resources.octool_config["dortania_last_updated"]
@@ -64,6 +67,7 @@ pub fn init(
         std::fs::remove_file(&path.join("last.txt"))?;
         if old_date != new_date {
             write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
+            stdout.flush().unwrap();
             let path = path.join("builds.zip");
             res::curl_file(&url, &path)?;
             let z_file = std::fs::File::open(&path)?;

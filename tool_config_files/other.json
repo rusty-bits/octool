@@ -125,8 +125,8 @@
     "versions": [
       {
         "links": {
-          "debug": "https://github.com/acidanthera/OcBinaryData.git",
-          "release": "https://github.com/acidanthera/OcBinaryData.git"
+          "debug": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip",
+          "release": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip"
         }
       }
     ]

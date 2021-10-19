@@ -20,6 +20,9 @@
   "CleanNvram.efi": {
     "parent": "OpenCorePkg"
   },
+  "ControlMsrE2.efi": {
+    "parent": "OpenCorePkg"
+  },
   "CrScreenshotDxe.efi": {
     "parent": "OpenCorePkg"
   },
@@ -27,6 +30,9 @@
     "parent": "OpenCorePkg"
   },
   "CryptoTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "CsrUtil.efi": {
     "parent": "OpenCorePkg"
   },
   "DataHubTest.efi": {
@@ -63,6 +69,9 @@
     "parent": "OpenCorePkg"
   },
   "OpenHfsPlus.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "OpenLinuxBoot.efi": {
     "parent": "OpenCorePkg"
   },
   "OpenPartitionDxe.efi": {
@@ -105,6 +114,9 @@
     "parent": "OpenCorePkg"
   },
   "SmbiosTestApp.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "TmpInfo.efi": {
     "parent": "OpenCorePkg"
   },
   "UsbMouseDxe.efi": {
@@ -284,8 +296,20 @@
   "SSDT-AWAC.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
+  "SSDT-AWAC-DISABLE.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-ALS0.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-BRG0.aml": {
+    "parent": "OpenCorePkg"
+  },
   "SSDT-CPUR.aml": {
     "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC.aml": {
+    "parent": "OpenCorePkg"
   },
   "SSDT-EC-DESKTOP.aml": {
     "parent": "Getting-Started-With-ACPI"
@@ -293,38 +317,68 @@
   "SSDT-EC-LAPTOP.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
+  "SSDT-EC-USBX.aml": {
+    "parent": "OpenCorePkg"
+  },
   "SSDT-EC-USBX-DESKTOP.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
   "SSDT-EC-USBX-LAPTOP.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
+  "SSDT-EHCx-DISABLE.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-CPU.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-PLUG.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-VMBUS.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-IMEI.aml": {
+    "parent": "OpenCorePkg"
+  },
   "SSDT-IMEI-S.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
-  "SSDT-IMEI.aml": {
-    "parent": "Getting-Started-With-ACPI"
+  "SSDT-PLUG.aml": {
+    "parent": "OpenCorePkg"
   },
   "SSDT-PLUG-DRTNIA.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
   "SSDT-PMC.aml": {
-    "parent": "Getting-Started-With-ACPI"
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-PNLF.aml": {
+    "parent": "OpenCorePkg"
   },
   "SSDT-PNLF-CFL.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
-  "SSDT-PNLF.aml": {
-    "parent": "Getting-Started-With-ACPI"
+  "SSDT-PNLFCFL.aml": {
+    "parent": "OpenCorePkg"
   },
   "SSDT-RHUB.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
+  "SSDT-RTC0.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-RTC0-RANGE.aml": {
+    "parent": "OpenCorePkg"
+  },
   "SSDT-RTC0-RANGE-HEDT.aml": {
     "parent": "Getting-Started-With-ACPI"
   },
+  "SSDT-SBUS-MCHC.aml": {
+    "parent": "OpenCorePkg"
+  },
   "SSDT-UNC.aml": {
-    "parent": "Getting-Started-With-ACPI"
+    "parent": "OpenCorePkg"
   },
   "SSDT-XOSI.aml": {
     "parent": "Getting-Started-With-ACPI"

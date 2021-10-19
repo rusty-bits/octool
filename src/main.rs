@@ -488,10 +488,6 @@ fn main() {
         modified: false,
     };
 
-    for (k, v) in env::vars() {
-        println!("{}\t{}", k, v);
-    }
-
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();

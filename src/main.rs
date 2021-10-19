@@ -450,6 +450,7 @@ fn main() {
     let current_dir = env::current_dir().expect("Didn't find current directory");
 
     let working_dir;
+    let ver;
     #[cfg(not(debug_assertions))]
     {
         working_dir = env::current_exe()
@@ -457,11 +458,13 @@ fn main() {
             .parent()
             .expect("Didn't find working directory")
             .to_path_buf();
+        ver = "0.3.2";
     }
 
     #[cfg(debug_assertions)]
     {
         working_dir = current_dir.to_owned();
+        ver = "0.3.2 d";
     }
     env::set_current_dir(&working_dir).expect("Unable to set environment");
 
@@ -485,7 +488,10 @@ fn main() {
         modified: false,
     };
 
-    let ver = "0.3.2";
+    for (k, v) in env::vars() {
+        println!("{}\t{}", k, v);
+    }
+
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();

@@ -252,7 +252,13 @@ pub fn validate_plist(
     let mut config_okay = true;
     let ocvalidate_bin = resources
         .open_core_binaries_path
-        .join("Utilities/ocvalidate/ocvalidate");
+        .join("Utilities/ocvalidate")
+        .join(match std::env::consts::OS {
+            "macos" => "ocvalidate",
+            "windows" => "ocvalidate.exe",
+            "linux" => "ocvalidate.linux",
+            _ => "ocvalidate",
+        });
     if ocvalidate_bin.exists() {
         let out = res::status(
             ocvalidate_bin.to_str().unwrap(),
@@ -272,7 +278,8 @@ pub fn validate_plist(
     } else {
         write!(
             stdout,
-            "\r\nocvalidate not found for this version of OpenCore, skipping.\r\n"
+            "\r\n{:?}\r\n\x1b[33mocvalidate utility not found, skipping.\x1b[0m\r\n",
+            ocvalidate_bin,
         )?;
     }
     Ok(config_okay)

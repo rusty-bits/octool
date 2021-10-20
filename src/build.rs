@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fs;
 use std::io::{self, Stdout, Write};
 use std::path::Path;
-use termion::raw::RawTerminal;
 
 /// Create the OUTPUT/EFI from the loaded config.plist
 /// If octool is being run from a different directory then also copy the
@@ -14,7 +13,7 @@ use termion::raw::RawTerminal;
 pub fn build_output(
     settings: &mut Settings,
     resources: &Resources,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<bool, Box<dyn Error>> {
     dir::remove("OUTPUT")?;
     fs::create_dir_all("OUTPUT/EFI")?;
@@ -259,7 +258,7 @@ pub fn build_output(
 
 fn compute_vault_plist(
     resources: &Resources,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     write!(stdout, "\x1B[32mComputing\x1B[0m vault.plist ... ")?;
     stdout.flush()?;

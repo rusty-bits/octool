@@ -4,12 +4,10 @@ use std::{
     io::{Stdout, Write},
 };
 
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::RawTerminal;
-use termion::{style, terminal_size};
+use crossterm::event::KeyCode;
+use crossterm::terminal::size;
 
-use crate::{draw::Settings, res::Resources};
+use crate::{draw::Settings, res::Resources, edit::read_key};
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
@@ -21,10 +19,10 @@ pub fn show_info(
     settings: &Settings,
     gather_valid: bool,
     valid_values: &mut Vec<String>,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<bool, Box<dyn Error>> {
     let mut showing_info = true;
-    let rows = terminal_size()?.1;
+    let rows = size()?.1;
     let mut row = 0;
 
     let tex_path = &resources
@@ -181,20 +179,20 @@ pub fn show_info(
                         write!(
                             stdout,
                             "{}END{} ... 'q' to quit\x1B[G",
-                            style::Invert,
-                            style::Reset,
+                            "\x1b[7m",
+                            "\x1b[0m",
                         )?;
                     } else {
-                        write!(stdout, "{}more{} ...\x1B[G", style::Invert, style::Reset,)?;
+                        write!(stdout, "\x1b[7mmore\x1b[0m ...\x1B[G")?;
                     }
                     stdout.flush()?;
-                    match std::io::stdin().keys().next().unwrap().unwrap() {
-                        Key::Char('q') | Key::Char('i') | Key::Esc => {
+                    match read_key().unwrap() {
+                        KeyCode::Char('q') | KeyCode::Char('i') | KeyCode::Esc => {
                             hit_bottom = false;
                             showing_info = false;
                             break;
                         }
-                        Key::Down => {
+                        KeyCode::Down => {
                             if i < result.len() - 1 {
                                 row -= 1;
                                 start += 1;
@@ -205,7 +203,7 @@ pub fn show_info(
                                 row = 0;
                             }
                         }
-                        Key::Up => {
+                        KeyCode::Up => {
                             row = 0;
                             if start > 0 {
                                 start -= 1;
@@ -213,7 +211,7 @@ pub fn show_info(
                             write!(stdout, "\x1B[1H")?;
                             break;
                         }
-                        Key::Char('b') => {
+                        KeyCode::Char('b') => {
                             if start > rows as usize {
                                 start -= rows as usize;
                             } else {
@@ -253,7 +251,7 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();
-    let width = terminal_size().unwrap().0 as i32;
+    let width = size().unwrap().0 as i32;
     let mut col_width = 0;
     if columns > 0 {
         col_width = width / (columns + 1);

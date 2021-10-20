@@ -1,14 +1,18 @@
 use crate::draw::{self, Settings};
 use crate::res::Resources;
+
 use plist::{Integer, Value};
-use termion::event::Key;
-use termion::{color, cursor};
-use termion::{input::TermRead, raw::RawTerminal, style};
 
 use std::{
     error::Error,
     i64,
     io::{Stdout, Write},
+};
+
+use crossterm::{
+    cursor,
+    event::{self, Event, KeyCode},
+    style,
 };
 
 #[derive(Debug)]
@@ -24,6 +28,14 @@ impl Found {
             level: 0,
             section: [0; 5],
             keys: vec![],
+        }
+    }
+}
+
+pub fn read_key() -> crossterm::Result<KeyCode> {
+    loop {
+        if let Event::Key(ke) = event::read()? {
+            return Ok(ke.code);
         }
     }
 }
@@ -164,21 +176,20 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
     changed
 }
 
-
 /// ask for a search string and give a scrollable list of locations to jump to in 'found'
 /// if only 1 result is found, jump immediately
 pub fn find(
     settings: &mut Settings,
     resource: &plist::Value,
     found: &mut Vec<Found>,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) {
     settings.find_string = String::new();
     write!(
         stdout,
         "{}\r\x1B[2KEnter search term: {}\r\n\x1B[2K\x1B8",
         cursor::Show,
-        cursor::Save
+        cursor::SavePosition,
     )
     .unwrap();
     let empty_vec = vec![];
@@ -284,11 +295,7 @@ pub fn find(
 /// location.  If the highlighted location is inside a section that holds resources
 /// e.g. Kexts, Drivers, etc. then give an option to insert a blank template made from
 /// the format in the corresponding Sample.plist
-pub fn add_item(
-    mut settings: &mut Settings,
-    resources: &mut Resources,
-    stdout: &mut RawTerminal<Stdout>,
-) {
+pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
     settings.modified = true;
     let mut selection = 1;
     let mut item_types = Vec::<&str>::new();
@@ -312,7 +319,7 @@ pub fn add_item(
     write!(
         stdout,
         "\r\nSelect type of item to add to plist:\x1B[0K\r\n{}",
-        cursor::Save
+        cursor::SavePosition,
     )
     .unwrap();
     loop {
@@ -325,19 +332,19 @@ pub fn add_item(
         }
         write!(stdout, "\x1B[2K").unwrap();
         stdout.flush().unwrap();
-        match std::io::stdin().keys().next().unwrap().unwrap() {
-            Key::Up => {
+        match read_key().unwrap() {
+            KeyCode::Up => {
                 if selection > 1 {
                     selection -= 1;
                 }
             }
-            Key::Down => {
+            KeyCode::Down => {
                 if selection < item_types.len() {
                     selection += 1;
                 }
             }
-            Key::Char('\n') => break,
-            Key::Esc => {
+            KeyCode::Enter => break,
+            KeyCode::Esc => {
                 selection = 0;
                 break;
             }
@@ -356,7 +363,7 @@ pub fn add_item(
             stdout,
             "Enter key for new {} item: {}{}\x1B[0K\r\n\x1B[2K",
             item_types[selection - 1],
-            cursor::Save,
+            cursor::SavePosition,
             cursor::Show
         )
         .unwrap();
@@ -386,7 +393,7 @@ pub fn edit_value(
     settings: &mut Settings,
     mut val: &mut Value,
     valid_values: &Vec<String>,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
     space_pressed: bool,
     edit_key: bool,
 ) -> Result<(), Box<dyn Error>> {
@@ -394,8 +401,8 @@ pub fn edit_value(
         stdout,
         "{}\x1B[H\x1B[0K {inv}enter{res} save changes   {inv}esc{res} cancel changes",
         cursor::Show,
-        inv = style::Invert,
-        res = style::Reset,
+        inv = style::Attribute::Reverse,
+        res = style::Attribute::Reset,
     )?;
     let mut search_depth = settings.depth + 1;
     if edit_key {
@@ -462,11 +469,11 @@ pub fn edit_value(
     Ok(())
 }
 
-fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), Box<dyn Error>> {
+fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error>> {
     let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
     let mut hexedit = true;
-    let mut keys = std::io::stdin().keys();
+//    let mut keys = std::io::stdin().keys();
     loop {
         let mut tmp_val = edit_hex.clone();
         if tmp_val.len() % 2 == 1 {
@@ -478,36 +485,36 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
             "\x1B8\x1B[G{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
             draw::hex_str_with_style(edit_hex.clone()),
             draw::get_lossy_string(&tmp_val),
-            mag = color::Fg(color::Magenta),
-            res = style::Reset,
+            mag = "\x1b[35m",
+            res = style::Attribute::Reset,
         )?;
         if hexedit {
             write!(
                 stdout,
                 "\x1B[G{}{}as hex{}\x1B8{}",
-                style::Invert,
-                color::Fg(color::Magenta),
-                style::Reset,
+                "\x1b[7m",
+                "\x1b[35m",
+                "\x1b[0m",
                 "\x1B[C".repeat(pos)
             )?;
         } else {
             write!(
                 stdout,
                 "\x1B[E{}{}as string{}\x1B8\x1B[B{}",
-                style::Invert,
-                color::Fg(color::Magenta),
-                style::Reset,
+                "\x1b[7m",
+                "\x1b[35m",
+                "\x1b[0m",
                 "\x1B[C".repeat(pos / 2)
             )
             .unwrap();
         }
         stdout.flush()?;
-        match keys.next().unwrap().unwrap() {
-            Key::Char('\n') => {
+        match read_key().unwrap() {
+            KeyCode::Enter => {
                 *val = tmp_val;
                 break;
             }
-            Key::Backspace => {
+            KeyCode::Backspace => {
                 if edit_hex.len() > 0 {
                     if pos > 0 {
                         let _ = edit_hex.remove(pos - 1);
@@ -519,7 +526,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                     }
                 }
             }
-            Key::Char('\t') | Key::Up | Key::Down => {
+            KeyCode::Tab | KeyCode::Up | KeyCode::Down => {
                 if hexedit {
                     if edit_hex.len() % 2 == 1 {
                         edit_hex.insert(0, '0');
@@ -530,7 +537,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                 }
                 hexedit = !hexedit;
             }
-            Key::Delete => {
+            KeyCode::Delete => {
                 if edit_hex.len() > 0 {
                     if pos < edit_hex.len() {
                         let _ = edit_hex.remove(pos);
@@ -540,7 +547,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                     }
                 }
             }
-            Key::Left => {
+            KeyCode::Left => {
                 if pos > 0 {
                     pos -= 1;
                     if !hexedit {
@@ -548,7 +555,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                     }
                 }
             }
-            Key::Right => {
+            KeyCode::Right => {
                 if pos < edit_hex.len() {
                     pos += 1;
                     if !hexedit {
@@ -556,7 +563,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                     }
                 }
             }
-            Key::Char(c) => {
+            KeyCode::Char(c) => {
                 if hexedit {
                     if c.is_ascii_hexdigit() {
                         edit_hex.insert(pos, c);
@@ -571,18 +578,18 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut RawTerminal<Stdout>) -> Result<(), 
                     }
                 }
             }
-            Key::Home => pos = 0,
-            Key::End => pos = edit_hex.len(),
-            Key::Esc => break,
+            KeyCode::Home => pos = 0,
+            KeyCode::End => pos = edit_hex.len(),
+            KeyCode::Esc => break,
             _ => (),
         }
     }
     Ok(())
 }
 
-fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut RawTerminal<Stdout>) {
+fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) {
     let mut new_int = val.as_signed().unwrap();
-    let mut keys = std::io::stdin().keys();
+    //    let mut keys = std::io::stdin().keys();
     let mut selected = 0;
     let mut hit_space = false;
     let mut new = new_int.to_string();
@@ -626,61 +633,58 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut RawTermi
         write!(stdout, "\x1B8{}\x1B[0K", new).unwrap();
         stdout.flush().unwrap();
 
-        match keys.next().unwrap() {
-            Ok(key) => match key {
-                Key::Char('\n') => {
-                    *val = match new.parse::<i64>() {
-                        Ok(i) => Integer::from(i),
-                        _ => Integer::from(0),
-                    };
-                    break;
+        match read_key().unwrap() {
+            KeyCode::Enter => {
+                *val = match new.parse::<i64>() {
+                    Ok(i) => Integer::from(i),
+                    _ => Integer::from(0),
+                };
+                break;
+            }
+            KeyCode::Backspace => {
+                if new.len() > 0 {
+                    let _ = new.pop().unwrap();
                 }
-                Key::Backspace => {
-                    if new.len() > 0 {
-                        let _ = new.pop().unwrap();
-                    }
-                    if new.len() == 0 {
-                        new_int = 0;
-                    } else if &new != "-" {
-                        new_int = new.parse::<i64>().unwrap();
-                    }
-                }
-                Key::Char(' ') => hit_space = true,
-                Key::Char(c @ '0'..='9') => {
-                    new.push(c);
+                if new.len() == 0 {
+                    new_int = 0;
+                } else if &new != "-" {
                     new_int = new.parse::<i64>().unwrap();
                 }
-                Key::Char('-') => {
-                    if new.len() == 0 {
-                        new.push('-');
-                    }
+            }
+            KeyCode::Char(' ') => hit_space = true,
+            KeyCode::Char(c @ '0'..='9') => {
+                new.push(c);
+                new_int = new.parse::<i64>().unwrap();
+            }
+            KeyCode::Char('-') => {
+                if new.len() == 0 {
+                    new.push('-');
                 }
-                Key::Up => {
-                    if selected > 0 {
-                        selected -= 1;
-                    }
+            }
+            KeyCode::Up => {
+                if selected > 0 {
+                    selected -= 1;
                 }
-                Key::Down => {
-                    if selected < valid_values.len() - 1 {
-                        selected += 1;
-                    }
+            }
+            KeyCode::Down => {
+                if selected < valid_values.len() - 1 {
+                    selected += 1;
                 }
-                Key::Esc => break,
-                _ => (),
-            },
+            }
+            KeyCode::Esc => break,
             _ => (),
-        }
+        };
     }
 }
 
 fn edit_string(
     val: &mut String,
     valid_values: &Vec<String>,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
-    let mut keys = std::io::stdin().keys();
+    //    let mut keys = std::io::stdin().keys();
     let mut selected = valid_values.len();
     if valid_values.len() > 0 {
         for (i, vals) in valid_values.iter().enumerate() {
@@ -703,46 +707,29 @@ fn edit_string(
         write!(stdout, "\x1B8{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
-        match keys.next().unwrap() {
-            Ok(key) => match key {
-                Key::Char('\n') => {
-                    *val = new;
-                    break;
-                }
-                Key::Backspace => {
-                    if new.len() > 0 {
-                        if pos > 0 {
-                            let _ = new.remove(pos - 1);
-                            pos -= 1;
-                        }
+        match read_key().unwrap() {
+            KeyCode::Enter => {
+                *val = new;
+                break;
+            }
+            KeyCode::Backspace => {
+                if new.len() > 0 {
+                    if pos > 0 {
+                        let _ = new.remove(pos - 1);
+                        pos -= 1;
                     }
                 }
-                Key::Delete => {
-                    if new.len() > 0 {
-                        if pos < new.len() {
-                            let _ = new.remove(pos);
-                        }
+            }
+            KeyCode::Delete => {
+                if new.len() > 0 {
+                    if pos < new.len() {
+                        let _ = new.remove(pos);
                     }
                 }
-                Key::Up => {
-                    if selected > 0 {
-                        selected -= 1;
-                        new = valid_values[selected]
-                            .split("---")
-                            .next()
-                            .unwrap()
-                            .trim()
-                            .to_owned();
-                        pos = new.len();
-                    }
-                }
-                Key::Down => {
-                    if selected < valid_values.len() - 1 {
-                        selected += 1;
-                    }
-                    if selected == valid_values.len() {
-                        selected = 0;
-                    }
+            }
+            KeyCode::Up => {
+                if selected > 0 {
+                    selected -= 1;
                     new = valid_values[selected]
                         .split("---")
                         .next()
@@ -751,29 +738,43 @@ fn edit_string(
                         .to_owned();
                     pos = new.len();
                 }
-                Key::Left => {
-                    if pos > 0 {
-                        pos -= 1;
-                    }
+            }
+            KeyCode::Down => {
+                if selected < valid_values.len() - 1 {
+                    selected += 1;
                 }
-                Key::Right => {
-                    if pos < new.len() {
-                        pos += 1;
-                    }
+                if selected == valid_values.len() {
+                    selected = 0;
                 }
-                Key::Char(c) => {
-                    if c.is_ascii() {
-                        new.insert(pos, c);
-                        pos += 1;
-                    }
+                new = valid_values[selected]
+                    .split("---")
+                    .next()
+                    .unwrap()
+                    .trim()
+                    .to_owned();
+                pos = new.len();
+            }
+            KeyCode::Left => {
+                if pos > 0 {
+                    pos -= 1;
                 }
-                Key::Home => pos = 0,
-                Key::End => pos = new.len(),
-                Key::Esc => break,
-                _ => (),
-            },
+            }
+            KeyCode::Right => {
+                if pos < new.len() {
+                    pos += 1;
+                }
+            }
+            KeyCode::Char(c) => {
+                if c.is_ascii() {
+                    new.insert(pos, c);
+                    pos += 1;
+                }
+            }
+            KeyCode::Home => pos = 0,
+            KeyCode::End => pos = new.len(),
+            KeyCode::Esc => break,
             _ => (),
-        }
+        };
     }
     Ok(())
 }

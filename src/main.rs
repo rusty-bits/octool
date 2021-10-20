@@ -11,18 +11,20 @@ use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
 
-use termion::{
-    event::Key,
-    input::TermRead,
-    raw::{IntoRawMode, RawTerminal},
-    {clear, color, cursor, style},
+use crossterm::{
+    cursor,
+    event::KeyCode,
+    terminal,
 };
+use crossterm::ExecutableCommand;
+
+use edit::read_key;
 
 fn process(
     config_plist: &mut PathBuf,
     current_dir: &PathBuf,
     settings: &mut draw::Settings,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
@@ -40,7 +42,7 @@ fn process(
 
     init::init(config_plist, &mut resources, settings, stdout)?;
 
-    let mut key = Key::Char('q');
+    let mut key = KeyCode::Char('q');
 
     if settings.oc_build_version != "not found" {
         writeln!(
@@ -48,28 +50,29 @@ fn process(
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
         stdout.flush()?;
-        key = std::io::stdin().keys().next().unwrap().unwrap();
+        key = read_key()?;
     }
 
-    if key != Key::Char('q') {
+    if key != KeyCode::Char('q') {
         let mut showing_info = false;
-        let mut keys = std::io::stdin().keys();
+        //        let mut keys = std::io::stdin().keys();
         loop {
             if !showing_info {
                 draw::update_screen(settings, &mut resources, stdout)?;
                 stdout.flush().unwrap();
             }
-            let key = keys.next().unwrap().unwrap();
+            //            let key = keys.next().unwrap().unwrap();
+            key = read_key()?;
             match key {
-                Key::Char('q') => {
+                KeyCode::Char('q') => {
                     if showing_info {
                         showing_info = false;
                     } else {
                         if settings.modified {
                             write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\x1B[0K\r\n\x1B[2K").unwrap();
                             stdout.flush().unwrap();
-                            match std::io::stdin().keys().next().unwrap().unwrap() {
-                                Key::Char('Q') => break,
+                            match read_key()? {
+                                KeyCode::Char('Q') => break,
                                 _ => (),
                             }
                         } else {
@@ -77,7 +80,7 @@ fn process(
                         }
                     }
                 }
-                Key::Char('G') => {
+                KeyCode::Char('G') => {
                     let build_okay = build::build_output(settings, &resources, stdout)?;
                     writeln!(
                         stdout,
@@ -123,8 +126,8 @@ fn process(
                     }
                     break;
                 }
-                Key::Char('a') => edit::add_item(settings, &mut resources, stdout),
-                Key::Char('f') => {
+                KeyCode::Char('a') => edit::add_item(settings, &mut resources, stdout),
+                KeyCode::Char('f') => {
                     found = vec![];
                     found_id = 0;
                     edit::find(settings, &resources.config_plist, &mut found, stdout);
@@ -135,7 +138,7 @@ fn process(
                         found_id = 0;
                     } else if found.len() > 1 {
                         let mut selection = 1;
-                        write!(stdout, "\r\n\x1B[2K{}", cursor::Save).unwrap();
+                        write!(stdout, "\r\n\x1B[2K\x1B7").unwrap();
                         loop {
                             write!(stdout, "\x1B8").unwrap();
                             for (i, f) in found.iter().enumerate() {
@@ -153,19 +156,19 @@ fn process(
                                 write!(stdout, "\x1B[0m\r\n\x1B[2K").unwrap();
                             }
                             stdout.flush().unwrap();
-                            match std::io::stdin().keys().next().unwrap().unwrap() {
-                                Key::Up => {
+                            match read_key()? {
+                                KeyCode::Up => {
                                     if selection > 1 {
                                         selection -= 1;
                                     }
                                 }
-                                Key::Down => {
+                                KeyCode::Down => {
                                     if selection < found.len() {
                                         selection += 1;
                                     }
                                 }
-                                Key::Char('\n') => break,
-                                Key::Esc => {
+                                KeyCode::Enter => break,
+                                KeyCode::Esc => {
                                     selection = 0;
                                     break;
                                 }
@@ -179,7 +182,7 @@ fn process(
                         }
                     }
                 }
-                Key::Char('n') => {
+                KeyCode::Char('n') => {
                     if found_id > 0 {
                         found_id += 1;
                         if found_id > found.len() {
@@ -189,26 +192,26 @@ fn process(
                         settings.sec_num = found[found_id - 1].section;
                     }
                 }
-                Key::Char('p') | Key::Ctrl('v') => {
+                KeyCode::Char('p') | KeyCode::Char('v') => {
                     if edit::add_delete_value(settings, &mut resources.config_plist, true) {
                         settings.add();
                     }
                 }
-                Key::Char('P') => {
+                KeyCode::Char('P') => {
                     res::print_parents(&resources, stdout);
                     stdout.flush().unwrap();
-                    std::io::stdin().keys().next().unwrap().unwrap();
+                    read_key()?;
                 }
-                Key::Up | Key::Char('k') => settings.up(),
-                Key::Down | Key::Char('j') => settings.down(),
-                Key::Left | Key::Char('h') => settings.left(),
-                Key::Right | Key::Char('l') => settings.right(),
-                Key::Home | Key::Char('t') => settings.sec_num[settings.depth] = 0,
-                Key::End | Key::Char('b') => {
+                KeyCode::Up | KeyCode::Char('k') => settings.up(),
+                KeyCode::Down | KeyCode::Char('j') => settings.down(),
+                KeyCode::Left | KeyCode::Char('h') => settings.left(),
+                KeyCode::Right | KeyCode::Char('l') => settings.right(),
+                KeyCode::Home | KeyCode::Char('t') => settings.sec_num[settings.depth] = 0,
+                KeyCode::End | KeyCode::Char('b') => {
                     settings.sec_num[settings.depth] = settings.sec_length[settings.depth] - 1
                 }
                 // TODO: special check for driver section for OC 0.7.2 and earlier, uses # to enable/disable
-                Key::Char(' ') => {
+                KeyCode::Char(' ') => {
                     if !showing_info {
                         let empty_vec = vec![];
                         edit::edit_value(
@@ -221,7 +224,7 @@ fn process(
                         )?;
                     }
                 }
-                Key::Char('\n') | Key::Char('\t') => {
+                KeyCode::Enter | KeyCode::Tab => {
                     write!(stdout, "\x1b8\r\n")?;
                     let mut valid_values = vec![];
                     parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
@@ -234,7 +237,7 @@ fn process(
                         false,
                     )?
                 }
-                Key::Char('K') => {
+                KeyCode::Char('K') => {
                     let empty_vec = vec![];
                     edit::edit_value(
                         settings,
@@ -245,28 +248,28 @@ fn process(
                         true,
                     )?
                 }
-                Key::Char('D') | Key::Ctrl('x') => {
+                KeyCode::Char('D') | KeyCode::Char('x') => {
                     if settings.sec_length[settings.depth] > 0 {
                         if edit::add_delete_value(settings, &mut resources.config_plist, false) {
                             settings.delete();
                         }
                     }
                 }
-                Key::Char('d') => {
+                KeyCode::Char('d') => {
                     if settings.sec_length[settings.depth] > 0 {
                         write!(stdout,"\r\n{und}Press{res} '{grn}d{res}' again to remove {yel}{obj}{res}, \
                                any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} \
                                back into plist{res}{clr}\r\n{clr}",
                             obj = &settings.sec_key[settings.depth],
-                            yel = color::Fg(color::Yellow),
-                            grn = color::Fg(color::Green),
-                            und = style::Underline,
-                            res = style::Reset,
-                            clr = clear::UntilNewline,
+                            yel = "\x1b[32m",
+                            grn = "\x1b[33m",
+                            und = "\x1b[4m",
+                            res = "\x1b[0m",
+                            clr = "\x1b[0K",
                         )?;
                         stdout.flush()?;
-                        let kp = std::io::stdin().keys().next().unwrap().unwrap();
-                        if kp == Key::Char('d') || kp == Key::Char('x') {
+                        let kp = read_key()?;
+                        if kp == KeyCode::Char('d') || kp == KeyCode::Char('x') {
                             if edit::add_delete_value(settings, &mut resources.config_plist, false)
                             {
                                 settings.delete();
@@ -274,10 +277,10 @@ fn process(
                         }
                     }
                 }
-                Key::Char('y') | Key::Ctrl('c') => {
+                KeyCode::Char('y') | KeyCode::Char('c') => {
                     let _ = edit::extract_value(settings, &mut resources.config_plist, false, true);
                 }
-                Key::Char('r') => {
+                KeyCode::Char('r') => {
                     if settings.depth < 4 {
                         let mut obj = String::new();
                         for i in 0..settings.depth + 1 {
@@ -289,14 +292,14 @@ fn process(
                                '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
                             obj = &obj,
                             cur = &settings.sec_key[settings.depth],
-                            yel = color::Fg(color::Yellow),
-                            grn = color::Fg(color::Green),
-                            und = style::Underline,
-                            res = style::Reset,
-                            clr = clear::UntilNewline,
+                            yel = "\x1b[32m",
+                            grn = "\x1b[33m",
+                            und = "\x1b[4m",
+                            res = "\x1b[0m",
+                            clr = "\x1b[0K",
                         )?;
                         stdout.flush()?;
-                        if std::io::stdin().keys().next().unwrap().unwrap() == Key::Char('r') {
+                        if read_key()? == KeyCode::Char('r') {
                             if edit::extract_value(settings, &resources.config_plist, false, true) {
                                 settings.modified = true;
                                 let tmp_item = settings.held_item.clone();
@@ -319,7 +322,7 @@ fn process(
                         }
                     }
                 }
-                Key::Char('m') => {
+                KeyCode::Char('m') => {
                     //    it might not make sense to merge an array, maybe use 'r'eset instead?
                     let initial_depth = settings.depth;
                     let initial_key = settings.held_key.to_owned();
@@ -374,7 +377,7 @@ fn process(
                     settings.depth = initial_depth;
                     settings.modified = true;
                 }
-                Key::Char('i') => {
+                KeyCode::Char('i') => {
                     if !showing_info {
                         if settings.is_resource() {
                             let _ = res::show_res_path(&resources, &settings, stdout);
@@ -395,12 +398,12 @@ fn process(
                         showing_info = false;
                     }
                 }
-                Key::Char('M') => {
+                KeyCode::Char('M') => {
                     snake::snake(stdout)?;
-                    std::io::stdin().keys().next().unwrap().unwrap();
+                    read_key()?;
                     write!(stdout, "\x1B[2J")?;
                 }
-                Key::Char('s') => {
+                KeyCode::Char('s') => {
                     let mut config_file = PathBuf::from(&settings.config_file_name)
                         .file_name()
                         .unwrap()
@@ -429,7 +432,7 @@ fn process(
                 }
                 _ => (),
             }
-            if key != Key::Char('i') && key != Key::Char(' ') && key != Key::Char('s') {
+            if key != KeyCode::Char('i') && key != KeyCode::Char(' ') && key != KeyCode::Char('s') {
                 showing_info = false;
             }
         }
@@ -540,15 +543,17 @@ fn main() {
         }
     }
 
-    let mut stdout = stdout().into_raw_mode().expect("Couldn't set stdout");
-    write!(
-        stdout,
-        "{}{}{}",
-        termion::clear::All,
-        termion::cursor::Hide,
-        termion::cursor::Goto(1, 1)
-    )
-    .unwrap();
+    terminal::enable_raw_mode().unwrap();
+
+    let mut stdout = stdout();
+
+    write!(stdout, "\x1b[2J").unwrap();
+
+    stdout
+        .execute(cursor::Hide)
+        .unwrap()
+        .execute(cursor::MoveTo(0, 0))
+        .unwrap();
 
     if !config_file.exists() {
         write!(
@@ -567,5 +572,10 @@ fn main() {
         Ok(()) => (),
         Err(e) => eprintln!("\r\n\x1B[31mERROR:\x1B[0m while processing plist: {:?}", e),
     }
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
+
+    stdout
+        .execute(cursor::Show)
+        .unwrap();
+
+    terminal::disable_raw_mode().unwrap();
 }

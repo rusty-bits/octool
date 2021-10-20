@@ -3,16 +3,17 @@ use std::io::{Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 
 use plist::Value;
-use termion::raw::RawTerminal;
 
 use crate::draw::Settings;
 use crate::res::{self, Resources};
+
+use crossterm::terminal;
 
 pub fn init(
     config_plist: &mut PathBuf,
     resources: &mut Resources,
     settings: &mut Settings,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     //load octool config file
     resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
@@ -58,13 +59,16 @@ pub fn init(
             .as_str()
             .unwrap();
         res::curl_file(&last_updated, &path.join("last.txt"))?;
-        let mut old_file = std::fs::File::open(&path.join("build-repo-builds/last_updated.txt"))?;
         let mut old_date = Vec::new();
-        old_file.read_to_end(&mut old_date).unwrap();
         let mut new_file = std::fs::File::open(&path.join("last.txt"))?;
         let mut new_date = Vec::new();
         new_file.read_to_end(&mut new_date).unwrap();
         std::fs::remove_file(&path.join("last.txt"))?;
+        let last_up_path = &path.join("build-repo-builds/last_updated.txt");
+        if last_up_path.exists() {
+            let mut old_file = std::fs::File::open(&last_up_path)?;
+            old_file.read_to_end(&mut old_date)?;
+        };
         if old_date != new_date {
             write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
             stdout.flush().unwrap();
@@ -247,7 +251,7 @@ pub fn init(
 pub fn validate_plist(
     config_plist: &PathBuf,
     resources: &Resources,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<bool, Box<dyn Error>> {
     let mut config_okay = true;
     let ocvalidate_bin = resources
@@ -264,9 +268,11 @@ pub fn validate_plist(
             ocvalidate_bin.to_str().unwrap(),
             &[&config_plist.to_str().unwrap()],
         )?;
-        stdout.suspend_raw_mode()?;
+        terminal::disable_raw_mode()?;
+
         write!(stdout, "{}\r\n", String::from_utf8(out.stdout).unwrap())?;
-        stdout.activate_raw_mode()?;
+        terminal::enable_raw_mode()?;
+
         if out.status.code().unwrap() != 0 {
             config_okay = false;
             write!(

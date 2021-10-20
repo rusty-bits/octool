@@ -1,32 +1,32 @@
 use plist::Value;
 use std::collections::HashMap;
-use termion::{color, terminal_size};
-use termion::{raw::RawTerminal, style};
 
 use std::error::Error;
 use std::io::{Stdout, Write};
 
 use crate::res::{self, Resources};
 
+use crossterm::terminal::size;
+
 #[derive(Debug)]
 pub struct Settings {
-    pub config_file_name: String,       // name of config.plist
-    pub sec_num: [usize; 5],            // selected section for each depth
-    pub depth: usize,                   // depth of plist section we are looking at
-    pub sec_key: [String; 5],           // key of selected section
-    pub item_instructions: String,      // item instructions for display in header
-    pub held_item: Option<Value>,       // last deleted or placed item value
-    pub held_key: String,               // last deleted or placed key
-    pub sec_length: [usize; 5],         // number of items in current section
+    pub config_file_name: String,                     // name of config.plist
+    pub sec_num: [usize; 5],                          // selected section for each depth
+    pub depth: usize,                                 // depth of plist section we are looking at
+    pub sec_key: [String; 5],                         // key of selected section
+    pub item_instructions: String,                    // item instructions for display in header
+    pub held_item: Option<Value>,                     // last deleted or placed item value
+    pub held_key: String,                             // last deleted or placed key
+    pub sec_length: [usize; 5],                       // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
     pub oc_build_version: String,       // version number of OpenCorePkg to use
     pub oc_build_date: String,          // date binaries were built
     pub oc_build_version_res_index: usize, // index of OpenCorePkg in config.json
     pub resource_ver_indexes: HashMap<String, usize>, // index of other parent resources
-    pub can_expand: bool,    // true if highlighted field can have children
-    pub find_string: String, // last entered search string
-    pub modified: bool,      // true if plist changed and not saved
+    pub can_expand: bool,               // true if highlighted field can have children
+    pub find_string: String,            // last entered search string
+    pub modified: bool,                 // true if plist changed and not saved
 }
 
 impl Settings {
@@ -97,22 +97,22 @@ impl Settings {
 pub fn update_screen(
     settings: &mut Settings,
     resources: &Resources,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let plist = &resources.config_plist;
-    let rows: i32 = terminal_size().unwrap().1.into();
+    let rows: i32 = size().unwrap().1.into();
     settings.can_expand = false;
 
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
         " {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
-        inv = style::Invert,
-        res = style::Reset,
-        grn = color::Fg(color::Green),
-        red = color::Fg(color::Red),
-        mag = color::Fg(color::Magenta),
-        blu = color::Fg(color::Blue),
+        inv = "\x1b[7m",
+        res = "\x1b[0m",
+        grn = "\x1b[32m",
+        red = "\x1b[31m",
+        mag = "\x1b[35m",
+        blu = "\x1b[34m",
     )?;
 
     write!(stdout, "\x1B[3H")?; // jump under header
@@ -157,18 +157,14 @@ pub fn update_screen(
     write!(
         stdout,
         "\x1b[1;{}H\x1b[2Kv{}",
-        (terminal_size().unwrap().0 - settings.oc_build_version.len() as u16).to_string(),
+        (size().unwrap().0 - settings.oc_build_version.len() as u16).to_string(),
         settings.oc_build_version,
     )
     .unwrap();
     write!(
         stdout,
         "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
-        color::Fg(color::Green),
-        &settings.config_file_name,
-        style::Underline,
-        &info,
-        style::Reset,
+        "\x1b[32m", &settings.config_file_name, "\x1b[4m", &info, "\x1b[0m",
     )
     .unwrap();
     if settings.depth > 0 {
@@ -184,8 +180,7 @@ pub fn update_screen(
         write!(
             stdout,
             "  \x1B[7mn\x1B[0m jump to next {}{}\x1B[0m",
-            style::Underline,
-            settings.find_string
+            "\x1b[4m", settings.find_string
         )
         .unwrap();
     }
@@ -193,8 +188,7 @@ pub fn update_screen(
         write!(
             stdout,
             "  \x1B[7mp\x1B[0m paste {}{}\x1B[0m",
-            style::Underline,
-            settings.held_key
+            "\x1b[4m", settings.held_key
         )
         .unwrap();
     }
@@ -208,7 +202,7 @@ fn display_value(
     settings: &mut Settings,
     resources: &Resources,
     plist_value: &Value,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
     item_num: usize,
     display_depth: usize,
 ) -> Result<i32, Box<dyn Error>> {
@@ -290,23 +284,13 @@ fn display_value(
                 true => write!(
                     stdout,
                     "{}{}{}{}: {}{}",
-                    key_style,
-                    color::Fg(color::Green),
-                    key,
-                    style::Reset,
-                    save_curs_pos,
-                    v
+                    key_style, "\x1b[32m", key, "\x1b[0m", save_curs_pos, v
                 )
                 .unwrap(),
                 false => write!(
                     stdout,
                     "{}{}{}{}: {}{}",
-                    key_style,
-                    color::Fg(color::Red),
-                    key,
-                    style::Reset,
-                    save_curs_pos,
-                    v
+                    key_style, "\x1b[31m", key, "\x1b[0m", save_curs_pos, v
                 )
                 .unwrap(),
             };
@@ -316,9 +300,9 @@ fn display_value(
                 stdout,
                 "{}{}{}{}: <{}{}> | {}{}{}\x1B[0K",
                 key_style,
-                color::Fg(color::Magenta),
+                "\x1b[35m",
                 key,
-                style::Reset,
+                "\x1b[0m",
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
                 '\"',
@@ -342,9 +326,9 @@ fn display_value(
                 pre_key,
                 key_style,
                 match key_color {
-                    Some(true) => color::Fg(color::Green).to_string(),
-                    Some(false) => color::Fg(color::Red).to_string(),
-                    None => color::Fg(color::Reset).to_string(),
+                    Some(true) => "\x1b[32m".to_string(),
+                    Some(false) => "\x1b[31m".to_string(),
+                    None => "".to_string(),
                 },
                 key,
                 res::res_version(settings, &resources, &key),
@@ -383,12 +367,7 @@ fn display_value(
             write!(
                 stdout,
                 "{}{}{}{}: {}{}",
-                key_style,
-                color::Fg(color::Blue),
-                key,
-                style::Reset,
-                save_curs_pos,
-                v
+                key_style, "\x1b[34m", key, "\x1b[0m", save_curs_pos, v
             )?;
         }
         Value::String(v) => {
@@ -449,9 +428,9 @@ pub fn hex_str_with_style(v: String) -> String {
     let mut col = v.len() % 2;
     for c in v.chars() {
         if col > 1 {
-            hex_u.push_str(&color::Fg(color::Magenta).to_string());
+            hex_u.push_str(&"\x1b[35m".to_string());
             hex_u.push(c);
-            hex_u.push_str(&style::Reset.to_string());
+            hex_u.push_str(&"\x1b[0m".to_string());
         } else {
             hex_u.push(c);
         }

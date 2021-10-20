@@ -7,8 +7,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use curl::easy::Easy;
-use termion::raw::RawTerminal;
-use termion::{color, style};
 
 use sha2::Digest;
 
@@ -34,7 +32,7 @@ pub fn get_or_update_local_parent(
     build_type: &str,
     build_index: &usize,
     verbose: bool,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
     let url = single_resource[parent]["versions"][build_index]["links"][build_type]
         .as_str()
@@ -80,8 +78,8 @@ pub fn get_or_update_local_parent(
                         write!(
                             stdout,
                             "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
-                            yel = color::Fg(color::Yellow),
-                            grn = color::Fg(color::Green),
+                            yel = "\x1b[33m",
+                            grn = "\x1b[32m",
                         )?;
                         get_file_and_unzip(url, hash, &path, stdout)?;
                     } else {
@@ -96,8 +94,8 @@ pub fn get_or_update_local_parent(
                             stdout,
                             "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
                             dir,
-                            yel = color::Fg(color::Yellow),
-                            grn = color::Fg(color::Green),
+                            yel = "\x1b[33m",
+                            grn = "\x1b[32m",
                         )?;
                         write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
                         get_file_and_unzip(url, hash, &path, stdout)?;
@@ -137,7 +135,7 @@ fn get_master_and_unzip(
     parent: &str,
     url: &str,
     path: &Path,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     if !path.exists() {
         std::fs::create_dir_all(&path)?;
@@ -176,7 +174,7 @@ pub fn get_file_and_unzip(
     url: &str,
     hash: &str,
     path: &Path,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
@@ -208,7 +206,7 @@ pub fn get_file_and_unzip(
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
-pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut RawTerminal<Stdout>) {
+pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Stdout) {
     let mut res_path: Option<PathBuf>;
     let section = settings.sec_key[0].as_str();
     let mut ind_res = String::new();
@@ -220,8 +218,8 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
     write!(
         stdout,
         "\r\n{}the first found resource will be used in the OUTPUT/EFI{}\x1B[0K\r\n",
-        style::Underline,
-        style::Reset,
+        "\x1b[4m",
+        "\x1b[0m",
     )
     .unwrap();
 
@@ -252,7 +250,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
         let res_index = settings.resource_ver_indexes.get(parent).unwrap_or(&0);
         match &resources.dortania[parent]["versions"][res_index]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
-                write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "\x1b[33mtrue\r\n").unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
@@ -266,13 +264,13 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "{}false\x1B[0m\x1b[0K\r\n", color::Fg(color::Red)).unwrap(),
+            _ => write!(stdout, "\x1b[31mfalse\x1B[0m\x1b[0K\r\n").unwrap(),
         }
 
         write!(stdout, "\x1B[0K\r\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
-                write!(stdout, "{}true\r\n", color::Fg(color::Green)).unwrap();
+                write!(stdout, "\x1b[32mtrue\r\n").unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
@@ -286,7 +284,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "{}false\x1B[0m\r\n", color::Fg(color::Red)).unwrap(),
+            _ => write!(stdout, "\x1b[31mfalse\x1B[0m\r\n").unwrap(),
         }
     } else {
         write!(
@@ -327,7 +325,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Ra
 /// Read the `path` file into a `serde_json::Value`
 pub fn get_serde_json(
     path: &str,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Result<serde_json::Value, Box<dyn Error>> {
     write!(
         stdout,
@@ -346,24 +344,22 @@ fn res_exists(
     open_core_pkg: &PathBuf,
     path: &str,
     ind_res: &str,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Option<PathBuf> {
     let path = open_core_pkg.join(path).join(ind_res);
     if path.exists() {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K {}true\x1B[0m\r\n",
-            path.parent().unwrap(),
-            color::Fg(color::Green)
+            "inside {:?} dir?\x1B[0K \x1b[32mtrue\x1B[0m\r\n",
+            path.parent().unwrap()
         )
         .unwrap();
         Some(path)
     } else {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K {}false\x1B[0m\r\n",
+            "inside {:?} dir?\x1B[0K \x1b[31mfalse\x1B[0m\r\n",
             path.parent().unwrap(),
-            color::Fg(color::Red)
         )
         .unwrap();
         None
@@ -420,7 +416,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
 }
 
 /// Print the Dortania and Acidanthera top level parent child
-pub fn print_parents(resources: &Resources, stdout: &mut RawTerminal<Stdout>) {
+pub fn print_parents(resources: &Resources, stdout: &mut Stdout) {
     let build_type = resources.octool_config["build_type"]
         .as_str()
         .unwrap_or("release");
@@ -442,7 +438,7 @@ pub fn get_res_path(
     resources: &Resources,
     ind_res: &str,
     section: &str,
-    stdout: &mut RawTerminal<Stdout>,
+    stdout: &mut Stdout,
 ) -> Option<String> {
     let mut from_input = false;
     let mut res_path: Option<PathBuf>;

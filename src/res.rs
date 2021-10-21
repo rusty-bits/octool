@@ -218,8 +218,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
     write!(
         stdout,
         "\r\n{}the first found resource will be used in the OUTPUT/EFI{}\x1B[0K\r\n",
-        "\x1b[4m",
-        "\x1b[0m",
+        "\x1b[4m", "\x1b[0m",
     )
     .unwrap();
 
@@ -503,23 +502,45 @@ pub fn get_res_path(
     match res_path {
         None => None,
         Some(p) => {
-            let out = status(
-                "find",
-                &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
-            )
-            .unwrap();
-            let out = String::from_utf8(out.stdout).unwrap().trim().to_owned();
-            if from_input {
-                write!(
-                    stdout,
-                    "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
-                    ind_res
-                )
-                .unwrap();
-            } else {
-                write!(stdout, "{}\r\n", out).unwrap();
+            let mut out = None;
+            match std::env::consts::OS {
+                "macos" | "linux" => {
+                    out = Some(
+                        status(
+                            "find",
+                            &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
+                        )
+                        .unwrap(),
+                    );
+                }
+                "windows" => {
+                    out = Some(
+                        status(
+                            "where",
+                            &["/r", p.parent().unwrap().to_str().unwrap(), &ind_res],
+                        )
+                        .unwrap(),
+                    );
+                }
+                _ => (),
+            };
+            match out {
+                Some(out) => {
+                    let outp = String::from_utf8(out.stdout).unwrap().trim().to_owned();
+                    if from_input {
+                        write!(
+                            stdout,
+                            "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
+                            ind_res
+                        )
+                        .unwrap();
+                    } else {
+                        write!(stdout, "{}\r\n", outp).unwrap();
+                    }
+                    Some(outp)
+                }
+                None => panic!("Didn't find resource {}", &ind_res),
             }
-            Some(out)
         }
     }
 }

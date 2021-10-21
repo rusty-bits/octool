@@ -3,24 +3,16 @@ use core::str::Chars;
 use rand::prelude::*;
 use std::collections::VecDeque;
 use std::error::Error;
-use std::io::{Read, Stdout, Write};
+use std::io::{Stdout, Write};
 use std::ops;
-use std::thread::sleep;
 
+use crossterm::event::{Event, EventStream, KeyCode};
 use crossterm::terminal::size;
 
-use std::{io::stdout, time::Duration};
+use std::time::Duration;
 
 use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
-
-use crossterm::{
-    cursor::position,
-    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode},
-    Result,
-};
 
 // blame mahasvan for this "secret" snake option
 
@@ -39,7 +31,7 @@ struct Snake {
     direction: CoordinateVector,
 }
 
-async fn travel(snake: &mut Snake, grow: bool) -> CoordinateVector {
+fn travel(snake: &mut Snake, grow: bool) -> CoordinateVector {
     let &old_head = snake.seg.back().unwrap();
     if grow {
         let &old_tail = snake.seg.front().unwrap();
@@ -54,11 +46,11 @@ async fn travel(snake: &mut Snake, grow: bool) -> CoordinateVector {
     new_head
 }
 
-async fn head_touching_object(snake: &Snake, object: CoordinateVector) -> bool {
+fn head_touching_object(snake: &Snake, object: CoordinateVector) -> bool {
     *snake.seg.back().unwrap() == object
 }
 
-async fn head_touching_snake(snake: &Snake, other: &Snake) -> bool {
+fn head_touching_snake(snake: &Snake, other: &Snake) -> bool {
     let &head = snake.seg.back().unwrap();
     // Find the position of first snake segment which is equal to the head
     let position = match other.seg.iter().position(|&coord| coord == head) {
@@ -69,7 +61,7 @@ async fn head_touching_snake(snake: &Snake, other: &Snake) -> bool {
     position < other.seg.len() - 1
 }
 
-async fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
+fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
     let &head = snake.seg.back().unwrap();
     head.0 > bounds.0 || head.1 > bounds.1 || head.0 < 1 || head.1 < 1
 }
@@ -108,9 +100,9 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
     }
     let mut food = get_new_food_position(&snake, board_bounds, &mut rng);
 
-    let mut slp = 100;
+    //    let mut slp = 100;
     travel(&mut snake, true);
-    let mut key_bytes = [0, 0, 0];
+    //    let mut key_bytes = [0, 0, 0];
 
     let mut reader = EventStream::new();
 
@@ -119,40 +111,11 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
         let mut event = reader.next().fuse();
 
         select! {
-            _ = delay => (),
-            maybe_event = event => {
-                match maybe_event {
-                    Some(Ok(event)) => {
-                        println!("Event::{:?}\r", event);
-                        if event == Event::Key(KeyCode::Esc.into()) {
-                            break;
-                        }
-                    }
-                    Some(Err(e)) => println!("Error: {:?}\r", e),
-                    None => break,
-                }
-            }
-        };
-
-        /*            if stdin.read(&mut key_bytes)? == 3 {
-                key_bytes[0] = key_bytes[2];
-            }
-            snake.direction = match key_bytes[0] {
-                b'h' | b'D' if snake.direction.1 != 0 => CoordinateVector(-1, 0),
-                b'l' | b'C' if snake.direction.1 != 0 => CoordinateVector(1, 0),
-                b'k' | b'A' if snake.direction.0 != 0 => CoordinateVector(0, -1),
-                b'j' | b'B' if snake.direction.0 != 0 => CoordinateVector(0, 1),
-                _ => snake.direction,
-            };
-
+        _ = delay => {
             let eating_food = head_touching_object(&snake, food);
             if eating_food {
                 score += 1;
                 food = get_new_food_position(&snake, board_bounds, &mut rng);
-                slp -= 4;
-                if slp < 20 {
-                    slp = 20;
-                };
             }
             travel(&mut snake, eating_food);
             let t = rng.gen_range(1..100);
@@ -184,19 +147,52 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
             {
                 break;
             }
-            stdout.flush()?;
-            sleep(Duration::from_millis(slp));
-        }
-        for segment in snake.seg.iter() {
-            write!(
-                stdout,
-                "\x1B[{};{}H\x1B[31;7m{}\x1B[0m",
-                segment.1, segment.0, 'X'
-            )
-            .unwrap();
             stdout.flush().unwrap();
-            sleep(Duration::from_millis(20));
-        }*/
+        },
+            maybe_event = event => {
+                match maybe_event {
+                    Some(Ok(event)) => {
+                        if let Event::Key(ke) = event {
+                            match ke.code {
+                                KeyCode::Char('h') | KeyCode::Left => {
+                                    if snake.direction.1 != 0 {
+                                        snake.direction = CoordinateVector(-1, 0);
+                                    }
+                                },
+                                KeyCode::Char('l') | KeyCode::Right => {
+                                    if snake.direction.1 != 0 {
+                                        snake.direction = CoordinateVector(1, 0);
+                                    }
+                                },
+                                KeyCode::Char('k') | KeyCode::Up => {
+                                    if snake.direction.0 != 0 {
+                                        snake.direction = CoordinateVector(0, -1);
+                                    }
+                                },
+                                KeyCode::Char('j') | KeyCode::Down => {
+                                    if snake.direction.0 != 0 {
+                                        snake.direction = CoordinateVector(0, 1);
+                                    }
+                                },
+                                KeyCode::Esc => break,
+                                _ => (),
+                            }
+                        }
+                    },
+                    Some(Err(e)) => println!("Error: {:?}\r", e),
+                    None => break,
+                }
+            },
+        }
+    }
+    for segment in snake.seg.iter() {
+        write!(
+            stdout,
+            "\x1B[{};{}H\x1B[31;7m{}\x1B[0m",
+            segment.1, segment.0, 'X'
+        )
+        .unwrap();
+        stdout.flush().unwrap();
     }
     Ok(())
 }

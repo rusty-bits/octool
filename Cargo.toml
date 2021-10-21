@@ -21,6 +21,7 @@ crossterm = { version = "*", features = ["event-stream"] }
 rand = "*"
 zip = "*"
 curl = "*"
+walkdir = "*"
 tokio = { version = "1.5", features = ["full"] }
 futures = "0.3"
 futures-timer = "3.0"

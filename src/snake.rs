@@ -182,6 +182,42 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
                     Some(Err(e)) => println!("Error: {:?}\r", e),
                     None => break,
                 }
+            let eating_food = head_touching_object(&snake, food);
+            if eating_food {
+                score += 1;
+                food = get_new_food_position(&snake, board_bounds, &mut rng);
+            }
+            travel(&mut snake, eating_food);
+            let t = rng.gen_range(1..100);
+            if t > 95 {
+                turn_right(&mut baddy);
+            } else if t < 5 {
+                turn_left(&mut baddy);
+            }
+            travel(&mut baddy, false);
+            if head_out_of_bounds(&baddy, board_bounds) {
+                baddy.seg.pop_back().unwrap();
+                let &tail = baddy.seg.front().unwrap();
+                baddy.seg.push_front(tail);
+                turn_right(&mut baddy);
+            };
+            display(
+                stdout,
+                &snake,
+                &baddy,
+                food,
+                &mut masc,
+                &mut apple,
+                &mut stripe,
+                score,
+            );
+            if head_touching_snake(&snake, &snake)
+                || head_out_of_bounds(&snake, board_bounds)
+                || head_touching_snake(&baddy, &snake)
+            {
+                break;
+            }
+            stdout.flush().unwrap();
             },
         }
     }

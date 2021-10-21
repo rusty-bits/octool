@@ -6,6 +6,8 @@ use std::io::{BufReader, Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use walkdir::WalkDir;
+
 use curl::easy::Easy;
 
 use sha2::Digest;
@@ -301,22 +303,21 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
                 "\x1B[32mlocal path to resource that will be used\x1B[0m\x1B[0K\r\n"
             )
             .unwrap();
-            let out = status(
-                "find",
-                &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
-            )
-            .unwrap();
-            write!(
-                stdout,
-                "{}\x1B[0K\r\n",
-                String::from_utf8(out.stdout)
-                    .unwrap()
-                    .lines()
-                    .last()
-                    .unwrap()
-                    .to_owned()
-            )
-            .unwrap();
+            let mut out = None;
+            for entry in WalkDir::new(p.parent().unwrap()).into_iter().filter_map(Result::ok) {
+                let f_name = String::from(entry.file_name().to_string_lossy());
+                if f_name == ind_res {
+                    out = Some(entry);
+                    break;
+                }
+            }
+            match out {
+                Some(outp) => {
+                    let outp = String::from(outp.path().to_string_lossy());
+                        write!(stdout, "{:?}\r\n", outp).unwrap();
+                }
+                _ => (),
+            }
         }
     }
 }
@@ -503,30 +504,16 @@ pub fn get_res_path(
         None => None,
         Some(p) => {
             let mut out = None;
-            match std::env::consts::OS {
-                "macos" | "linux" => {
-                    out = Some(
-                        status(
-                            "find",
-                            &[p.parent().unwrap().to_str().unwrap(), "-name", &ind_res],
-                        )
-                        .unwrap(),
-                    );
+            for entry in WalkDir::new(p.parent().unwrap()).into_iter().filter_map(Result::ok) {
+                let f_name = String::from(entry.file_name().to_string_lossy());
+                if f_name == ind_res {
+                    out = Some(entry);
+                    break;
                 }
-                "windows" => {
-                    out = Some(
-                        status(
-                            "where",
-                            &["/r", p.parent().unwrap().to_str().unwrap(), &ind_res],
-                        )
-                        .unwrap(),
-                    );
-                }
-                _ => (),
-            };
+            }
             match out {
-                Some(out) => {
-                    let outp = String::from_utf8(out.stdout).unwrap().trim().to_owned();
+                Some(outp) => {
+                    let outp = String::from(outp.path().to_string_lossy());
                     if from_input {
                         write!(
                             stdout,
@@ -535,11 +522,11 @@ pub fn get_res_path(
                         )
                         .unwrap();
                     } else {
-                        write!(stdout, "{}\r\n", outp).unwrap();
+                        write!(stdout, "{:?}\r\n", outp).unwrap();
                     }
                     Some(outp)
                 }
-                None => panic!("Didn't find resource {}", &ind_res),
+                _ => None,
             }
         }
     }

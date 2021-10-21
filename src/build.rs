@@ -192,41 +192,51 @@ pub fn build_output(
         "Basic" => {
             write!(
                 stdout,
-                "\x1B[32mFound\x1B[0m Misc->Security->Vailt set to Basic\r\n"
+                "\x1B[32mFound\x1B[0m Misc->Security->Vault set to Basic\r\n"
             )?;
-            compute_vault_plist(resources, stdout)?;
+            if std::env::consts::OS == "macos" {
+                compute_vault_plist(resources, stdout)?;
+            } else {
+                write!(stdout, "\x1b[33WARNING:\tcan only build vault files on macOS at this time\r\n\
+                \trun octool on macOS to build vault files, or set vault to Optional for now.\x1b[0m\r\n")?;
+            }
         }
         "Secure" => {
             write!(
                 stdout,
                 "\x1B[32mFound\x1B[0m Misc->Security->Vault set to Secure\r\n"
             )?;
-            compute_vault_plist(resources, stdout)?;
-            write!(stdout, "\x1b[32mSigning\x1B[0m OpenCore.efi ... ")?;
-            stdout.flush()?;
-            let out = status("strings", &["-a", "-t", "d", "OUTPUT/EFI/OC/OpenCore.efi"])?;
-            let mut offset = 0;
-            for line in String::from_utf8(out.stdout).unwrap().lines() {
-                let (off, s) = line.split_once(' ').unwrap();
-                if s == "=BEGIN OC VAULT=" {
-                    offset = off.parse::<i32>().unwrap() + 16;
+            if std::env::consts::OS == "macos" {
+                compute_vault_plist(resources, stdout)?;
+                write!(stdout, "\x1b[32mSigning\x1B[0m OpenCore.efi ... ")?;
+                stdout.flush()?;
+                let out = status("strings", &["-a", "-t", "d", "OUTPUT/EFI/OC/OpenCore.efi"])?;
+                let mut offset = 0;
+                for line in String::from_utf8(out.stdout).unwrap().lines() {
+                    let (off, s) = line.split_once(' ').unwrap();
+                    if s == "=BEGIN OC VAULT=" {
+                        offset = off.parse::<i32>().unwrap() + 16;
+                    }
                 }
+                let mut seek = "seek=".to_string();
+                seek.push_str(&offset.to_string());
+                let _ = status(
+                    "dd",
+                    &[
+                        "of=OUTPUT/EFI/OC/OpenCore.efi",
+                        "if=OUTPUT/EFI/OC/vault.pub",
+                        "bs=1",
+                        &seek,
+                        "count=528",
+                        "conv=notrunc",
+                    ],
+                );
+                std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
+                write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
+            } else {
+                write!(stdout, "\x1b[33WARNING:\tcan only build vault files on macOS at this time\r\n\
+                \trun octool on macOS to build vault files, or set vault to Optional for now.\x1b[0m\r\n")?;
             }
-            let mut seek = "seek=".to_string();
-            seek.push_str(&offset.to_string());
-            let _ = status(
-                "dd",
-                &[
-                    "of=OUTPUT/EFI/OC/OpenCore.efi",
-                    "if=OUTPUT/EFI/OC/vault.pub",
-                    "bs=1",
-                    &seek,
-                    "count=528",
-                    "conv=notrunc",
-                ],
-            );
-            std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
-            write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
             stdout.flush()?;
         }
         _ => (),
@@ -256,10 +266,7 @@ pub fn build_output(
     Ok(build_okay)
 }
 
-fn compute_vault_plist(
-    resources: &Resources,
-    stdout: &mut Stdout,
-) -> Result<(), Box<dyn Error>> {
+fn compute_vault_plist(resources: &Resources, stdout: &mut Stdout) -> Result<(), Box<dyn Error>> {
     write!(stdout, "\x1B[32mComputing\x1B[0m vault.plist ... ")?;
     stdout.flush()?;
     let _ = status(

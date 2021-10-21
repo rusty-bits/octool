@@ -1,6 +1,6 @@
 [package]
 name = "octool"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["rusty-bits <rusty_bits@aol.com>"]
 edition = "2018"
 

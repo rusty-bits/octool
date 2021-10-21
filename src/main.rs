@@ -461,13 +461,13 @@ fn main() {
             .parent()
             .expect("Didn't find working directory")
             .to_path_buf();
-        ver = "0.3.2";
+        ver = "0.3.3";
     }
 
     #[cfg(debug_assertions)]
     {
         working_dir = current_dir.to_owned();
-        ver = "0.3.2 d";
+        ver = "0.3.3 debug";
     }
     env::set_current_dir(&working_dir).expect("Unable to set environment");
 

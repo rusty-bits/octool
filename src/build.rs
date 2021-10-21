@@ -198,7 +198,7 @@ pub fn build_output(
                 compute_vault_plist(resources, stdout)?;
             } else {
                 write!(stdout, "\x1b[33mWARNING:\tcan only build vault files on macOS at this time\r\n\
-                \trun octool on macOS to build vault files, or set Vault to \x1b[4mOptional\x1b[0;33 \
+                \trun octool on macOS to build vault files, or set Vault to \x1b[4mOptional\x1b[0;33m \
                 for now.\x1b[0m\r\n")?;
                 build_okay = false;
             }
@@ -237,7 +237,7 @@ pub fn build_output(
                 write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
             } else {
                 write!(stdout, "\x1b[33mWARNING:\tcan only build vault files on macOS at this time\r\n\
-                \trun octool on macOS to build vault files, or set Vault to \x1b[4mOptional\x1b[0;33 \
+                \trun octool on macOS to build vault files, or set Vault to \x1b[4mOptional\x1b[0;33m \
                 for now.\x1b[0m\r\n")?;
                 build_okay = false;
             }

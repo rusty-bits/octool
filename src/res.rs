@@ -115,6 +115,7 @@ pub fn get_or_update_local_parent(
 /// # example
 /// ```
 /// let stats = status("git", ["fetch", "--all"]);
+///
 /// ```
 pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {
     Ok(Command::new(command).args(args).output()?)
@@ -154,10 +155,6 @@ fn get_master_and_unzip(
     curl_file(&url, &zip_path)?;
 
     let z_file = File::open(&zip_path)?;
-    //    let mut data = Vec::new();
-    //    z_file.read_to_end(&mut data).unwrap();
-
-    //    let z_file = std::fs::File::open(&path).unwrap();
     let mut z_archive = zip::ZipArchive::new(z_file)?;
     match z_archive.extract(&path) {
         Ok(_) => std::fs::remove_file(&zip_path)?,
@@ -197,7 +194,6 @@ pub fn get_file_and_unzip(
         }
     }
 
-    //    let z_file = std::fs::File::open(&path).unwrap();
     let mut z_archive = zip::ZipArchive::new(z_file)?;
     match z_archive.extract(&path.parent().unwrap()) {
         Ok(_) => std::fs::remove_file(&path)?,
@@ -304,7 +300,10 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
             )
             .unwrap();
             let mut out = None;
-            for entry in WalkDir::new(p.parent().unwrap()).into_iter().filter_map(Result::ok) {
+            for entry in WalkDir::new(p.parent().unwrap())
+                .into_iter()
+                .filter_map(Result::ok)
+            {
                 let f_name = String::from(entry.file_name().to_string_lossy());
                 if f_name == ind_res {
                     out = Some(entry);
@@ -314,7 +313,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
             match out {
                 Some(outp) => {
                     let outp = String::from(outp.path().to_string_lossy());
-                        write!(stdout, "{:?}\r\n", outp).unwrap();
+                    write!(stdout, "{:?}\r\n", outp).unwrap();
                 }
                 _ => (),
             }
@@ -504,7 +503,10 @@ pub fn get_res_path(
         None => None,
         Some(p) => {
             let mut out = None;
-            for entry in WalkDir::new(p.parent().unwrap()).into_iter().filter_map(Result::ok) {
+            for entry in WalkDir::new(p.parent().unwrap())
+                .into_iter()
+                .filter_map(Result::ok)
+            {
                 let f_name = String::from(entry.file_name().to_string_lossy());
                 if f_name == ind_res {
                     out = Some(entry);

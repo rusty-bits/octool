@@ -7,13 +7,12 @@ use std::{
 use crossterm::event::KeyCode;
 use crossterm::terminal::size;
 
-use crate::{draw::Settings, res::Resources, edit::read_key};
+use crate::{draw::Settings, edit::read_key, res::Resources};
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
 /// TODO: keep highlighted item on screen so it can be edited while looking at definition
 /// TODO: display info of NVRAM variables
-/// TODO: list valid values for String and Integer types from the Configuration.tex while editing
 pub fn show_info(
     resources: &Resources,
     settings: &Settings,
@@ -144,6 +143,7 @@ pub fn show_info(
         }
         let parsed_line = parse_line(line, columns, gather_valid);
         if gather_valid {
+            // gather list items to display when editing a string or integer
             if itemize > 0 {
                 // we are inside an itemize bracket
                 if line.contains("---") {
@@ -164,6 +164,7 @@ pub fn show_info(
         }
     }
     if !gather_valid {
+        // show config tex info if not already in edit mode on a string or integer
         let mut start = 0;
         loop {
             for i in start..result.len() {
@@ -179,14 +180,13 @@ pub fn show_info(
                         write!(
                             stdout,
                             "{}END{} ... 'q' to quit\x1B[G",
-                            "\x1b[7m",
-                            "\x1b[0m",
+                            "\x1b[7m", "\x1b[0m",
                         )?;
                     } else {
                         write!(stdout, "\x1b[7mmore\x1b[0m ...\x1B[G")?;
                     }
                     stdout.flush()?;
-                    match read_key().unwrap() {
+                    match read_key().unwrap().0 {
                         KeyCode::Char('q') | KeyCode::Char('i') | KeyCode::Esc => {
                             hit_bottom = false;
                             showing_info = false;
@@ -239,12 +239,12 @@ pub fn show_info(
             }
         }
     }
-    //    write!(stdout, "{:?}", valid_values)?;
     stdout.flush()?;
     Ok(showing_info)
 }
 
 /// Go through line 1 character at a time to apply .tex formatting
+///
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
 fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {

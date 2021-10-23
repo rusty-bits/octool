@@ -6,17 +6,14 @@ mod parse_tex;
 mod res;
 mod snake;
 
+use crossterm::event::KeyModifiers;
 use fs_extra::dir::{copy, CopyOptions};
 use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
 
-use crossterm::{
-    cursor,
-    event::KeyCode,
-    terminal,
-};
 use crossterm::ExecutableCommand;
+use crossterm::{cursor, event::KeyCode, terminal};
 
 use edit::read_key;
 
@@ -43,6 +40,7 @@ fn process(
     init::init(config_plist, &mut resources, settings, stdout)?;
 
     let mut key = KeyCode::Char('q');
+    let mut key_mod;
 
     if settings.oc_build_version != "not found" {
         writeln!(
@@ -50,7 +48,7 @@ fn process(
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
         stdout.flush()?;
-        key = read_key()?;
+        key = read_key()?.0;
     }
 
     if key != KeyCode::Char('q') {
@@ -61,17 +59,22 @@ fn process(
                 draw::update_screen(settings, &mut resources, stdout)?;
                 stdout.flush().unwrap();
             }
-            //            let key = keys.next().unwrap().unwrap();
-            key = read_key()?;
+            //            (key, key_mod) = read_key()?; // feature not stable yet, issue #71126
+            let key_and_mods = read_key()?;
+            key = key_and_mods.0;
+            key_mod = key_and_mods.1;
+            // TODO: add option to change version of single kext, efi, etc...
             match key {
                 KeyCode::Char('q') => {
                     if showing_info {
                         showing_info = false;
                     } else {
                         if settings.modified {
-                            write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\x1B[0K\r\n\x1B[2K").unwrap();
+                            write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\
+                                   \x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\
+                                   \x1B[0K\r\n\x1B[2K").unwrap();
                             stdout.flush().unwrap();
-                            match read_key()? {
+                            match read_key()?.0 {
                                 KeyCode::Char('Q') => break,
                                 _ => (),
                             }
@@ -156,7 +159,7 @@ fn process(
                                 write!(stdout, "\x1B[0m\r\n\x1B[2K").unwrap();
                             }
                             stdout.flush().unwrap();
-                            match read_key()? {
+                            match read_key()?.0 {
                                 KeyCode::Up => {
                                     if selection > 1 {
                                         selection -= 1;
@@ -192,8 +195,15 @@ fn process(
                         settings.sec_num = found[found_id - 1].section;
                     }
                 }
-                KeyCode::Char('p') | KeyCode::Char('v') => {
+                KeyCode::Char('p') => {
                     if edit::add_delete_value(settings, &mut resources.config_plist, true) {
+                        settings.add();
+                    }
+                }
+                KeyCode::Char('v') => {
+                    if key_mod == KeyModifiers::CONTROL
+                        && edit::add_delete_value(settings, &mut resources.config_plist, true)
+                    {
                         settings.add();
                     }
                 }
@@ -248,10 +258,20 @@ fn process(
                         true,
                     )?
                 }
-                KeyCode::Char('D') | KeyCode::Char('x') => {
+                KeyCode::Char('D') => {
                     if settings.sec_length[settings.depth] > 0 {
                         if edit::add_delete_value(settings, &mut resources.config_plist, false) {
                             settings.delete();
+                        }
+                    }
+                }
+                KeyCode::Char('x') => {
+                    if key_mod == KeyModifiers::CONTROL {
+                        if settings.sec_length[settings.depth] > 0 {
+                            if edit::add_delete_value(settings, &mut resources.config_plist, false)
+                            {
+                                settings.delete();
+                            }
                         }
                     }
                 }
@@ -268,8 +288,7 @@ fn process(
                             clr = "\x1b[0K",
                         )?;
                         stdout.flush()?;
-                        let kp = read_key()?;
-                        if kp == KeyCode::Char('d') || kp == KeyCode::Char('x') {
+                        if read_key()?.0 == KeyCode::Char('d') {
                             if edit::add_delete_value(settings, &mut resources.config_plist, false)
                             {
                                 settings.delete();
@@ -277,8 +296,13 @@ fn process(
                         }
                     }
                 }
-                KeyCode::Char('y') | KeyCode::Char('c') => {
-                    let _ = edit::extract_value(settings, &mut resources.config_plist, false, true);
+                KeyCode::Char('y') => {
+                    edit::extract_value(settings, &mut resources.config_plist, false, true);
+                }
+                KeyCode::Char('c') => {
+                    if key_mod == KeyModifiers::CONTROL {
+                        edit::extract_value(settings, &mut resources.config_plist, false, true);
+                    }
                 }
                 KeyCode::Char('r') => {
                     if settings.depth < 4 {
@@ -299,7 +323,7 @@ fn process(
                             clr = "\x1b[0K",
                         )?;
                         stdout.flush()?;
-                        if read_key()? == KeyCode::Char('r') {
+                        if read_key()?.0 == KeyCode::Char('r') {
                             if edit::extract_value(settings, &resources.config_plist, false, true) {
                                 settings.modified = true;
                                 let tmp_item = settings.held_item.clone();
@@ -496,7 +520,6 @@ fn main() {
     let mut args = args.iter();
     loop {
         if let Some(arg) = args.next() {
-            //    for arg in args {
             if arg.starts_with('-') {
                 for c in arg.chars() {
                     match c {
@@ -504,7 +527,8 @@ fn main() {
                             Some(version) => setup.oc_build_version = version.to_owned(),
                             _ => {
                                 println!(
-                                    "\n\x1B[33mERROR:\x1b[0m You need to supply a version number with the -o option\n"
+                                    "\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
+                                    with the -o option\n"
                                 );
                                 println!("e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\n");
                                 std::process::exit(0);
@@ -512,16 +536,17 @@ fn main() {
                         },
                         'v' => {
                             println!("\noctool v{}", ver);
-                            // TODO: check if running on macOS
-                            match res::status(
-                                "nvram",
-                                &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
-                            ) {
-                                Ok(s) => println!(
-                                    "\ncurrent loaded OpenCore version\n{}",
-                                    String::from_utf8_lossy(&s.stdout)
-                                ),
-                                Err(_) => (),
+                            if std::env::consts::OS == "macos" {
+                                match res::status(
+                                    "nvram",
+                                    &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
+                                ) {
+                                    Ok(s) => println!(
+                                        "\ncurrent loaded OpenCore version\n{}",
+                                        String::from_utf8_lossy(&s.stdout)
+                                    ),
+                                    Err(_) => (),
+                                }
                             }
                             std::process::exit(0);
                         }
@@ -573,9 +598,7 @@ fn main() {
         Err(e) => eprintln!("\r\n\x1B[31mERROR:\x1B[0m while processing plist: {:?}", e),
     }
 
-    stdout
-        .execute(cursor::Show)
-        .unwrap();
+    stdout.execute(cursor::Show).unwrap();
 
     terminal::disable_raw_mode().unwrap();
 }

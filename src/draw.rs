@@ -106,7 +106,10 @@ pub fn update_screen(
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} {res}integer {inv} {res}string\x1B[0K",
+        " {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
+        {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave \
+        {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
+        {res}integer {inv} {res}string\x1B[0K",
         inv = "\x1b[7m",
         res = "\x1b[0m",
         grn = "\x1b[32m",
@@ -134,6 +137,7 @@ pub fn update_screen(
             .unwrap();
         }
     }
+
     #[cfg(debug_assertions)]
     write!(
         stdout,
@@ -283,14 +287,14 @@ fn display_value(
             match v {
                 true => write!(
                     stdout,
-                    "{}{}{}{}: {}{}",
-                    key_style, "\x1b[32m", key, "\x1b[0m", save_curs_pos, v
+                    "{}\x1b[32m{}\x1b[0m: {}{}",
+                    key_style, key, save_curs_pos, v
                 )
                 .unwrap(),
                 false => write!(
                     stdout,
-                    "{}{}{}{}: {}{}",
-                    key_style, "\x1b[31m", key, "\x1b[0m", save_curs_pos, v
+                    "{}\x1b[31m{}\x1b[0m: {}{}",
+                    key_style, key, save_curs_pos, v
                 )
                 .unwrap(),
             };
@@ -298,16 +302,12 @@ fn display_value(
         Value::Data(v) => {
             write!(
                 stdout,
-                "{}{}{}{}: <{}{}> | {}{}{}\x1B[0K",
+                "{}\x1b[35m{}\x1b[0m: <{}{}> | \"{}\"\x1B[0K",
                 key_style,
-                "\x1b[35m",
                 key,
-                "\x1b[0m",
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
-                '\"',
                 get_lossy_string(v),
-                '\"'
             )?;
         }
         Value::Dictionary(v) => {
@@ -326,9 +326,9 @@ fn display_value(
                 pre_key,
                 key_style,
                 match key_color {
-                    Some(true) => "\x1b[32m".to_string(),
-                    Some(false) => "\x1b[31m".to_string(),
-                    None => "".to_string(),
+                    Some(true) => "\x1b[32m",
+                    Some(false) => "\x1b[31m",
+                    None => "",
                 },
                 key,
                 res::res_version(settings, &resources, &key),
@@ -366,8 +366,8 @@ fn display_value(
         Value::Integer(v) => {
             write!(
                 stdout,
-                "{}{}{}{}: {}{}",
-                key_style, "\x1b[34m", key, "\x1b[0m", save_curs_pos, v
+                "{}\x1b[34m{}\x1b[0m: {}{}",
+                key_style, key, save_curs_pos, v
             )?;
         }
         Value::String(v) => {
@@ -428,9 +428,9 @@ pub fn hex_str_with_style(v: String) -> String {
     let mut col = v.len() % 2;
     for c in v.chars() {
         if col > 1 {
-            hex_u.push_str(&"\x1b[35m".to_string());
+            hex_u.push_str("\x1b[35m");
             hex_u.push(c);
-            hex_u.push_str(&"\x1b[0m".to_string());
+            hex_u.push_str("\x1b[0m");
         } else {
             hex_u.push(c);
         }

@@ -1,6 +1,7 @@
 use crate::draw::{self, Settings};
 use crate::res::Resources;
 
+use crossterm::event::KeyModifiers;
 use plist::{Integer, Value};
 
 use std::{
@@ -32,10 +33,10 @@ impl Found {
     }
 }
 
-pub fn read_key() -> crossterm::Result<KeyCode> {
+pub fn read_key() -> crossterm::Result<(KeyCode, KeyModifiers)> {
     loop {
-        if let Event::Key(ke) = event::read()? {
-            return Ok(ke.code);
+        if let Event::Key(key) = event::read()? {
+            return Ok((key.code, key.modifiers));
         }
     }
 }
@@ -65,7 +66,6 @@ pub fn extract_value(
             _ => (),
         }
     }
-    //    write!(std::io::stdout(), "{:?}\r\n", plist_val).unwrap();
     match plist_val {
         Value::Dictionary(d) => {
             let key = if first {
@@ -118,6 +118,7 @@ pub fn extract_value(
 /// place the settings.held_item into the given 'plist_val' plist at the highlighted location
 /// if 'add' is false
 /// delete the highlighted value from the given 'plist_val' plist and place it in the settings.held_item
+///
 pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add: bool) -> bool {
     let mut changed = false;
     for i in 0..settings.depth {
@@ -252,7 +253,7 @@ pub fn find(
                                             }
                                         }
                                         _ => (),
-                                    }
+                                    } // end match d
                                 }
                             }
                             plist::Value::Array(a) => {
@@ -276,16 +277,16 @@ pub fn find(
                                             }
                                         }
                                         _ => (),
-                                    }
+                                    } // end match v
                                 }
                             }
 
                             _ => (),
-                        }
+                        } // end match sub_sub
                     }
                 }
                 _ => (),
-            }
+            } // end match resource
         }
     }
     write!(stdout, "{}", cursor::Hide).unwrap();
@@ -332,7 +333,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         }
         write!(stdout, "\x1B[2K").unwrap();
         stdout.flush().unwrap();
-        match read_key().unwrap() {
+        match read_key().unwrap().0 {
             KeyCode::Up => {
                 if selection > 1 {
                     selection -= 1;
@@ -389,6 +390,12 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
 }
 
 /// edit the highlighted value in the loaded config.plist
+///
+/// ```
+/// space_pressed: bool // was space pressed to get here, if so, toggle value
+/// edit_key: bool // edit the key name of the field, not the value in the field
+///
+/// ```
 pub fn edit_value(
     settings: &mut Settings,
     mut val: &mut Value,
@@ -473,7 +480,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
     let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
     let mut hexedit = true;
-//    let mut keys = std::io::stdin().keys();
+    //    let mut keys = std::io::stdin().keys();
     loop {
         let mut tmp_val = edit_hex.clone();
         if tmp_val.len() % 2 == 1 {
@@ -509,7 +516,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
             .unwrap();
         }
         stdout.flush()?;
-        match read_key().unwrap() {
+        match read_key().unwrap().0 {
             KeyCode::Enter => {
                 *val = tmp_val;
                 break;
@@ -633,7 +640,7 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) 
         write!(stdout, "\x1B8{}\x1B[0K", new).unwrap();
         stdout.flush().unwrap();
 
-        match read_key().unwrap() {
+        match read_key().unwrap().0 {
             KeyCode::Enter => {
                 *val = match new.parse::<i64>() {
                     Ok(i) => Integer::from(i),
@@ -707,7 +714,7 @@ fn edit_string(
         write!(stdout, "\x1B8{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
-        match read_key().unwrap() {
+        match read_key().unwrap().0 {
             KeyCode::Enter => {
                 *val = new;
                 break;

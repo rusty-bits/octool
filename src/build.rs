@@ -25,7 +25,7 @@ pub fn build_output(
     options.overwrite = true;
     let in_path;
     if resources.open_core_binaries_path.join("X64/EFI").exists() {
-        in_path = "X64/EFI";
+        in_path = "X64/EFI"; // TODO: add settings for IA32 as well instead of assuming X64
     } else {
         in_path = "EFI"; // older OpenCorePkg versions
     }
@@ -180,7 +180,6 @@ pub fn build_output(
         stdout.flush()?;
     }
 
-    // TODO: need to check on OS version here, vault tools are macOS only, I think, but unsure
     match resources.config_plist.as_dictionary().unwrap()["Misc"]
         .as_dictionary()
         .unwrap()["Security"]

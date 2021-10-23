@@ -6,13 +6,15 @@ use std::error::Error;
 use std::io::{Stdout, Write};
 use std::ops;
 
-use crossterm::event::{Event, EventStream, KeyCode};
+//use crossterm::event::{Event, EventStream, KeyCode};
+use crossterm::event::{poll, read, Event, KeyCode};
 use crossterm::terminal::size;
 
+use std::thread::sleep;
 use std::time::Duration;
 
-use futures::{future::FutureExt, select, StreamExt};
-use futures_timer::Delay;
+//use futures::{future::FutureExt, select, StreamExt};
+//use futures_timer::Delay;
 
 // blame mahasvan for this "secret" snake option
 
@@ -66,8 +68,9 @@ fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
     head.0 > bounds.0 || head.1 > bounds.1 || head.0 < 1 || head.1 < 1
 }
 
-#[tokio::main]
-pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
+//#[tokio::main]
+//pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
+pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
     let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
     let mut apple = "113322446655".chars().cycle();
     let mut stripe = "13".chars().cycle();
@@ -104,14 +107,14 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
     travel(&mut snake, true);
     //    let mut key_bytes = [0, 0, 0];
 
-    let mut reader = EventStream::new();
+//    let mut reader = EventStream::new();
 
     loop {
-        let mut delay = Delay::new(Duration::from_millis(100)).fuse();
-        let mut event = reader.next().fuse();
+//        let mut delay = Delay::new(Duration::from_millis(100)).fuse();
+//        let mut event = reader.next().fuse();
 
-        select! {
-        _ = delay => {
+//        select! {
+//        _ = delay => {
             let eating_food = head_touching_object(&snake, food);
             if eating_food {
                 score += 1;
@@ -148,11 +151,12 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
                 break;
             }
             stdout.flush().unwrap();
-        },
-            maybe_event = event => {
-                match maybe_event {
-                    Some(Ok(event)) => {
-                        if let Event::Key(ke) = event {
+//        },
+//            maybe_event = event => {
+//                match maybe_event {
+//                    Some(Ok(event)) => {
+            if poll(Duration::from_millis(100)).ok().unwrap() {
+                        if let Event::Key(ke) = read().ok().unwrap() {
                             match ke.code {
                                 KeyCode::Char('h') | KeyCode::Left => {
                                     if snake.direction.1 != 0 {
@@ -178,11 +182,12 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
                                 _ => (),
                             }
                         }
-                    },
-                    Some(Err(e)) => println!("Error: {:?}\r", e),
-                    None => break,
-                }
-            let eating_food = head_touching_object(&snake, food);
+            };
+//                    },
+//                    Some(Err(e)) => println!("Error: {:?}\r", e),
+//                    None => break,
+//                }
+/*            let eating_food = head_touching_object(&snake, food);
             if eating_food {
                 score += 1;
                 food = get_new_food_position(&snake, board_bounds, &mut rng);
@@ -219,7 +224,7 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
             }
             stdout.flush().unwrap();
             },
-        }
+        }*/
     }
     for segment in snake.seg.iter() {
         write!(
@@ -229,6 +234,7 @@ pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Erro
         )
         .unwrap();
         stdout.flush().unwrap();
+        sleep(Duration::from_millis(5));
     }
     Ok(())
 }

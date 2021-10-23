@@ -1,15 +1,10 @@
 [package]
 name = "octool"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["rusty-bits <rusty_bits@aol.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[features]
-default = []
-event-stream = ["futures-core"]
-required-features = ["event-stream"]
 
 [dependencies]
 plist = "^1"
@@ -17,16 +12,11 @@ hex = "^0"
 serde_json = "^1"
 sha2 = "^0"
 fs_extra = "^1"
-crossterm = { version = "*", features = ["event-stream"] }
+crossterm = "*"
 rand = "*"
 zip = "*"
 curl = "*"
 walkdir = "*"
-tokio = { version = "1.5", features = ["full"] }
-futures = "0.3"
-futures-timer = "3.0"
-futures-core = { version = "0.3", optional = true, default-features = false }
-async-std = "1.9"
 
 [profile.release]
 opt-level = "z"

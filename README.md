@@ -74,8 +74,6 @@ Usage:
 
 'p' `paste` - places the last deleted or modified etc. item into the plist (for those familiar with vi commands)  
 
-'P' (capital P) prints out some `tool_config_files/resource_list.json` data for debugging  
-
 'q' `quit` - if unsaved changes were made to the `config.plist` octool will show a warning and allow changes to be saved or ignored  
 
 'r' `reset` - if a single item is selected, reset its value to the same as the `Sample.plist` value  

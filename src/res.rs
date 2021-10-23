@@ -1,5 +1,4 @@
 use crate::draw::Settings;
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Stdout, Write};
@@ -411,23 +410,6 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
         ver
     } else {
         "".to_owned()
-    }
-}
-
-/// Print the Dortania and Acidanthera top level parent child
-pub fn print_parents(resources: &Resources, stdout: &mut Stdout) {
-    let build_type = resources.octool_config["build_type"]
-        .as_str()
-        .unwrap_or("release");
-    let m: HashMap<String, serde_json::Value> =
-        serde_json::from_value(resources.dortania.to_owned()).unwrap();
-    for (name, val) in m {
-        write!(
-            stdout,
-            "name: {} {:?}\r\n",
-            name, val["versions"][0]["links"][build_type]
-        )
-        .unwrap();
     }
 }
 

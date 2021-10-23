@@ -207,11 +207,6 @@ fn process(
                         settings.add();
                     }
                 }
-                KeyCode::Char('P') => {
-                    res::print_parents(&resources, stdout);
-                    stdout.flush().unwrap();
-                    read_key()?;
-                }
                 KeyCode::Up | KeyCode::Char('k') => settings.up(),
                 KeyCode::Down | KeyCode::Char('j') => settings.down(),
                 KeyCode::Left | KeyCode::Char('h') => settings.left(),
@@ -485,13 +480,13 @@ fn main() {
             .parent()
             .expect("Didn't find working directory")
             .to_path_buf();
-        ver = "0.3.3";
+        ver = "0.3.4";
     }
 
     #[cfg(debug_assertions)]
     {
         working_dir = current_dir.to_owned();
-        ver = "0.3.3 debug";
+        ver = "0.3.4 debug";
     }
     env::set_current_dir(&working_dir).expect("Unable to set environment");
 

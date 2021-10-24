@@ -193,8 +193,7 @@ pub fn find(
         cursor::SavePosition,
     )
     .unwrap();
-    let empty_vec = vec![];
-    edit_string(&mut settings.find_string, &empty_vec, stdout).unwrap();
+    edit_string(&mut settings.find_string, None, stdout).unwrap();
     if settings.find_string.len() > 0 {
         let search = settings.find_string.to_lowercase();
         let resource = resource.as_dictionary().unwrap();
@@ -370,8 +369,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         .unwrap();
         stdout.flush().unwrap();
         let mut key = String::new();
-        let empty_vec = vec![];
-        edit_string(&mut key, &empty_vec, stdout).unwrap();
+        edit_string(&mut key, None, stdout).unwrap();
         settings.held_key = String::from(key.trim());
         settings.held_item = Some(match item_types[selection - 1] {
             "plist array" => plist::Value::Array(vec![]),
@@ -399,7 +397,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
 pub fn edit_value(
     settings: &mut Settings,
     mut val: &mut Value,
-    valid_values: &Vec<String>,
+    valid_values: Option<&Vec<String>>,
     stdout: &mut Stdout,
     space_pressed: bool,
     edit_key: bool,
@@ -447,7 +445,6 @@ pub fn edit_value(
             Value::Dictionary(d) => {
                 let mut key = settings.sec_key[search_depth].to_owned();
                 let hold = d.remove(&key);
-                //        write!(stdout, "\r\n{:?}\r\n{:?}\r\n", hold, val)?;
                 match hold {
                     Some(v) => {
                         write!(stdout, "\x1B8\r{}| \x1B7", "    ".repeat(settings.depth))?;
@@ -594,15 +591,13 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
     Ok(())
 }
 
-fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) {
+fn edit_int(val: &mut Integer, valid_values: Option<&Vec<String>>, stdout: &mut Stdout) {
     let mut new_int = val.as_signed().unwrap();
-    //    let mut keys = std::io::stdin().keys();
     let mut selected = 0;
     let mut hit_space = false;
     let mut new = new_int.to_string();
     loop {
-        if valid_values.len() > 0 {
-            //            new_int = new.parse::<i64>().unwrap();
+        if let Some(valid_values) = valid_values {
             let mut hex_val;
             write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
             for (i, vals) in valid_values.iter().enumerate() {
@@ -661,7 +656,16 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) 
             KeyCode::Char(' ') => hit_space = true,
             KeyCode::Char(c @ '0'..='9') => {
                 new.push(c);
-                new_int = new.parse::<i64>().unwrap();
+                new_int = match new.parse::<i64>() {
+                    Ok(int) => int,
+                    Err(_) => {
+                        new.pop();
+                        write!(stdout, "   \x1b[33mERROR:\x1b[0m int value exceeded").unwrap();
+                        stdout.flush().unwrap();
+                        read_key().unwrap();
+                        new.parse::<i64>().unwrap()
+                    }
+                };
             }
             KeyCode::Char('-') => {
                 if new.len() == 0 {
@@ -674,8 +678,10 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) 
                 }
             }
             KeyCode::Down => {
-                if selected < valid_values.len() - 1 {
-                    selected += 1;
+                if let Some(valid_values) = valid_values {
+                    if selected < valid_values.len() - 1 {
+                        selected += 1;
+                    }
                 }
             }
             KeyCode::Esc => break,
@@ -686,30 +692,34 @@ fn edit_int(val: &mut Integer, valid_values: &Vec<String>, stdout: &mut Stdout) 
 
 fn edit_string(
     val: &mut String,
-    valid_values: &Vec<String>,
+    valid_values: Option<&Vec<String>>,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let mut new = String::from(&*val);
     let mut pos = new.len();
-    //    let mut keys = std::io::stdin().keys();
-    let mut selected = valid_values.len();
-    if valid_values.len() > 0 {
-        for (i, vals) in valid_values.iter().enumerate() {
-            if vals.split("---").next().unwrap().trim() == &new {
-                selected = i;
+    let mut selected = 0;
+    if let Some(valid_values) = valid_values {
+        selected = valid_values.len();
+        if valid_values.len() > 0 {
+            for (i, vals) in valid_values.iter().enumerate() {
+                if vals.split("---").next().unwrap().trim() == &new {
+                    selected = i;
+                }
             }
         }
     }
     loop {
-        if valid_values.len() > 0 {
-            write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
-            for (i, vals) in valid_values.iter().enumerate() {
-                if i == selected {
-                    write!(stdout, "\x1b[7m").unwrap();
+        if let Some(valid_values) = valid_values {
+            if valid_values.len() > 0 {
+                write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
+                for (i, vals) in valid_values.iter().enumerate() {
+                    if i == selected {
+                        write!(stdout, "\x1b[7m").unwrap();
+                    }
+                    write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
                 }
-                write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
+                write!(stdout, "\x1B[2K\r\n").unwrap();
             }
-            write!(stdout, "\x1B[2K\r\n").unwrap();
         }
         write!(stdout, "\x1B8{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
@@ -737,6 +747,25 @@ fn edit_string(
             KeyCode::Up => {
                 if selected > 0 {
                     selected -= 1;
+                    if let Some(valid_values) = valid_values {
+                        new = valid_values[selected]
+                            .split("---")
+                            .next()
+                            .unwrap()
+                            .trim()
+                            .to_owned();
+                        pos = new.len();
+                    }
+                }
+            }
+            KeyCode::Down => {
+                if let Some(valid_values) = valid_values {
+                    if selected < valid_values.len() - 1 {
+                        selected += 1;
+                    }
+                    if selected == valid_values.len() {
+                        selected = 0;
+                    }
                     new = valid_values[selected]
                         .split("---")
                         .next()
@@ -745,21 +774,6 @@ fn edit_string(
                         .to_owned();
                     pos = new.len();
                 }
-            }
-            KeyCode::Down => {
-                if selected < valid_values.len() - 1 {
-                    selected += 1;
-                }
-                if selected == valid_values.len() {
-                    selected = 0;
-                }
-                new = valid_values[selected]
-                    .split("---")
-                    .next()
-                    .unwrap()
-                    .trim()
-                    .to_owned();
-                pos = new.len();
             }
             KeyCode::Left => {
                 if pos > 0 {

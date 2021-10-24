@@ -6,15 +6,11 @@ use std::error::Error;
 use std::io::{Stdout, Write};
 use std::ops;
 
-//use crossterm::event::{Event, EventStream, KeyCode};
 use crossterm::event::{poll, read, Event, KeyCode};
 use crossterm::terminal::size;
 
 use std::thread::sleep;
 use std::time::Duration;
-
-//use futures::{future::FutureExt, select, StreamExt};
-//use futures_timer::Delay;
 
 // blame mahasvan for this "secret" snake option
 
@@ -68,8 +64,6 @@ fn head_out_of_bounds(snake: &Snake, bounds: CoordinateVector) -> bool {
     head.0 > bounds.0 || head.1 > bounds.1 || head.0 < 1 || head.1 < 1
 }
 
-//#[tokio::main]
-//pub async fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
 pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
     let mut masc = "BLAME_MAHASVAN_FOR_THIS_".chars().cycle();
     let mut apple = "113322446655".chars().cycle();
@@ -81,8 +75,6 @@ pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
     let (y1, x1) = size()?;
     let x = i32::from(x1);
     let y = i32::from(y1);
-
-    //    let mut stdin = async_stdin();
 
     let mut rng = thread_rng();
     let board_bounds = CoordinateVector(y + 1, x + 1);
@@ -103,18 +95,9 @@ pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
     }
     let mut food = get_new_food_position(&snake, board_bounds, &mut rng);
 
-    //    let mut slp = 100;
     travel(&mut snake, true);
-    //    let mut key_bytes = [0, 0, 0];
-
-//    let mut reader = EventStream::new();
 
     loop {
-//        let mut delay = Delay::new(Duration::from_millis(100)).fuse();
-//        let mut event = reader.next().fuse();
-
-//        select! {
-//        _ = delay => {
             let eating_food = head_touching_object(&snake, food);
             if eating_food {
                 score += 1;
@@ -151,10 +134,6 @@ pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
                 break;
             }
             stdout.flush().unwrap();
-//        },
-//            maybe_event = event => {
-//                match maybe_event {
-//                    Some(Ok(event)) => {
             if poll(Duration::from_millis(100)).ok().unwrap() {
                         if let Event::Key(ke) = read().ok().unwrap() {
                             match ke.code {
@@ -183,48 +162,6 @@ pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
                             }
                         }
             };
-//                    },
-//                    Some(Err(e)) => println!("Error: {:?}\r", e),
-//                    None => break,
-//                }
-/*            let eating_food = head_touching_object(&snake, food);
-            if eating_food {
-                score += 1;
-                food = get_new_food_position(&snake, board_bounds, &mut rng);
-            }
-            travel(&mut snake, eating_food);
-            let t = rng.gen_range(1..100);
-            if t > 95 {
-                turn_right(&mut baddy);
-            } else if t < 5 {
-                turn_left(&mut baddy);
-            }
-            travel(&mut baddy, false);
-            if head_out_of_bounds(&baddy, board_bounds) {
-                baddy.seg.pop_back().unwrap();
-                let &tail = baddy.seg.front().unwrap();
-                baddy.seg.push_front(tail);
-                turn_right(&mut baddy);
-            };
-            display(
-                stdout,
-                &snake,
-                &baddy,
-                food,
-                &mut masc,
-                &mut apple,
-                &mut stripe,
-                score,
-            );
-            if head_touching_snake(&snake, &snake)
-                || head_out_of_bounds(&snake, board_bounds)
-                || head_touching_snake(&baddy, &snake)
-            {
-                break;
-            }
-            stdout.flush().unwrap();
-            },
-        }*/
     }
     for segment in snake.seg.iter() {
         write!(

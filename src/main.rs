@@ -218,11 +218,10 @@ fn process(
                 // TODO: special check for driver section for OC 0.7.2 and earlier, uses # to enable/disable
                 KeyCode::Char(' ') => {
                     if !showing_info {
-                        let empty_vec = vec![];
                         edit::edit_value(
                             settings,
                             &mut resources.config_plist,
-                            &empty_vec,
+                            None,
                             stdout,
                             true,
                             false,
@@ -233,26 +232,38 @@ fn process(
                     write!(stdout, "\x1b8\r\n")?;
                     let mut valid_values = vec![];
                     parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
+                    //                    if valid_values.len() > 0 {
                     edit::edit_value(
                         settings,
                         &mut resources.config_plist,
-                        &valid_values,
+                        if valid_values.len() > 0 {
+                            Some(&valid_values)
+                        } else {
+                            None
+                        },
                         stdout,
                         false,
                         false,
-                    )?
+                    )?;
+                    /*                    } else {
+                        edit::edit_value(
+                            settings,
+                            &mut resources.config_plist,
+                            None,
+                            stdout,
+                            false,
+                            false,
+                        )?;
+                    }*/
                 }
-                KeyCode::Char('K') => {
-                    let empty_vec = vec![];
-                    edit::edit_value(
-                        settings,
-                        &mut resources.config_plist,
-                        &empty_vec,
-                        stdout,
-                        false,
-                        true,
-                    )?
-                }
+                KeyCode::Char('K') => edit::edit_value(
+                    settings,
+                    &mut resources.config_plist,
+                    None,
+                    stdout,
+                    false,
+                    true,
+                )?,
                 KeyCode::Char('D') => {
                     if settings.sec_length[settings.depth] > 0 {
                         if edit::add_delete_value(settings, &mut resources.config_plist, false) {

@@ -53,13 +53,12 @@ fn process(
 
     if key != KeyCode::Char('q') {
         let mut showing_info = false;
-        //        let mut keys = std::io::stdin().keys();
         loop {
             if !showing_info {
                 draw::update_screen(settings, &mut resources, stdout)?;
                 stdout.flush().unwrap();
             }
-            //            (key, key_mod) = read_key()?; // feature not stable yet, issue #71126
+            //            (key, key_mod) = read_key()?; // feature not in stable yet, issue #71126
             let key_and_mods = read_key()?;
             key = key_and_mods.0;
             key_mod = key_and_mods.1;
@@ -232,7 +231,6 @@ fn process(
                     write!(stdout, "\x1b8\r\n")?;
                     let mut valid_values = vec![];
                     parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
-                    //                    if valid_values.len() > 0 {
                     edit::edit_value(
                         settings,
                         &mut resources.config_plist,
@@ -245,16 +243,6 @@ fn process(
                         false,
                         false,
                     )?;
-                    /*                    } else {
-                        edit::edit_value(
-                            settings,
-                            &mut resources.config_plist,
-                            None,
-                            stdout,
-                            false,
-                            false,
-                        )?;
-                    }*/
                 }
                 KeyCode::Char('K') => edit::edit_value(
                     settings,

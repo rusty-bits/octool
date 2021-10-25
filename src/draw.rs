@@ -10,14 +10,14 @@ use crossterm::terminal::size;
 
 #[derive(Debug)]
 pub struct Settings {
-    pub config_file_name: String,                     // name of config.plist
-    pub sec_num: [usize; 5],                          // selected section for each depth
-    pub depth: usize,                                 // depth of plist section we are looking at
-    pub sec_key: [String; 5],                         // key of selected section
-    pub item_instructions: String,                    // item instructions for display in header
-    pub held_item: Option<Value>,                     // last deleted or placed item value
-    pub held_key: String,                             // last deleted or placed key
-    pub sec_length: [usize; 5],                       // number of items in current section
+    pub config_file_name: String,       // name of config.plist
+    pub sec_num: [usize; 5],            // selected section for each depth
+    pub depth: usize,                   // depth of plist section we are looking at
+    pub sec_key: [String; 5],           // key of selected section
+    pub item_instructions: String,      // item instructions for display in header
+    pub held_item: Option<Value>,       // last deleted or placed item value
+    pub held_key: String,               // last deleted or placed key
+    pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
     pub oc_build_version: String,       // version number of OpenCorePkg to use

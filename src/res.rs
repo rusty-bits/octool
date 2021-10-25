@@ -44,12 +44,6 @@ pub fn get_or_update_local_parent(
     let hash = single_resource[parent]["versions"][build_index]["hashes"][build_type]["sha256"]
         .as_str()
         .unwrap_or("");
-    /*    write!(
-            stdout,
-            "\x1B[32mlocal\x1B[0m [{}] {}\x1B[0K ",
-            build_type, parent
-        )?;
-    */
     let mut path = Path::new("resources").to_path_buf();
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
     if dir == "master" {
@@ -246,7 +240,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
         let res_index = settings.resource_ver_indexes.get(parent).unwrap_or(&0);
         match &resources.dortania[parent]["versions"][res_index]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
-                write!(stdout, "\x1b[33mtrue\r\n").unwrap();
+                write!(stdout, "\x1b[32mtrue\r\n").unwrap();
                 write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(

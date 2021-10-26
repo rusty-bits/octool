@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use plist::Value;
 
 use crate::draw::Settings;
+use crate::edit::{find, Found};
 use crate::res::{self, Resources};
 
 use crossterm::terminal;
@@ -211,12 +212,6 @@ pub fn init(
 
     write!(
         stdout,
-        "\r\n\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
-        settings.build_type, settings.oc_build_version,
-    )?;
-
-    write!(
-        stdout,
         "\n\x1B[32mValidating\x1B[0m {:?} with {} acidanthera/ocvalidate\r\n",
         config_plist, settings.oc_build_version,
     )?;
@@ -242,6 +237,13 @@ pub fn init(
             }
         }
     }
+
+    write!(
+        stdout,
+        "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        settings.build_type, settings.oc_build_version,
+    )?;
+
     Ok(())
 }
 
@@ -289,4 +291,20 @@ pub fn validate_plist(
         )?;
     }
     Ok(config_okay)
+}
+
+pub fn guess_version(resources: &Resources) -> String {
+    let mut found = vec![Found::new()];
+    let config_differences: Vec<(String, String, String, String)> =
+        serde_json::from_value(resources.octool_config["config_differences"].clone()).unwrap();
+
+    for (sec, sub, search, ver) in config_differences {
+        find(&search, &resources.config_plist, &mut found);
+        for results in &found {
+            if results.keys.contains(&sec) && results.keys.contains(&sub) {
+                return ver.to_owned();
+            }
+        }
+    }
+    "".to_string()
 }

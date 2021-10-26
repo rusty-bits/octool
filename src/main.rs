@@ -17,6 +17,8 @@ use crossterm::{cursor, event::KeyCode, terminal};
 
 use edit::read_key;
 
+use crate::init::guess_version;
+
 fn process(
     config_plist: &mut PathBuf,
     current_dir: &PathBuf,
@@ -43,10 +45,12 @@ fn process(
     let mut key_mod;
 
     if settings.oc_build_version != "not found" {
-        writeln!(
+        write!(stdout, "\r\n\x1b[33mtesting>\x1b[0m guessed version of input plist is \"{}\"\r\n", guess_version(&resources))?;
+        write!(
         stdout,
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
+
         stdout.flush()?;
         key = read_key()?.0;
     }
@@ -132,7 +136,21 @@ fn process(
                 KeyCode::Char('f') => {
                     found = vec![];
                     found_id = 0;
-                    edit::find(settings, &resources.config_plist, &mut found, stdout);
+                    settings.find_string = String::new();
+                    write!(
+                        stdout,
+                        "{}\r\x1B[2KEnter search term: {}\r\n\x1B[2K\x1B8",
+                        cursor::Show,
+                        cursor::SavePosition,
+                    )
+                    .unwrap();
+                    edit::edit_string(&mut settings.find_string, None, stdout).unwrap();
+                    write!(stdout, "{}", cursor::Hide).unwrap();
+                    edit::find(
+                        &settings.find_string,
+                        &resources.config_plist,
+                        &mut found,
+                    );
                     if found.len() == 1 {
                         settings.depth = found[0].level;
                         settings.sec_num = found[0].section;

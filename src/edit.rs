@@ -180,22 +180,12 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
 /// ask for a search string and give a scrollable list of locations to jump to in 'found'
 /// if only 1 result is found, jump immediately
 pub fn find(
-    settings: &mut Settings,
+    find_string: &str,
     resource: &plist::Value,
     found: &mut Vec<Found>,
-    stdout: &mut Stdout,
 ) {
-    settings.find_string = String::new();
-    write!(
-        stdout,
-        "{}\r\x1B[2KEnter search term: {}\r\n\x1B[2K\x1B8",
-        cursor::Show,
-        cursor::SavePosition,
-    )
-    .unwrap();
-    edit_string(&mut settings.find_string, None, stdout).unwrap();
-    if settings.find_string.len() > 0 {
-        let search = settings.find_string.to_lowercase();
+    if find_string.len() > 0 {
+        let search = find_string.to_lowercase();
         let resource = resource.as_dictionary().unwrap();
         for (i, key) in resource.keys().enumerate() {
             let low_key = key.to_lowercase();
@@ -288,7 +278,6 @@ pub fn find(
             } // end match resource
         }
     }
-    write!(stdout, "{}", cursor::Hide).unwrap();
 }
 
 /// add an item of a user selected type to the loaded config.plist as the highlighted
@@ -690,7 +679,7 @@ fn edit_int(val: &mut Integer, valid_values: Option<&Vec<String>>, stdout: &mut 
     }
 }
 
-fn edit_string(
+pub fn edit_string(
     val: &mut String,
     valid_values: Option<&Vec<String>>,
     stdout: &mut Stdout,

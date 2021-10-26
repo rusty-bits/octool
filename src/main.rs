@@ -45,7 +45,11 @@ fn process(
     let mut key_mod;
 
     if settings.oc_build_version != "not found" {
-        write!(stdout, "\r\n\x1b[33mtesting>\x1b[0m guessed version of input plist is \"{}\"\r\n", guess_version(&resources))?;
+        write!(
+            stdout,
+            "\r\n\x1b[33mtesting>\x1b[0m guessed version of input plist is \"{}\"\r\n",
+            guess_version(&resources)
+        )?;
         write!(
         stdout,
         "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
@@ -146,59 +150,59 @@ fn process(
                     .unwrap();
                     edit::edit_string(&mut settings.find_string, None, stdout).unwrap();
                     write!(stdout, "{}", cursor::Hide).unwrap();
-                    edit::find(
-                        &settings.find_string,
-                        &resources.config_plist,
-                        &mut found,
-                    );
-                    if found.len() == 1 {
-                        settings.depth = found[0].level;
-                        settings.sec_num = found[0].section;
-                        settings.find_string = String::new();
-                        found_id = 0;
-                    } else if found.len() > 1 {
-                        let mut selection = 1;
-                        write!(stdout, "\r\n\x1B[2K\x1B7").unwrap();
-                        loop {
-                            write!(stdout, "\x1B8").unwrap();
-                            for (i, f) in found.iter().enumerate() {
-                                let mut fk = f.keys.iter();
-                                write!(
-                                    stdout,
-                                    "  {}{}",
-                                    if i == selection - 1 { "\x1B[7m" } else { "" },
-                                    fk.next().unwrap()
-                                )
-                                .unwrap();
-                                for next_key in fk {
-                                    write!(stdout, "->{}", next_key).unwrap();
-                                }
-                                write!(stdout, "\x1B[0m\r\n\x1B[2K").unwrap();
-                            }
-                            stdout.flush().unwrap();
-                            match read_key()?.0 {
-                                KeyCode::Up => {
-                                    if selection > 1 {
-                                        selection -= 1;
+                    if settings.find_string.len() > 0 {
+                        edit::find(&settings.find_string, &resources.config_plist, &mut found);
+                        if found.len() == 1 {
+                            settings.depth = found[0].level;
+                            settings.sec_num = found[0].section;
+                            settings.find_string = String::new();
+                            found_id = 0;
+                        } else if found.len() > 1 {
+                            let mut selection = 1;
+                            write!(stdout, "\r\n\x1B[2K\x1B7").unwrap();
+                            loop {
+                                write!(stdout, "\x1B8").unwrap();
+                                for (i, f) in found.iter().enumerate() {
+                                    let mut fk = f.keys.iter();
+                                    write!(
+                                        stdout,
+                                        "  {}{}",
+                                        if i == selection - 1 { "\x1B[7m" } else { "" },
+                                        fk.next().unwrap()
+                                    )
+                                    .unwrap();
+                                    for next_key in fk {
+                                        write!(stdout, "->{}", next_key).unwrap();
                                     }
+                                    write!(stdout, "\x1B[0m\r\n\x1B[2K").unwrap();
                                 }
-                                KeyCode::Down => {
-                                    if selection < found.len() {
-                                        selection += 1;
+                                stdout.flush().unwrap();
+                                match read_key()?.0 {
+                                    KeyCode::Up => {
+                                        if selection > 1 {
+                                            selection -= 1;
+                                        }
                                     }
+                                    KeyCode::Down => {
+                                        if selection < found.len() {
+                                            selection += 1;
+                                        }
+                                    }
+                                    KeyCode::Enter => break,
+                                    KeyCode::Esc => {
+                                        selection = 0;
+                                        break;
+                                    }
+                                    _ => (),
                                 }
-                                KeyCode::Enter => break,
-                                KeyCode::Esc => {
-                                    selection = 0;
-                                    break;
-                                }
-                                _ => (),
                             }
-                        }
-                        found_id = selection;
-                        if selection > 0 {
-                            settings.depth = found[selection - 1].level;
-                            settings.sec_num = found[selection - 1].section;
+                            found_id = selection;
+                            if selection > 0 {
+                                settings.depth = found[selection - 1].level;
+                                settings.sec_num = found[selection - 1].section;
+                            }
+                        } else {
+                            settings.find_string = String::new();
                         }
                     }
                 }
@@ -565,8 +569,8 @@ fn main() {
                         'd' => setup.build_type = "debug".to_string(),
                         'h' => {
                             println!("SYNOPSIS\n\t./octool [options] [-o x.y.z] [config.plist]\n");
-                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help\n\t-o x.y.z  \
-                                     select OpenCore version number\n\t-v  show version info");
+                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help and exit\n\t-o x.y.z  \
+                                     select OpenCore version number\n\t-v  show octool version info");
                             std::process::exit(0);
                         }
                         _ => (),

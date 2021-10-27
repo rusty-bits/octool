@@ -23,36 +23,22 @@ fn process(
     config_plist: &mut PathBuf,
     current_dir: &PathBuf,
     settings: &mut draw::Settings,
+    mut resources: &mut res::Resources,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
-    let mut resources = res::Resources {
-        dortania: serde_json::json!(null),
-        octool_config: serde_json::json!(null),
-        resource_list: serde_json::json!(null),
-        other: serde_json::json!(null),
-        config_plist: plist::Value::Boolean(false),
-        sample_plist: plist::Value::Boolean(false),
-        working_dir_path: env::current_dir()?,
-        open_core_binaries_path: PathBuf::new(),
-        open_core_source_path: PathBuf::new(),
-    };
 
-    init::init(config_plist, &mut resources, settings, stdout)?;
+    init::init_oc_build(&mut resources, settings, stdout)?;
+    init::init_plist(config_plist, &mut resources, settings, stdout)?;
 
     let mut key = KeyCode::Char('q');
     let mut key_mod;
 
     if settings.oc_build_version != "not found" {
         write!(
-            stdout,
-            "\r\n\x1b[33mtesting>\x1b[0m guessed version of input plist is \"{}\"\r\n",
-            guess_version(&resources)
-        )?;
-        write!(
         stdout,
-        "\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
+        "\r\n\x1B[32mdone with init, \x1B[0;7mq\x1B[0;32m to quit, any other key to continue\x1B[0m\r"
     )?;
 
         stdout.flush()?;
@@ -320,6 +306,17 @@ fn process(
                         edit::extract_value(settings, &mut resources.config_plist, false, true);
                     }
                 }
+                KeyCode::Char('V') => {
+                    write!(
+                        stdout,
+                        "{}\r\x1B[2KEnter version number: {}\r\n\x1B[2K\x1B8",
+                        cursor::Show,
+                        cursor::SavePosition,
+                    )
+                    .unwrap();
+                    edit::edit_string(&mut settings.oc_build_version, None, stdout).unwrap();
+                    init::init_oc_build(&mut resources, settings, stdout)?;
+                }
                 KeyCode::Char('r') => {
                     if settings.depth < 4 {
                         let mut obj = String::new();
@@ -458,8 +455,8 @@ fn process(
                     write!(
                         stdout,
                         "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32m\
-                           Validating\x1B[0m {} with Acidanthera/ocvalidate\r\n",
-                        config_file
+                           Validating\x1B[0m {} with {} Acidanthera/ocvalidate\r\n",
+                        config_file, settings.oc_build_version,
                     )?;
                     resources.config_plist.to_file_xml(&save_file)?;
                     settings.modified = false;
@@ -524,11 +521,23 @@ fn main() {
         build_type: "release".to_string(),
         oc_build_version: "latest".to_string(),
         oc_build_date: String::new(),
-        oc_build_version_res_index: 0,
+        oc_build_version_res_index: Default::default(),
         resource_ver_indexes: Default::default(),
         can_expand: false,
         find_string: Default::default(),
         modified: false,
+    };
+
+    let mut resources = res::Resources {
+        dortania: serde_json::json!(null),
+        octool_config: serde_json::json!(null),
+        resource_list: serde_json::json!(null),
+        other: serde_json::json!(null),
+        config_plist: plist::Value::Boolean(false),
+        sample_plist: plist::Value::Boolean(false),
+        working_dir_path: env::current_dir().unwrap(),
+        open_core_binaries_path: PathBuf::new(),
+        open_core_source_path: PathBuf::new(),
     };
 
     let mut config_file = working_dir.join("INPUT/config.plist");
@@ -596,20 +605,37 @@ fn main() {
         .execute(cursor::MoveTo(0, 0))
         .unwrap();
 
+    init::init_static(&mut resources, &mut setup, &mut stdout).unwrap();
+
     if !config_file.exists() {
         write!(
             stdout,
-            "\x1B[31mDid not find config at\x1B[0m {:?}\r\nWill use the Sample.plist from the OpenCorePkg\r\n",
+            "\x1B[31mDid not find config at\x1B[0m {:?}\r\nWill use the latest Sample.plist from the OpenCorePkg\r\n",
             config_file
         )
         .unwrap();
         config_file = Path::new("").to_path_buf();
     } else {
-        write!(stdout, "Using {:?}\r\n", config_file).unwrap();
+        write!(stdout, "\r\nUsing {:?}\r\n", config_file).unwrap();
+        resources.config_plist = plist::Value::from_file(&config_file)
+            .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
+        if &setup.oc_build_version == "latest" {
+            setup.oc_build_version = guess_version(&resources);
+            write!(stdout, "\x1b[33mGUESSING:\x1b[0m at OpenCore version of \x1b[33m{}\x1b[0m based on the input config.plist file\r\n\
+                \tIf this is incorrect you can change the version used with the capital 'V' key in the editor\r\n\
+                \tor run octool with the -o option and provide an OpenCore version number\r\n\n",
+        setup.oc_build_version ).unwrap();
+        }
     }
     stdout.flush().unwrap();
 
-    match process(&mut config_file, &current_dir, &mut setup, &mut stdout) {
+    match process(
+        &mut config_file,
+        &current_dir,
+        &mut setup,
+        &mut resources,
+        &mut stdout,
+    ) {
         Ok(()) => (),
         Err(e) => eprintln!("\r\n\x1B[31mERROR:\x1B[0m while processing plist: {:?}", e),
     }

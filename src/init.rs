@@ -10,16 +10,19 @@ use crate::res::{self, Resources};
 
 use crossterm::terminal;
 
-pub fn init(
-    config_plist: &mut PathBuf,
+/// load static resources into resources struct, shouldn't need to change even if user
+/// changes opencore build version on the fly
+pub fn init_static(
     resources: &mut Resources,
     settings: &mut Settings,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     //load octool config file
     resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
+
     //load other resource file
     resources.other = res::get_serde_json("tool_config_files/other.json", stdout)?;
+
     // build resource section vector
     let config_res_sections: Vec<(String, String, String, String)> =
         serde_json::from_value(resources.octool_config["resource_sections"].clone()).unwrap();
@@ -27,12 +30,14 @@ pub fn init(
         sec.push_str(&sub);
         settings.resource_sections.push(sec);
     }
+
     //load resources list file
     resources.resource_list = res::get_serde_json("tool_config_files/resource_list.json", stdout)?;
+
     //load dortania build_repo package
     write!(
         stdout,
-        "\n\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
+        "\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -86,15 +91,25 @@ pub fn init(
             write!(stdout, "Already up to date.\r\n")?;
         }
     };
-
     resources.dortania = res::get_serde_json(path.join("config.json").to_str().unwrap(), stdout)?;
 
+    Ok(())
+}
+
+pub fn init_oc_build(
+    resources: &mut Resources,
+    settings: &mut Settings,
+    stdout: &mut Stdout,
+) -> Result<(), Box<dyn Error>> {
+    settings.oc_build_version_res_index = Default::default(); // reset oc_build_version to top of dortania
+    settings.resource_ver_indexes = Default::default(); // clear out resource version indexes for dortania
+
     // test if version selected is latest version, don't try to download zip of latest
-    // it doesn't exist yet, clone it instead
-    let test_ver = resources.dortania["OpenCorePkg"]["versions"][0]["version"]
+    // it doesn't exist yet
+    let latest_ver = resources.dortania["OpenCorePkg"]["versions"][0]["version"]
         .as_str()
         .unwrap();
-    if test_ver == &settings.oc_build_version {
+    if latest_ver == &settings.oc_build_version {
         settings.oc_build_version = "latest".to_owned();
     }
 
@@ -183,13 +198,6 @@ pub fn init(
     let sample_plist = &resources.open_core_source_path.join("Docs/Sample.plist");
     resources.sample_plist = Value::from_file(sample_plist)
         .expect(format!("Didn't find Sample.plist at {:?}", sample_plist).as_str());
-    if !config_plist.exists() {
-        *config_plist = sample_plist.clone();
-    }
-    resources.config_plist = Value::from_file(&config_plist)
-        .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
-    //    resources.acidanthera =
-    //        res::get_serde_json("tool_config_files/acidanthera_config.json", stdout)?;
 
     write!(
         stdout,
@@ -208,6 +216,26 @@ pub fn init(
     match path {
         Some(p) => resources.open_core_binaries_path = p.parent().unwrap().to_path_buf(),
         _ => panic!("no OpenCorePkg found"),
+    }
+
+    Ok(())
+}
+
+/// load plist or Sample.plist if no valid INPUT plist given
+/// and run plist through ocvalidate
+pub fn init_plist(
+    config_plist: &mut PathBuf,
+    resources: &mut Resources,
+    settings: &mut Settings,
+    stdout: &mut Stdout,
+) -> Result<(), Box<dyn Error>> {
+    if !config_plist.exists() {
+        *config_plist = resources
+            .open_core_source_path
+            .join("Docs/Sample.plist")
+            .to_owned();
+        resources.config_plist = Value::from_file(&config_plist)
+            .expect(format!("Didn't find valid plist at {:?}", config_plist).as_str());
     }
 
     write!(

@@ -103,11 +103,10 @@ pub fn update_screen(
     let rows: i32 = size().unwrap().1.into();
     settings.can_expand = false;
 
-    write!(stdout, "\x1B[{}H", rows - 2)?; // show footer first, in case we need to write over it
+    write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
         stdout,
-        " {inv}V{res}ersion\x1b[0K\r\n \
-        {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
+        " {inv}^x{res}cut {inv}^c{res}opy {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
         {inv}a{res}dd {inv}d{res}el  {inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave \
         {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
         {res}integer {inv} {res}string\x1B[0K",
@@ -146,7 +145,7 @@ pub fn update_screen(
         settings.sec_length, settings.depth, settings.sec_num
     )?;
 
-    let mut blanks = rows - row - 2;
+    let mut blanks = rows - row - 1;
     if blanks < 0 {
         blanks = 0;
     }
@@ -161,14 +160,14 @@ pub fn update_screen(
     }
     write!(
         stdout,
-        "\x1b[1;{}H\x1b[2Kv{}",
-        (size().unwrap().0 - settings.oc_build_version.len() as u16).to_string(),
+        "\x1b[1;{}H\x1b[2K\x1b[7mV\x1b[0mersion {}",
+        (size().unwrap().0 - 14).to_string(),
         settings.oc_build_version,
     )
     .unwrap();
     write!(
         stdout,
-        "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{} if available\r\n\x1B[0K",
+        "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{}\r\n\x1B[0K",
         "\x1b[32m", &settings.config_file_name, "\x1b[4m", &info, "\x1b[0m",
     )
     .unwrap();

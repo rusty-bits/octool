@@ -28,6 +28,7 @@ fn process(
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
+    let mut res_name = String::new();
 
     init::init_oc_build(&mut resources, settings, stdout)?;
     init::init_plist(config_plist, &mut resources, settings, stdout)?;
@@ -309,12 +310,12 @@ fn process(
                 KeyCode::Char('V') => {
                     write!(
                         stdout,
-                        "{}\r\x1B[2KEnter version number: {}\r\n\x1B[2K\x1B8",
+                        "\x1b[2K\r\n{}\r\x1B[2KEnter version number: {}\r\n\x1B[2K\x1B8",
                         cursor::Show,
                         cursor::SavePosition,
-                    )
-                    .unwrap();
-                    edit::edit_string(&mut settings.oc_build_version, None, stdout).unwrap();
+                    )?;
+                    edit::edit_string(&mut settings.oc_build_version, None, stdout)?;
+                    write!(stdout, "{}", cursor::Hide)?;
                     init::init_oc_build(&mut resources, settings, stdout)?;
                 }
                 KeyCode::Char('r') => {
@@ -429,7 +430,16 @@ fn process(
                                 stdout,
                             )?;
                         }
-                        write!(stdout, "{}\x1B[0K", "_".repeat(70))?;
+                        write!(stdout, "\x1b[4m{}\x1b[0m\x1B[0K", " ".repeat(70))?;
+                        if !showing_info {
+                            settings.res_name(&mut res_name);
+                            write!(
+                                stdout,
+                                "\r\x1b[4m \x1b[33mno info found for\x1b[0;4m {}\x1b[0m",
+                                res_name,
+                            )?;
+                            showing_info = true;
+                        }
                         stdout.flush()?;
                     } else {
                         showing_info = false;

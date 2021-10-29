@@ -27,6 +27,7 @@ pub struct Settings {
     pub can_expand: bool,               // true if highlighted field can have children
     pub find_string: String,            // last entered search string
     pub modified: bool,                 // true if plist changed and not saved
+    pub bg_col: String,                 // background color for info display
 }
 
 impl Settings {

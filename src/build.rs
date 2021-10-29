@@ -36,8 +36,8 @@ pub fn build_output(
     )?;
     dir::remove("OUTPUT/EFI/OC/Drivers")?; // cheap hack way of removing all drivers
     dir::remove("OUTPUT/EFI/OC/Tools")?; // and tools from OUTPUT/EFI
-    fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?;
-    fs::create_dir_all("OUTPUT/EFI/OC/Tools")?;
+    fs::create_dir_all("OUTPUT/EFI/OC/Drivers")?; // now we need to put an empty dir back
+    fs::create_dir_all("OUTPUT/EFI/OC/Tools")?; // and again
     resources
         .config_plist
         .to_file_xml("OUTPUT/EFI/OC/config.plist")?;

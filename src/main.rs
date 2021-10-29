@@ -417,11 +417,11 @@ fn process(
                 }
                 KeyCode::Char('i') => {
                     if !showing_info {
+                        let mut empty_vec = vec![];
                         if settings.is_resource() {
                             let _ = res::show_res_path(&resources, &settings, stdout);
                             showing_info = true;
                         } else {
-                            let mut empty_vec = vec![];
                             showing_info = parse_tex::show_info(
                                 &resources,
                                 &settings,
@@ -430,16 +430,22 @@ fn process(
                                 stdout,
                             )?;
                         }
-                        write!(stdout, "\x1b[4m{}\x1b[0m\x1B[0K", " ".repeat(70))?;
-                        if !showing_info {
+                        write!(
+                            stdout,
+                            "\x1b[4m{}\x1B[0K",
+                            " ".repeat(terminal::size()?.0.into())
+                        )?;
+                        if !showing_info && empty_vec.len() == 0 {
                             settings.res_name(&mut res_name);
                             write!(
                                 stdout,
-                                "\r\x1b[4m \x1b[33mno info found for\x1b[0;4m {}\x1b[0m",
+                                "\r\x1b[4m \x1b[33mno info found for{}\x1b[4m {}",
+                                &settings.bg_col,
                                 res_name,
                             )?;
                             showing_info = true;
                         }
+                        write!(stdout, "\x1b[0m")?;
                         stdout.flush()?;
                     } else {
                         showing_info = false;
@@ -536,6 +542,8 @@ fn main() {
         can_expand: false,
         find_string: Default::default(),
         modified: false,
+        bg_col: "\x1b[0;48;5;235m".to_string(), // assumes 256 color support
+//        bg_col: "\x1b[0;100m".to_string(),
     };
 
     let mut resources = res::Resources {

@@ -23,6 +23,10 @@ pub fn show_info(
     let mut showing_info = true;
     let rows = size()?.1;
     let mut row = 0;
+    let mut bg_col = settings.bg_col.clone();
+    if settings.depth == 0 {
+        bg_col = "\x1b[0m".to_string();
+    }
 
     let tex_path = &resources
         .open_core_source_path
@@ -43,7 +47,11 @@ pub fn show_info(
         _ => return Ok(false),
     }
     if !gather_valid {
-        write!(stdout, "\r-\r\n")?;
+//        write!(stdout, "{}\r-\r\n", bg_col)?;
+        write!(stdout, "\x1b[4m{}\x1b8\r\x1b[4m{}\r\n{}",
+               " ".repeat(size()?.0.into()),
+               "    ".repeat(settings.depth),
+               bg_col)?;
     }
     row += 1;
 
@@ -141,7 +149,7 @@ pub fn show_info(
         if line.contains("\\subsection{") || line.contains("\\section{") {
             break;
         }
-        let parsed_line = parse_line(line, columns, gather_valid);
+        let parsed_line = parse_line(line, columns, gather_valid, &bg_col);
         if gather_valid {
             // gather list items to display when editing a string or integer
             if itemize > 0 {
@@ -177,19 +185,16 @@ pub fn show_info(
                         hit_bottom = true;
                     }
                     if i == result.len() - 1 {
-                        write!(
-                            stdout,
-                            "{}END{} ... 'q' to quit\x1B[G",
-                            "\x1b[7m", "\x1b[0m",
-                        )?;
+                        write!(stdout, "{}END{} ... 'q' to quit\x1B[G", "\x1b[7m", bg_col,)?;
                     } else {
-                        write!(stdout, "\x1b[7mmore\x1b[0m ...\x1B[G")?;
+                        write!(stdout, "\x1b[7mmore{} ...\x1B[G", bg_col)?;
                     }
                     stdout.flush()?;
                     match read_key().unwrap().0 {
                         KeyCode::Char('q') | KeyCode::Char('i') | KeyCode::Esc => {
                             hit_bottom = false;
                             showing_info = false;
+                            valid_values.push("ok".to_string()); // don't display no info found
                             break;
                         }
                         KeyCode::Down => {
@@ -247,7 +252,7 @@ pub fn show_info(
 ///
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
-fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
+fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();
@@ -257,6 +262,7 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
         col_width = width / (columns + 1);
     }
     let mut col_contents_len = 0;
+    //    let bg_col = "\x1b[0;48;5;236m";
     for c in line.chars() {
         if build_key {
             match c {
@@ -274,7 +280,9 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
                             _ => (),
                         };
                     }
-                    key.clear();
+                    if &key != "href" { // hold href key to insert space after it
+                        key.clear();
+                    }
                 }
                 // end of key - may be special character or formatting
                 ' ' => {
@@ -306,7 +314,11 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool) -> String {
                 '\\' => build_key = true,
                 '}' => {
                     if !gather_valid {
-                        ret.push_str("\x1B[0m");
+                        ret.push_str(bg_col);
+                        if &key == "href" {
+                            ret.push(' ');
+                            key.clear();
+                        }
                     }
                 }
                 '{' => {

@@ -21,6 +21,7 @@ pub fn show_info(
     stdout: &mut Stdout,
 ) -> Result<bool, Box<dyn Error>> {
     let mut showing_info = true;
+    let mut align = false;
     let rows = size()?.1;
     let mut row = 0;
     let mut bg_col = settings.bg_col.clone();
@@ -40,18 +41,34 @@ pub fn show_info(
         //        0 => sub_search.push_str("Introduction}\\"),
         0 => (),
         1 => sub_search.push_str("Properties}\\"),
-        2 | 3 => {
-            sub_search.push_str(&settings.sec_key[1]);
-            sub_search.push_str(" Properties}\\");
-        }
+        2 | 3 => match settings.sec_key[0].as_str() {
+            "NVRAM" => sub_search.push_str("Introduction}"),
+            "DeviceProperties" => sub_search.push_str("Common"),
+            "Misc" => {
+                if settings.depth < 3 {
+                    sub_search.push_str(&settings.sec_key[1]);
+                    sub_search.push_str(" Properties}\\");
+                } else {
+                    sub_search.push_str("Entry Properties}\\");
+                }
+            }
+            _ => {
+                sub_search.push_str(&settings.sec_key[1]);
+                sub_search.push_str(" Properties}\\");
+            }
+        },
         _ => return Ok(false),
     }
     if !gather_valid {
-//        write!(stdout, "{}\r-\r\n", bg_col)?;
-        write!(stdout, "\x1b[4m{}\x1b8\r\x1b[4m{}\r\n{}",
-               " ".repeat(size()?.0.into()),
-               "    ".repeat(settings.depth),
-               bg_col)?;
+        //        write!(stdout, "{}\r-\r\n", bg_col)?;
+        write!(
+            stdout,
+            "{}\x1b[4m{}\x1b8\r\x1b[4m{}\r\n{}",
+            &settings.live_value,
+            " ".repeat(size()?.0.into()),
+            "    ".repeat(settings.depth),
+            bg_col
+        )?;
     }
     row += 1;
 
@@ -84,8 +101,18 @@ pub fn show_info(
         }
 
         let mut text_search = "texttt{".to_string();
-        text_search.push_str(&settings.sec_key[settings.depth]);
-        text_search.push_str(&"}\\");
+        if &settings.sec_key[0] == "NVRAM" && settings.depth > 1 {
+            text_search.push_str(&settings.sec_key[2]);
+            if settings.depth == 3 {
+                text_search.push(':');
+                text_search.push_str(&settings.sec_key[settings.depth]);
+            }
+        } else if &settings.sec_key[0] == "DeviceProperties" && settings.depth == 3 {
+            text_search.push_str(&settings.sec_key[settings.depth]);
+        } else {
+            text_search.push_str(&settings.sec_key[settings.depth]);
+            text_search.push_str(&"}\\");
+        }
         loop {
             match lines.next() {
                 Some(line) => {
@@ -97,7 +124,6 @@ pub fn show_info(
             }
         }
     }
-
     let mut itemize = 0;
     let mut enumerate = 0;
     let mut hit_bottom = false;
@@ -116,6 +142,14 @@ pub fn show_info(
             }
             continue;
         }
+        if line.contains("\\begin{align*}") {
+            align = true;
+            continue;
+        }
+        if line.contains("\\end{align*}}") {
+            align = false;
+            continue;
+        }
         // cheap hack to keep track of being in a list
         if line.contains("\\begin{itemize}") {
             itemize += 1;
@@ -125,9 +159,12 @@ pub fn show_info(
             enumerate += 1;
             continue;
         }
-        if line.contains("\\begin{") {
+        if line.contains("\\mbox") {
             continue;
         }
+        //        if line.contains("\\begin{") {
+        //            continue;
+        //        }
         if line.contains("\\end{tabular}") {
             columns = 0;
             continue;
@@ -149,7 +186,7 @@ pub fn show_info(
         if line.contains("\\subsection{") || line.contains("\\section{") {
             break;
         }
-        let parsed_line = parse_line(line, columns, gather_valid, &bg_col);
+        let parsed_line = parse_line(line, columns, align, gather_valid, &bg_col);
         if gather_valid {
             // gather list items to display when editing a string or integer
             if itemize > 0 {
@@ -252,7 +289,7 @@ pub fn show_info(
 ///
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
-fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> String {
+fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col: &str) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();
@@ -261,33 +298,46 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> Str
     if columns > 0 {
         col_width = width / (columns + 1);
     }
+    let mut ignore = false;
     let mut col_contents_len = 0;
-    //    let bg_col = "\x1b[0;48;5;236m";
     for c in line.chars() {
         if build_key {
             match c {
                 // end of key
-                '{' => {
+                '{' | '[' => {
                     build_key = false;
                     //                    build_name = true;
                     if !gather_valid {
                         match key.as_str() {
+                            "text" => ret.push_str(bg_col),
                             "textbf" => ret.push_str("\x1B[1m"),
                             "emph" => ret.push_str("\x1B[7m"),
                             "texttt" => ret.push_str("\x1B[4m"),
-                            "href" => ret.push_str("\x1B[34m"),
-                            "hyperlink" => build_key = true, // ignore link text
-                            _ => (),
+                            //                            "href" => ret.push_str("\x1B[34m"),
+                            //                            "hyperref" => ret.push_str("\x1B[4m"),
+                            //                            "hyperlink" => build_key = true, // ignore link text
+                            _ => ignore = true,
                         };
                     }
-                    if &key != "href" { // hold href key to insert space after it
+                    if &key != "href" {
+                        // hold href key to insert space after it
                         key.clear();
                     }
                 }
                 // end of key - may be special character or formatting
-                ' ' => {
+                ' ' | ',' | '(' | ')' | '\\' | '0'..='9' | '$' | '&' => {
                     build_key = false;
                     match key.as_str() {
+                        "kappa" => ret.push('\u{03f0}'),
+                        "lambda" => ret.push('\u{03bb}'),
+                        "mu" => ret.push('\u{03bc}'),
+                        "alpha" => ret.push('\u{03b1}'),
+                        "beta" => ret.push('\u{03b2}'),
+                        "gamma" => ret.push('\u{03b3}'),
+                        "leq" => ret.push('\u{2264}'),
+                        "cdot" => ret.push('\u{00b7}'),
+                        "in" => ret.push('\u{220a}'),
+                        "infty" => ret.push('\u{221e}'),
                         "textbackslash" => ret.push('\\'),
                         "item" => {
                             if !gather_valid {
@@ -298,6 +348,15 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> Str
                         _ => (),
                     }
                     col_contents_len += 1;
+                    if c == ',' || c == '(' || c == ')' || (c >= '0' && c <= '9') || c == '$' {
+                        ret.push(c);
+                    }
+                    if c == '\\' {
+                        if key.len() > 0 {
+                            // check for double \
+                            build_key = true; // or start of new key
+                        }
+                    }
                     key.clear();
                 }
                 // found escaped character
@@ -312,14 +371,17 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> Str
         } else {
             match c {
                 '\\' => build_key = true,
-                '}' => {
-                    if !gather_valid {
-                        ret.push_str(bg_col);
-                        if &key == "href" {
-                            ret.push(' ');
-                            key.clear();
+                '}' | ']' => {
+                    if !ignore {
+                        if !gather_valid {
+                            ret.push_str(bg_col);
+                            if &key == "href" {
+                                ret.push(' ');
+                                key.clear();
+                            }
                         }
                     }
+                    ignore = false;
                 }
                 '{' => {
                     if !gather_valid {
@@ -335,14 +397,35 @@ fn parse_line(line: &str, columns: i32, gather_valid: bool, bg_col: &str) -> Str
                         ret.push_str("|");
                         col_contents_len = 0;
                     } else {
-                        ret.push('&');
+                        if !align {
+                            ret.push('&');
+                        }
                     }
                 }
                 _ => {
-                    ret.push(c);
-                    col_contents_len += 1;
+                    if !ignore {
+                        ret.push(c);
+                        col_contents_len += 1;
+                    }
                 }
             }
+        }
+    }
+    if key.len() > 0 {
+        match key.as_str() {
+            // repetitive - TODO: move to a function
+            "kappa" => ret.push('\u{03f0}'),
+            "lambda" => ret.push('\u{03bb}'),
+            "mu" => ret.push('\u{03bc}'),
+            "alpha" => ret.push('\u{03b1}'),
+            "beta" => ret.push('\u{03b2}'),
+            "gamma" => ret.push('\u{03b3}'),
+            "leq" => ret.push('\u{2264}'),
+            "cdot" => ret.push('\u{00b7}'),
+            "in" => ret.push('\u{220a}'),
+            "infty" => ret.push('\u{221e}'),
+            "textbackslash" => ret.push('\\'),
+            _ => (),
         }
     }
     if !gather_valid {

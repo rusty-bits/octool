@@ -17,6 +17,7 @@ pub struct Settings {
     pub item_instructions: String,      // item instructions for display in header
     pub held_item: Option<Value>,       // last deleted or placed item value
     pub held_key: String,               // last deleted or placed key
+    pub live_value: String,             // current value of highlighted key
     pub sec_length: [usize; 5],         // number of items in current section
     pub resource_sections: Vec<String>, // concat name of sections that contain resources
     pub build_type: String,             // building release or debug version
@@ -243,6 +244,7 @@ fn display_value(
             }
             if live_item {
                 settings.can_expand = true;
+                settings.live_value.clear();
             }
             if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 pre_key = 'v';
@@ -299,6 +301,9 @@ fn display_value(
                 )
                 .unwrap(),
             };
+            if live_item {
+                settings.live_value = v.to_string();
+            }
         }
         Value::Data(v) => {
             write!(
@@ -310,6 +315,9 @@ fn display_value(
                 hex_str_with_style(hex::encode(&*v)),
                 get_lossy_string(v),
             )?;
+            if live_item {
+                settings.live_value = hex::encode(&*v).to_string();
+            }
         }
         Value::Dictionary(v) => {
             if selected_item {
@@ -317,6 +325,7 @@ fn display_value(
             }
             if live_item {
                 settings.can_expand = true;
+                settings.live_value.clear();
             }
             if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 pre_key = 'v';
@@ -370,6 +379,9 @@ fn display_value(
                 "{}\x1b[34m{}\x1b[0m: {}{}",
                 key_style, key, save_curs_pos, v
             )?;
+            if live_item {
+                settings.live_value = v.to_string();
+            }
         }
         Value::String(v) => {
             write!(
@@ -377,6 +389,9 @@ fn display_value(
                 "{}{:>2}\x1B[0m: {}{}",
                 key_style, key, save_curs_pos, v
             )?;
+            if live_item {
+                settings.live_value = v.to_string();
+            }
         }
         _ => panic!("Can't handle this type"),
     }

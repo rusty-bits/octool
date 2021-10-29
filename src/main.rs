@@ -6,14 +6,17 @@ mod parse_tex;
 mod res;
 mod snake;
 
-use crossterm::event::KeyModifiers;
 use fs_extra::dir::{copy, CopyOptions};
 use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
 
-use crossterm::ExecutableCommand;
-use crossterm::{cursor, event::KeyCode, terminal};
+use crossterm::{
+    cursor,
+    event::{KeyCode, KeyModifiers},
+    style::available_color_count,
+    terminal, ExecutableCommand,
+};
 
 use edit::read_key;
 
@@ -440,8 +443,7 @@ fn process(
                             write!(
                                 stdout,
                                 "\r\x1b[4m \x1b[33mno info found for{}\x1b[4m {}",
-                                &settings.bg_col,
-                                res_name,
+                                &settings.bg_col, res_name,
                             )?;
                             showing_info = true;
                         }
@@ -532,6 +534,7 @@ fn main() {
         item_instructions: String::new(),
         held_item: None,
         held_key: Default::default(),
+        live_value: String::new(),
         sec_length: [0; 5],
         resource_sections: vec![],
         build_type: "release".to_string(),
@@ -542,8 +545,11 @@ fn main() {
         can_expand: false,
         find_string: Default::default(),
         modified: false,
-        bg_col: "\x1b[0;48;5;235m".to_string(), // assumes 256 color support
-//        bg_col: "\x1b[0;100m".to_string(),
+        bg_col: if available_color_count() >= 256 {
+            "\x1b[0;48;5;235m".to_string()
+        } else {
+            "\x1b[0;100m".to_string()
+        },
     };
 
     let mut resources = res::Resources {

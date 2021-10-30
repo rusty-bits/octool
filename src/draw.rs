@@ -28,7 +28,8 @@ pub struct Settings {
     pub can_expand: bool,               // true if highlighted field can have children
     pub find_string: String,            // last entered search string
     pub modified: bool,                 // true if plist changed and not saved
-    pub bg_col: String,                 // background color for info display
+    pub bg_col: String,                 // colors for standard display
+    pub bg_col_info: String,            // background color for info display
 }
 
 impl Settings {
@@ -104,6 +105,8 @@ pub fn update_screen(
     let plist = &resources.config_plist;
     let rows: i32 = size().unwrap().1.into();
     settings.can_expand = false;
+//    let bgc = &settings.bg_col.clone();
+    let bgc = "\x1b[0m";
 
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
     write!(
@@ -113,6 +116,7 @@ pub fn update_screen(
         {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
         {res}integer {inv} {res}string\x1B[0K",
         inv = "\x1b[7m",
+//        res = &settings.bg_col,
         res = "\x1b[0m",
         grn = "\x1b[32m",
         red = "\x1b[31m",
@@ -162,39 +166,41 @@ pub fn update_screen(
     }
     write!(
         stdout,
-        "\x1b[1;{}H\x1b[2K\x1b[7mV\x1b[0mersion {}",
+        "\x1b[1;{}H\x1b[2K\x1b[7mV{}ersion {}",
         (size().unwrap().0 - 14).to_string(),
+//        &settings.bg_col,
+        "\x1b[0m",
         settings.oc_build_version,
     )
     .unwrap();
     write!(
         stdout,
-        "\x1B[H{}{}   \x1B[0;7mi\x1B[0mnfo for {}{}{}\r\n\x1B[0K",
-        "\x1b[32m", &settings.config_file_name, "\x1b[4m", &info, "\x1b[0m",
+        "\x1B[H{}{}   \x1B[0;7mi{}nfo for {}{}{}\r\n\x1B[0K",
+        "\x1b[32m", &settings.config_file_name, bgc, "\x1b[4m", &info, bgc,
     )
     .unwrap();
     if settings.depth > 0 {
-        write!(stdout, "  \x1B[7mleft\x1B[0m collapse").unwrap();
+        write!(stdout, "  \x1B[7mleft{} collapse", bgc).unwrap();
     }
     write!(stdout, "{}", settings.item_instructions,).unwrap();
     if settings.depth == 2 {
         if settings.is_resource() {
-            write!(stdout, "  \x1B[7mspace\x1B[0m toggle").unwrap();
+            write!(stdout, "  \x1B[7mspace{} toggle", bgc).unwrap();
         }
     }
     if settings.find_string.len() > 0 {
         write!(
             stdout,
-            "  \x1B[7mn\x1B[0m jump to next {}{}\x1B[0m",
-            "\x1b[4m", settings.find_string
+            "  \x1B[7mn{} jump to next {}{}{}",
+            bgc, "\x1b[4m", settings.find_string, bgc,
         )
         .unwrap();
     }
     if settings.held_key.len() > 0 {
         write!(
             stdout,
-            "  \x1B[7mp\x1B[0m paste {}{}\x1B[0m",
-            "\x1b[4m", settings.held_key
+            "  \x1B[7mp{} paste {}{}{}",
+            "\x1b[4m", bgc, settings.held_key, bgc,
         )
         .unwrap();
     }
@@ -218,6 +224,8 @@ fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
+//    let bgc = &settings.bg_col.clone();
+    let bgc = "\x1b[0m";
     write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(display_depth))?; // indent to section and clear rest of line
     if settings.sec_num[display_depth] == item_num {
         selected_item = true;
@@ -262,8 +270,9 @@ fn display_value(
                 if v.len() == 0 {
                     write!(
                         stdout,
-                        "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
+                        "\r\n\x1B[0K{}\x1B[7mempty{}{}",
                         "    ".repeat(display_depth + 1),
+                        bgc,
                         save_curs_pos
                     )
                     .unwrap();
@@ -290,14 +299,14 @@ fn display_value(
             match v {
                 true => write!(
                     stdout,
-                    "{}\x1b[32m{}\x1b[0m: {}{}",
-                    key_style, key, save_curs_pos, v
+                    "{}\x1b[32m{}{}: {}{}",
+                    key_style, key, bgc, save_curs_pos, v
                 )
                 .unwrap(),
                 false => write!(
                     stdout,
-                    "{}\x1b[31m{}\x1b[0m: {}{}",
-                    key_style, key, save_curs_pos, v
+                    "{}\x1b[31m{}{}: {}{}",
+                    key_style, key, bgc, save_curs_pos, v
                 )
                 .unwrap(),
             };
@@ -308,9 +317,10 @@ fn display_value(
         Value::Data(v) => {
             write!(
                 stdout,
-                "{}\x1b[35m{}\x1b[0m: <{}{}> | \"{}\"\x1B[0K",
+                "{}\x1b[35m{}{}: <{}{}> | \"{}\"\x1B[0K",
                 key_style,
                 key,
+                bgc,
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
                 get_lossy_string(v),
@@ -332,7 +342,7 @@ fn display_value(
             }
             write!(
                 stdout,
-                "{} {}{}{}\x1B[0m {} [{}]{} ",
+                "{} {}{}{}{} {} [{}]{} ",
                 pre_key,
                 key_style,
                 match key_color {
@@ -341,6 +351,7 @@ fn display_value(
                     None => "",
                 },
                 key,
+                bgc,
                 res::res_version(settings, &resources, &key),
                 v.len(),
                 save_curs_pos
@@ -350,8 +361,9 @@ fn display_value(
                 if v.keys().len() == 0 {
                     write!(
                         stdout,
-                        "\r\n\x1B[0K{}\x1B[7mempty\x1B[0m{}",
+                        "\r\n\x1B[0K{}{}\x1B[7mempty{}",
                         "    ".repeat(display_depth + 1),
+                        bgc,
                         save_curs_pos
                     )
                     .unwrap();
@@ -376,8 +388,8 @@ fn display_value(
         Value::Integer(v) => {
             write!(
                 stdout,
-                "{}\x1b[34m{}\x1b[0m: {}{}",
-                key_style, key, save_curs_pos, v
+                "{}\x1b[34m{}{}: {}{}",
+                key_style, key, bgc, save_curs_pos, v
             )?;
             if live_item {
                 settings.live_value = v.to_string();
@@ -386,8 +398,8 @@ fn display_value(
         Value::String(v) => {
             write!(
                 stdout,
-                "{}{:>2}\x1B[0m: {}{}",
-                key_style, key, save_curs_pos, v
+                "{}{:>2}{}: {}{}",
+                key_style, key, bgc, save_curs_pos, v
             )?;
             if live_item {
                 settings.live_value = v.to_string();

@@ -110,6 +110,5 @@ Usage:
  - add option to use IA32 versions instead of assuming X64  
  - add ability to change version number of a single resource, e.g. using an older version of WhateverGreen.kext on a current build  
  - keep the highlighted item on screen while reading info from the Configuration.tex so the user can edit the field while also reading the info  
- - parse the NVRAM section of the Configuration.tex as well to give info of the NVRAM variables  
  - fix some style formatting of the info screens so underline, bold, etc. looks better when it crosses multiple lines
 

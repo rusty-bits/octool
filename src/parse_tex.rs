@@ -24,7 +24,7 @@ pub fn show_info(
     let mut align = false;
     let rows = size()?.1;
     let mut row = 0;
-    let mut bg_col = settings.bg_col.clone();
+    let mut bg_col = settings.bg_col_info.clone();
     if settings.depth == 0 {
         bg_col = "\x1b[0m".to_string();
     }
@@ -378,6 +378,8 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
                             if &key == "href" {
                                 ret.push(' ');
                                 key.clear();
+                            } else if c == ']' {
+                                ret.push(']');
                             }
                         }
                     }

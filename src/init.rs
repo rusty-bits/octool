@@ -37,7 +37,7 @@ pub fn init_static(
     //load dortania build_repo package
     write!(
         stdout,
-        "\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
+        "\r\n\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]

@@ -443,7 +443,7 @@ fn process(
                             write!(
                                 stdout,
                                 "\r\x1b[4m \x1b[33mno info found for{}\x1b[4m {}",
-                                &settings.bg_col, res_name,
+                                &settings.bg_col_info, res_name,
                             )?;
                             showing_info = true;
                         }
@@ -545,8 +545,9 @@ fn main() {
         can_expand: false,
         find_string: Default::default(),
         modified: false,
-        bg_col: if available_color_count() >= 256 {
-            "\x1b[0;48;5;235m".to_string()
+        bg_col: "\x1b[0;38;5;231;48;5;232m".to_string(),
+        bg_col_info: if available_color_count() >= 256 {
+            "\x1b[0;38;5;231;48;5;235m".to_string()
         } else {
             "\x1b[0;100m".to_string()
         },
@@ -628,6 +629,7 @@ fn main() {
         .unwrap()
         .execute(cursor::MoveTo(0, 0))
         .unwrap();
+    write!(stdout, "octool v{}\r\n", ver).unwrap();
 
     init::init_static(&mut resources, &mut setup, &mut stdout).unwrap();
 

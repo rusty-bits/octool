@@ -6,9 +6,13 @@ You can build from the included source by running `cargo build --release` (if yo
 ./octool [options] [-o x.y.z] [config.plist]  
 
 -d  use `debug` versions for EFI instead of `release` versions  
+
 -h  print help/usage message  
--o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4` instead of the bleeding-edge pre-release version  
--v  print octool version information and booted OpenCore version if the var is in NVRAM  
+
+-o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
+ - without this option, octool will make a quick guess as to which version to use  
+
+-v  print octool version information and booted OpenCore version if the var is in NVRAM, then exit  
 
 octool takes a path to a `config.plist` to use if desired.
 If you run octool with no path provided `./octool` will first look for a `config.plist` in the `INPUT` folder, if it doesn't find one there it will use the corresponding `OpenCorePkg/Docs/Sample.plist` file.  
@@ -83,6 +87,8 @@ Usage:
  - `modified_` will be added to the begining of the saved file unless you are already working on a `modified_` file  
  - the saved file will be checked with `ocvalidate` for any errors  
 
+'V' `Version` - Capital V - change the version of OpenCore that will be checked against and used in the `OUTPUT` EFI  
+
 'ctrl-x' `cut` - remove the highlighted field or section from the plist  
 
 'y' `yank` - copy the highlighted field or section (included for those vim users used to 'y' for copying)  
@@ -111,4 +117,3 @@ Usage:
  - add ability to change version number of a single resource, e.g. using an older version of WhateverGreen.kext on a current build  
  - keep the highlighted item on screen while reading info from the Configuration.tex so the user can edit the field while also reading the info  
  - fix some style formatting of the info screens so underline, bold, etc. looks better when it crosses multiple lines
-

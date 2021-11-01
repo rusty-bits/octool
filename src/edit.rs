@@ -179,11 +179,7 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
 
 /// ask for a search string and give a scrollable list of locations to jump to in 'found'
 /// if only 1 result is found, jump immediately
-pub fn find(
-    find_string: &str,
-    resource: &plist::Value,
-    found: &mut Vec<Found>,
-) {
+pub fn find(find_string: &str, resource: &plist::Value, found: &mut Vec<Found>) {
     if find_string.len() > 0 {
         let search = find_string.to_lowercase();
         let resource = resource.as_dictionary().unwrap();

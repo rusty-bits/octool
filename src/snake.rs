@@ -98,70 +98,70 @@ pub fn snake(stdout: &mut Stdout) -> core::result::Result<(), Box<dyn Error>> {
     travel(&mut snake, true);
 
     loop {
-            let eating_food = head_touching_object(&snake, food);
-            if eating_food {
-                score += 1;
-                food = get_new_food_position(&snake, board_bounds, &mut rng);
-            }
-            travel(&mut snake, eating_food);
-            let t = rng.gen_range(1..100);
-            if t > 95 {
-                turn_right(&mut baddy);
-            } else if t < 5 {
-                turn_left(&mut baddy);
-            }
-            travel(&mut baddy, false);
-            if head_out_of_bounds(&baddy, board_bounds) {
-                baddy.seg.pop_back().unwrap();
-                let &tail = baddy.seg.front().unwrap();
-                baddy.seg.push_front(tail);
-                turn_right(&mut baddy);
-            };
-            display(
-                stdout,
-                &snake,
-                &baddy,
-                food,
-                &mut masc,
-                &mut apple,
-                &mut stripe,
-                score,
-            );
-            if head_touching_snake(&snake, &snake)
-                || head_out_of_bounds(&snake, board_bounds)
-                || head_touching_snake(&baddy, &snake)
-            {
-                break;
-            }
-            stdout.flush().unwrap();
-            if poll(Duration::from_millis(100)).ok().unwrap() {
-                        if let Event::Key(ke) = read().ok().unwrap() {
-                            match ke.code {
-                                KeyCode::Char('h') | KeyCode::Left => {
-                                    if snake.direction.1 != 0 {
-                                        snake.direction = CoordinateVector(-1, 0);
-                                    }
-                                },
-                                KeyCode::Char('l') | KeyCode::Right => {
-                                    if snake.direction.1 != 0 {
-                                        snake.direction = CoordinateVector(1, 0);
-                                    }
-                                },
-                                KeyCode::Char('k') | KeyCode::Up => {
-                                    if snake.direction.0 != 0 {
-                                        snake.direction = CoordinateVector(0, -1);
-                                    }
-                                },
-                                KeyCode::Char('j') | KeyCode::Down => {
-                                    if snake.direction.0 != 0 {
-                                        snake.direction = CoordinateVector(0, 1);
-                                    }
-                                },
-                                KeyCode::Esc => break,
-                                _ => (),
-                            }
+        let eating_food = head_touching_object(&snake, food);
+        if eating_food {
+            score += 1;
+            food = get_new_food_position(&snake, board_bounds, &mut rng);
+        }
+        travel(&mut snake, eating_food);
+        let t = rng.gen_range(1..100);
+        if t > 95 {
+            turn_right(&mut baddy);
+        } else if t < 5 {
+            turn_left(&mut baddy);
+        }
+        travel(&mut baddy, false);
+        if head_out_of_bounds(&baddy, board_bounds) {
+            baddy.seg.pop_back().unwrap();
+            let &tail = baddy.seg.front().unwrap();
+            baddy.seg.push_front(tail);
+            turn_right(&mut baddy);
+        };
+        display(
+            stdout,
+            &snake,
+            &baddy,
+            food,
+            &mut masc,
+            &mut apple,
+            &mut stripe,
+            score,
+        );
+        if head_touching_snake(&snake, &snake)
+            || head_out_of_bounds(&snake, board_bounds)
+            || head_touching_snake(&baddy, &snake)
+        {
+            break;
+        }
+        stdout.flush().unwrap();
+        if poll(Duration::from_millis(100)).ok().unwrap() {
+            if let Event::Key(ke) = read().ok().unwrap() {
+                match ke.code {
+                    KeyCode::Left | KeyCode::Char('h') | KeyCode::Char('a') => {
+                        if snake.direction.1 != 0 {
+                            snake.direction = CoordinateVector(-1, 0);
                         }
-            };
+                    }
+                    KeyCode::Right | KeyCode::Char('l') | KeyCode::Char('d') => {
+                        if snake.direction.1 != 0 {
+                            snake.direction = CoordinateVector(1, 0);
+                        }
+                    }
+                    KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('w') => {
+                        if snake.direction.0 != 0 {
+                            snake.direction = CoordinateVector(0, -1);
+                        }
+                    }
+                    KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('s') => {
+                        if snake.direction.0 != 0 {
+                            snake.direction = CoordinateVector(0, 1);
+                        }
+                    }
+                    KeyCode::Esc => break,
+                    _ => (),
+                }
+            }
+        };
     }
     for segment in snake.seg.iter() {
         write!(

@@ -96,6 +96,9 @@ pub fn init_static(
     Ok(())
 }
 
+/// load OpenCore binary packages and support files based on the version of
+/// OpenCore that is selected, will change resources used on the fly if user
+/// uses the 'V' command to change OC version #
 pub fn init_oc_build(
     resources: &mut Resources,
     settings: &mut Settings,
@@ -221,7 +224,7 @@ pub fn init_oc_build(
     Ok(())
 }
 
-/// load plist or Sample.plist if no valid INPUT plist given
+/// load config.plist or use a Sample.plist if no valid INPUT plist given
 /// and run plist through ocvalidate
 pub fn init_plist(
     config_plist: &mut PathBuf,
@@ -321,6 +324,9 @@ pub fn validate_plist(
     Ok(config_okay)
 }
 
+/// run through vec of "config_differences" from tool_config_files/octool_config.json
+/// if the current config.plist being worked on contains the field in the vec then
+/// it is most likely to be the correct version of OpenCore
 pub fn guess_version(resources: &Resources) -> String {
     let mut found = vec![Found::new()];
     let config_differences: Vec<(String, String, String, String)> =
@@ -328,8 +334,8 @@ pub fn guess_version(resources: &Resources) -> String {
 
     for (sec, sub, search, ver) in config_differences {
         find(&search, &resources.config_plist, &mut found);
-        for results in &found {
-            if results.keys.contains(&sec) && results.keys.contains(&sub) {
+        for result in &found {
+            if result.keys.contains(&sec) && result.keys.contains(&sub) {
                 return ver.to_owned();
             }
         }

@@ -107,7 +107,7 @@ pub fn get_or_update_local_parent(
 /// Runs `command` with included args and returns the result or Err
 /// # example
 /// ```
-/// let stats = status("git", ["fetch", "--all"]);
+/// let stats = status("git", &["fetch", "--all"]);
 ///
 /// ```
 pub fn status(command: &str, args: &[&str]) -> Result<Output, Box<dyn Error>> {

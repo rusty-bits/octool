@@ -647,10 +647,13 @@ fn main() {
             .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
         if &setup.oc_build_version == "latest" {
             setup.oc_build_version = guess_version(&resources);
+            if &setup.oc_build_version == "" {
+                // set to version befoce ocvalidate, maybe do something better in the future
+                setup.oc_build_version = "0.5.9".to_string();
+            }
             write!(stdout, "\x1b[33mGUESSING:\x1b[0m at OpenCore version of \x1b[33m{}\x1b[0m based on the input config.plist file\r\n\
                 \tIf this is incorrect you can change the version used with the capital 'V' key in the editor\r\n\
-                \tor run octool with the -o option and provide an OpenCore version number\r\n\n",
-        setup.oc_build_version ).unwrap();
+                \tor run octool with the -o option and provide an OpenCore version number\r\n\n", setup.oc_build_version ).unwrap();
         }
     }
     stdout.flush().unwrap();

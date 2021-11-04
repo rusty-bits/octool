@@ -199,8 +199,8 @@ pub fn update_screen(
     if settings.held_key.len() > 0 {
         write!(
             stdout,
-            "  \x1B[7mp{} paste {}{}{}",
-            "\x1b[4m", bgc, settings.held_key, bgc,
+            "  {}p{}aste {}{}{}",
+            "\x1b[7m", bgc, "\x1b[4m", settings.held_key, bgc,
         )
         .unwrap();
     }

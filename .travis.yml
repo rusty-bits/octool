@@ -29,4 +29,5 @@ deploy:
   overwrite: true
   on:
     condition: $DEPLOY = true
+    branch: main
   edge: true

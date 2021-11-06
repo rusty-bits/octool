@@ -1,15 +1,23 @@
 language: rust
 rust:
-  - stable
-  - beta
-  - nightly
+- stable
 os:
-  - linux
-  - osx
-  - windows
-jobs:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
+- linux
+- osx
+- windows
 cache: cargo
+before_deploy:
+  - rm ${TRAVIS_OS_NAME}_octool.zip
+  - rm target/release/octool.d
+  - zip ${TRAVIS_OS_NAME}_octool.zip target/release/octool.* README.md tool_config_files/*.json INPUT/README.md LICENSE
+  - git tag "v0.3.4"
+deploy:
+  provider: releases
+  api_key:
+    secure: swx9vdkNPN+beX1k+eeUjI6UKU3sSjgGzWUyTnNqMpUWF3+TekmuhuaZGwyPz57SWk6NeuDfoMOM2xLn4Cirp7mifZI9jHs/Hmog3jDBIUkI2+rsZGsHxxO+fOOVaFbnXkuqiqhWuGCElVz3J/ZVtTKn2a4ltkTzHj2gB3nqRgl2A/e+iLC3MQGunC3tJNf44vjqQPMIOcVHJ7C5rQcnzSOfIZ0H3Tf9BHPuCru/Ufk5ugqT1pJC7NLCCjnXCsGeBhfp05JwjyqAp6zRyLHNuXoieE86UMQc8qPuhrszQ+ouhFlZ79/be0z4uogndhQJvOCLmsU2tYCe6m9GF1esOy6V+s3VwNJc0sR5m+Y9ZAaXj0G5eBk1DHznH8Xe0vocRZPyDLrGfAfuI00QLkyyc6pw2MnfAvjVwjYU4n9c7uXz+OmZZUt3ybjVJzfsVBO5I7V57uvA3RhYCJQCKlYXs0ger4WkqMW+RjujwDtRHy/8oOmwVUMWCofdG/EBhi5qrffE5pOuZumrQSE4k5u47+MQT8BntdWlbVS4C55A3Mwc/6OZLfGfCtDogW6JkA1HU6qipNke3hD05wTIpFBZlEVKFeOW5p7IiCj5lvAVcrypCVapuErJ8ALTQbu91IbExcfs6MsvR6oKQEqfx2li/tyFCUkKp9tFzQ9Rr08HJT8=
+  file: "${TRAVIS_OS_NAME}_octool.zip"
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
 

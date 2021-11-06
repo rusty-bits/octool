@@ -1,3 +1,5 @@
+[![Build Status](https://app.travis-ci.com/rusty-bits/octool.svg?branch=main)](https://app.travis-ci.com/rusty-bits/octool)
+
 A small project to help me learn the Rust language and to hopefully provide better features than my older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
 You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the included `octool` binary, which I will try to keep current with the code.  
 

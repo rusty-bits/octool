@@ -35,6 +35,9 @@
 
   "config_differences": [
     [
+      "UEFI", "Output", "UIScale", "0.7.6"
+    ],
+    [
       "Booter", "Quirks", "ResizeAppleGpuBars", "0.7.5"
     ],
     [

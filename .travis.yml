@@ -28,3 +28,5 @@ deploy:
   file: "${TRAVIS_OS_NAME}_octool.zip"
   overwrite: true
   edge: true
+  on:
+    all_branches: true

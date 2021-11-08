@@ -15,8 +15,7 @@ cache: cargo
 before_deploy:
   - export TRAVIS_TAG="latest_dev_build"
   - if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
-      powershell Copy-Item -Path "target\\release\\octool.exe" -Destination octool.exe;
-      powershell Compress-Archive -Path "octool.exe", "README.md", "tool_config_files\\*.json", "INPUT\\README.md", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
+      powershell Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
     else
       rm -f ${TRAVIS_OS_NAME}_octool.zip;
       cp target/release/octool .;

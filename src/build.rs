@@ -130,6 +130,7 @@ pub fn build_output(
             "release",
             &0,
             true,
+            true,
             stdout,
         )?;
         let canopy_language = resources.octool_config["canopy_language"]

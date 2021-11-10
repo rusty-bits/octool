@@ -422,7 +422,7 @@ fn process(
                     if !showing_info {
                         let mut empty_vec = vec![];
                         if settings.is_resource() {
-                            let _ = res::show_res_path(&resources, &settings, stdout);
+                            let _ = res::show_res_info(&resources, &settings, stdout);
                             showing_info = true;
                         } else {
                             showing_info = parse_tex::show_info(

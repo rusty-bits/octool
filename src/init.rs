@@ -190,7 +190,14 @@ pub fn init_oc_build(
 
     settings.resource_ver_indexes.insert(
         "OpenCorePkg".to_owned(),
-        settings.oc_build_version_res_index,
+        (
+            settings.oc_build_version_res_index,
+            resources.dortania["OpenCorePkg"]["versions"][settings.oc_build_version_res_index]
+                ["commit"]["sha"]
+                .as_str()
+                .unwrap_or("")
+                .to_string()
+        ),
     );
     settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"]
         [settings.oc_build_version_res_index]["date_built"]
@@ -211,7 +218,8 @@ pub fn init_oc_build(
         "OpenCorePkg",
         &resources.dortania,
         &settings.build_type,
-        settings.resource_ver_indexes.get("OpenCorePkg").unwrap(),
+        &settings.resource_ver_indexes.get("OpenCorePkg").unwrap().0,
+        true,
         true,
         stdout,
     )?;

@@ -313,7 +313,7 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
                             "textbf" => ret.push_str("\x1B[1m"),
                             "emph" => ret.push_str("\x1B[7m"),
                             "texttt" => ret.push_str("\x1B[4m"),
-                            //                            "href" => ret.push_str("\x1B[34m"),
+                            "href" => ret.push_str("\x1B[34m"),
                             //                            "hyperref" => ret.push_str("\x1B[4m"),
                             //                            "hyperlink" => build_key = true, // ignore link text
                             _ => ignore = true,

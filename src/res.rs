@@ -33,6 +33,7 @@ pub fn get_or_update_local_parent(
     build_type: &str,
     build_index: &usize,
     verbose: bool,
+    do_update: bool,
     stdout: &mut Stdout,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
     let url = single_resource[parent]["versions"][build_index]["links"][build_type]
@@ -46,9 +47,11 @@ pub fn get_or_update_local_parent(
         .unwrap_or("");
     let mut path = Path::new("resources").to_path_buf();
     let mut dir = Path::new(url).file_stem().unwrap().to_str().unwrap();
-    if dir == "master" {
+    if dir == "master" || dir == "main" {
         if !path.join(&parent).exists() {
-            get_master_and_unzip(&parent, &url, &path, stdout)?;
+            if do_update {
+                get_repo_and_unzip(&parent, &url, &path, stdout)?;
+            }
         };
         path = path.join(&parent).join(".zip");
     } else {
@@ -64,36 +67,40 @@ pub fn get_or_update_local_parent(
                 Ok(mut sum_file) => {
                     let mut sum = String::new();
                     sum_file.read_to_string(&mut sum)?;
-                    if sum != hash {
-                        write!(
-                            stdout,
-                            "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
-                            hash, sum
-                        )?;
-                        write!(
-                            stdout,
-                            "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
-                            yel = "\x1b[33m",
-                            grn = "\x1b[32m",
-                        )?;
-                        get_file_and_unzip(url, hash, &path, stdout)?;
-                    } else {
-                        if verbose {
-                            write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                    if do_update {
+                        if sum != hash {
+                            write!(
+                                stdout,
+                                "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                                hash, sum
+                            )?;
+                            write!(
+                                stdout,
+                                "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                                yel = "\x1b[33m",
+                                grn = "\x1b[32m",
+                            )?;
+                            get_file_and_unzip(url, hash, &path, stdout)?;
+                        } else {
+                            if verbose {
+                                write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                            }
                         }
                     }
                 }
                 Err(e) => match e.kind() {
                     std::io::ErrorKind::NotFound => {
-                        write!(
+                        if do_update {
+                            write!(
                             stdout,
                             "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
                             dir,
                             yel = "\x1b[33m",
                             grn = "\x1b[32m",
                         )?;
-                        write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
-                        get_file_and_unzip(url, hash, &path, stdout)?;
+                            write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
+                            get_file_and_unzip(url, hash, &path, stdout)?;
+                        }
                     }
                     _ => panic!("{}", e),
                 },
@@ -127,7 +134,7 @@ pub fn curl_file(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_master_and_unzip(
+fn get_repo_and_unzip(
     parent: &str,
     url: &str,
     path: &Path,
@@ -197,9 +204,8 @@ pub fn get_file_and_unzip(
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
-pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut Stdout) {
+pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut Stdout) {
     let mut res_path: Option<PathBuf>;
-    let section = settings.sec_key[0].as_str();
     let mut ind_res = String::new();
     settings.res_name(&mut ind_res);
     let parent = resources.resource_list[&ind_res]["parent"]
@@ -208,8 +214,10 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
 
     write!(
         stdout,
-        "\r\n{}the first found resource will be used in the OUTPUT/EFI{}\x1B[0K\r\n",
-        "\x1b[4m", "\x1b[0m",
+        "\r\n{}{}\r the first found resource will be used in the OUTPUT/EFI{}\r\n",
+        "\x1b[4m", 
+        " ".repeat(crossterm::terminal::size().unwrap().0.into()),
+        "\x1b[0m",
     )
     .unwrap();
 
@@ -219,7 +227,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
 
     if res_path == None {
         let path;
-        match section {
+        match settings.sec_key[0].as_str() {
             "ACPI" => {
                 path = resources.octool_config["acpi_path"].as_str().unwrap();
             }
@@ -237,17 +245,36 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
     if parent.len() > 0 {
         write!(stdout, "\x1B[2K\r\n").unwrap();
         write!(stdout, "{} in Dortania Builds? \x1B[0K", parent).unwrap();
-        let res_index = settings.resource_ver_indexes.get(parent).unwrap_or(&0);
+        let res_index = settings
+            .resource_ver_indexes
+            .get(parent)
+            .unwrap_or(&(0, "".to_string()))
+            .0;
         match &resources.dortania[parent]["versions"][res_index]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
                 write!(stdout, "\x1b[32mtrue\r\n").unwrap();
-                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
+                let res = &resources.dortania[parent]["versions"][res_index];
+                crossterm::terminal::disable_raw_mode().unwrap();
+                write!(
+                    stdout,
+                    " {grn}url:{res} {}{clr}\r\n {grn}commit date:{res} {}{clr}\r\n {grn}message:{res} {}{clr}\r\n",
+                    url,
+                    res["date_committed"].as_str().unwrap_or(""),
+                    res["commit"]["message"].as_str().unwrap_or(""),
+                    grn = "\x1b[32m",
+                    res = "\x1b[0m",
+                    clr = "\x1b[0K",
+                )
+                .unwrap();
+                crossterm::terminal::enable_raw_mode().unwrap();
+
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
                         &resources.dortania,
                         &settings.build_type,
-                        res_index,
+                        &res_index,
+                        false,
                         false,
                         stdout,
                     )
@@ -268,6 +295,7 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
                         &resources.other,
                         &settings.build_type,
                         &0,
+                        false,
                         false,
                         stdout,
                     )
@@ -306,9 +334,9 @@ pub fn show_res_path(resources: &Resources, settings: &Settings, stdout: &mut St
             match out {
                 Some(outp) => {
                     let outp = String::from(outp.path().to_string_lossy());
-                    write!(stdout, "{:?}\r\n", outp).unwrap();
+                    write!(stdout, "{:?}\x1b[0K\r\n", outp).unwrap();
                 }
-                _ => (),
+                _ => write!(stdout, "{:?} \x1b[32mwill be downloaded\x1b[0m\x1b[0K\r\n", p).unwrap(),
             }
         }
     }
@@ -362,9 +390,9 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
     let mut ver = String::new();
     if let Some(parent_res) = resources.resource_list[res]["parent"].as_str() {
         match settings.resource_ver_indexes.get(parent_res) {
-            Some(p_index) => {
+            Some(p_manifest) => {
                 if let Some(v) =
-                    resources.dortania[parent_res]["versions"][p_index]["version"].as_str()
+                    resources.dortania[parent_res]["versions"][p_manifest.0]["version"].as_str()
                 {
                     ver = v.to_owned();
                 } else {
@@ -380,9 +408,17 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                         if settings.oc_build_version_res_index == 0
                             || date[..10] <= settings.oc_build_date[..10]
                         {
-                            settings
-                                .resource_ver_indexes
-                                .insert(parent_res.to_owned(), p_index);
+                            settings.resource_ver_indexes.insert(
+                                parent_res.to_owned(),
+                                (
+                                    p_index,
+                                    resources.dortania[parent_res]["versions"][p_index]["commit"]
+                                        ["sha"]
+                                        .as_str()
+                                        .unwrap_or("")
+                                        .to_string(),
+                                ),
+                            );
                             if let Some(s) = resources.dortania[parent_res]["versions"][p_index]
                                 ["version"]
                                 .as_str()
@@ -407,7 +443,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
     }
 }
 
-/// this seems redundant to the `show_res_path` function, can I combine or eliminate?
+/// this seems redundant to the `show_res_info` function, can I combine or eliminate?
 pub fn get_res_path(
     settings: &Settings,
     resources: &Resources,
@@ -458,8 +494,13 @@ pub fn get_res_path(
             parent,
             &resources.dortania,
             &settings.build_type,
-            &settings.resource_ver_indexes.get(parent).unwrap_or(&0),
+            &settings
+                .resource_ver_indexes
+                .get(parent)
+                .unwrap_or(&(0, "".to_string()))
+                .0,
             false,
+            true,
             stdout,
         )
         .unwrap();
@@ -471,6 +512,7 @@ pub fn get_res_path(
             &settings.build_type,
             &0,
             false,
+            true,
             stdout,
         )
         .unwrap();

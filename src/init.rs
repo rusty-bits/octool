@@ -105,7 +105,7 @@ pub fn init_oc_build(
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     settings.oc_build_version_res_index = Default::default(); // reset oc_build_version to top of dortania
-    settings.resource_ver_indexes = Default::default(); // clear out resource version indexes for dortania
+//    settings.resource_ver_indexes = Default::default(); // this will clear out resource version indexes for dortania
 
     // test if version selected is latest version, don't try to download zip of latest
     // it doesn't exist yet

@@ -24,10 +24,10 @@ pub fn show_info(
     let mut align = false;
     let rows = size()?.1;
     let mut row = 0;
-    let mut bg_col = settings.bg_col_info.clone();
-    if settings.depth == 0 {
-        bg_col = "\x1b[0m".to_string();
-    }
+    let bg_col = &settings.bg_col_info;
+//    if settings.depth == 0 {
+//        bg_col = "\x1b[0m".to_string();
+//    }
 
     let tex_path = &resources
         .open_core_source_path

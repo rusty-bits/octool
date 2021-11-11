@@ -311,15 +311,79 @@ fn process(
                     }
                 }
                 KeyCode::Char('V') => {
-                    write!(
-                        stdout,
-                        "\x1b[2K\r\n{}\r\x1B[2KEnter version number: {}\r\n\x1B[2K\x1B8",
-                        cursor::Show,
-                        cursor::SavePosition,
-                    )?;
-                    edit::edit_string(&mut settings.oc_build_version, None, stdout)?;
+                    let mut parent_res = "OpenCorePkg".to_string();
+                    if settings.is_resource() {
+                        settings.res_name(&mut parent_res);
+                        if let Some(p) = resources.resource_list[&parent_res]["parent"].as_str() {
+                            parent_res = p.to_string();
+                        } else {
+                            write!(
+                                stdout,
+                                " \x1b[33mNo versions found for {}\x1b[0m\x1b[0K",
+                                parent_res
+                            )?;
+                            stdout.flush()?;
+                            showing_info = true;
+                            parent_res = "".to_owned();
+                        }
+                    }
+                    if parent_res.len() > 0 {
+                        let mut versions = vec![];
+                        let mut indexes = vec![];
+                        res::get_parent_version_nums(
+                            &parent_res,
+                            &resources,
+                            &mut versions,
+                            &mut indexes,
+                        );
+                        let mut new_ver;
+                        if versions.len() > 0 {
+                            if &parent_res != "OpenCorePkg" {
+                                new_ver =
+                                    versions[0].split("---").next().unwrap().trim().to_owned();
+                            } else {
+                                new_ver = settings.oc_build_version.to_owned();
+                            }
+
+                            write!(
+                            stdout,
+                            "\x1b[2K\r\n{}\r\x1B[2K\x1b[32mEnter or select {} version number:\x1b[0m {}\r\n\x1B[2K\x1B8",
+                            cursor::Show,
+                            &parent_res,
+                            cursor::SavePosition,
+                        )?;
+                            edit::edit_string(&mut new_ver, Some(&versions), stdout)?;
+                            if &parent_res == "OpenCorePkg" {
+                                settings.oc_build_version = new_ver;
+                                init::init_oc_build(&mut resources, settings, stdout)?;
+                            } else {
+                                for (i, v) in versions.iter().enumerate() {
+                                    if v.split("---").next().unwrap_or("").trim() == new_ver {
+                                        settings.resource_ver_indexes.insert(
+                                            parent_res.to_owned(),
+                                            (
+                                                indexes[i],
+                                                resources.dortania[&parent_res]["versions"]
+                                                    [indexes[i]]["commit"]["sha"]
+                                                    .as_str()
+                                                    .unwrap_or("no sha")
+                                                    .to_owned(),
+                                            ),
+                                        );
+                                    }
+                                }
+                            }
+                        } else {
+                            write!(
+                                stdout,
+                                " \x1b[33mNo versions found for parent resource {}\x1b[0m\x1b[0K",
+                                parent_res
+                            )?;
+                            stdout.flush()?;
+                            showing_info = true;
+                        }
+                    }
                     write!(stdout, "{}", cursor::Hide)?;
-                    init::init_oc_build(&mut resources, settings, stdout)?;
                 }
                 KeyCode::Char('r') => {
                     if settings.depth < 4 {
@@ -487,7 +551,11 @@ fn process(
                 }
                 _ => (),
             }
-            if key != KeyCode::Char('i') && key != KeyCode::Char(' ') && key != KeyCode::Char('s') {
+            if key != KeyCode::Char('i')
+                && key != KeyCode::Char(' ')
+                && key != KeyCode::Char('s')
+                && key != KeyCode::Char('V')
+            {
                 showing_info = false;
             }
         }

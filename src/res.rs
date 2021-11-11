@@ -25,8 +25,36 @@ pub struct Resources {
     pub open_core_source_path: PathBuf, // location of OpenCore source files
 }
 
+/// get list of available version numbers for parent resource in the dortania build config.json
+/// returns list in versions and index number of first occurence in indexes
+pub fn get_parent_version_nums(parent: &str, resources: &Resources, versions: &mut Vec<String>, indexes: &mut Vec<usize>) {
+    let mut ver = String::new();
+    let mut last_ver = String::new();
+    let mut index = 0;
+    loop {
+        if let Some(v) = resources.dortania[parent]["versions"][index]["version"].as_str() {
+            if &last_ver != v {
+                last_ver = v.to_string();
+                ver.push_str(v);
+                ver.push_str(" --- ");
+                ver.push_str(
+                    resources.dortania[parent]["versions"][index]["date_committed"]
+                        .as_str()
+                        .unwrap_or("no date found"),
+                );
+                indexes.push(index);
+                versions.push(ver);
+                ver = "".to_string();
+            }
+            index += 1;
+        } else {
+            break;
+        }
+    }
+}
+
 /// check if parent resource exists locally, if it does check for updates
-/// if it doesn't then retrieve it
+/// if it doesn't exist locally then retrieve it
 pub fn get_or_update_local_parent(
     parent: &str,
     single_resource: &serde_json::Value,
@@ -207,6 +235,7 @@ pub fn get_file_and_unzip(
 pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut Stdout) {
     let mut res_path: Option<PathBuf>;
     let mut ind_res = String::new();
+    let bgc = &settings.bg_col_info;
     settings.res_name(&mut ind_res);
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
@@ -215,13 +244,13 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
     write!(
         stdout,
         "\r\n{}{}\r the first found resource will be used in the OUTPUT/EFI{}\r\n",
-        "\x1b[4m", 
+        "\x1b[4m",
         " ".repeat(crossterm::terminal::size().unwrap().0.into()),
-        "\x1b[0m",
+        bgc,
     )
     .unwrap();
 
-    res_path = res_exists(&resources.working_dir_path, "INPUT", &ind_res, stdout);
+    res_path = res_exists(&resources.working_dir_path, "INPUT", &ind_res, stdout, bgc);
 
     let open_core_pkg = &resources.open_core_binaries_path;
 
@@ -239,7 +268,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
             }
             _ => path = "",
         }
-        res_path = res_exists(open_core_pkg, path, &ind_res, stdout);
+        res_path = res_exists(open_core_pkg, path, &ind_res, stdout, bgc);
     }
 
     if parent.len() > 0 {
@@ -257,12 +286,12 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                 crossterm::terminal::disable_raw_mode().unwrap();
                 write!(
                     stdout,
-                    " {grn}url:{res} {}{clr}\r\n {grn}commit date:{res} {}{clr}\r\n {grn}message:{res} {}{clr}\r\n",
+                    " {grn}url:{bgc} {}{clr}\r\n {grn}commit date:{bgc} {}{clr}\r\n {grn}message:{bgc} {}{clr}\r\n",
                     url,
                     res["date_committed"].as_str().unwrap_or(""),
                     res["commit"]["message"].as_str().unwrap_or(""),
                     grn = "\x1b[32m",
-                    res = "\x1b[0m",
+                    bgc = bgc,
                     clr = "\x1b[0K",
                 )
                 .unwrap();
@@ -281,14 +310,14 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "\x1b[31mfalse\x1B[0m\x1b[0K\r\n").unwrap(),
+            _ => write!(stdout, "\x1b[31mfalse{}\x1b[0K\r\n", bgc).unwrap(),
         }
 
         write!(stdout, "\x1B[0K\r\n{} in other? \x1B[0K", parent).unwrap();
         match &resources.other[parent]["versions"][0]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
                 write!(stdout, "\x1b[32mtrue\r\n").unwrap();
-                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", url).unwrap();
+                write!(stdout, "{}{}\x1B[0K\r\n", url, bgc).unwrap();
                 if res_path == None {
                     res_path = get_or_update_local_parent(
                         parent,
@@ -302,22 +331,23 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                     .unwrap();
                 }
             }
-            _ => write!(stdout, "\x1b[31mfalse\x1B[0m\r\n").unwrap(),
+            _ => write!(stdout, "\x1b[31mfalse{}\r\n", bgc).unwrap(),
         }
     } else {
         write!(
             stdout,
-            "\x1B[33m{} not found in tool_config_files/resource_list.json, skipping prebuilt repos\x1B[0m\x1B[0J\r\n"
-        , &ind_res )
+            "\x1B[33m{} not found in tool_config_files/resource_list.json, skipping prebuilt repos{}\x1B[0K\r\n"
+        , &ind_res, bgc )
         .unwrap();
     }
     write!(stdout, "\x1B[2K\r\n").unwrap();
     match res_path {
-        None => write!(stdout, "\x1B[31mNo local resource found\x1B[0m\x1B[0K\r\n").unwrap(),
+        None => write!(stdout, "\x1B[31mNo local resource found{}\x1B[0K\r\n", bgc).unwrap(),
         Some(p) => {
             write!(
                 stdout,
-                "\x1B[32mlocal path to resource that will be used\x1B[0m\x1B[0K\r\n"
+                "\x1B[32mlocal path to resource that will be used{}\x1B[0K\r\n",
+                bgc
             )
             .unwrap();
             let mut out = None;
@@ -336,7 +366,12 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                     let outp = String::from(outp.path().to_string_lossy());
                     write!(stdout, "{:?}\x1b[0K\r\n", outp).unwrap();
                 }
-                _ => write!(stdout, "{:?} \x1b[32mwill be downloaded\x1b[0m\x1b[0K\r\n", p).unwrap(),
+                _ => write!(
+                    stdout,
+                    "{:?} \x1b[32mwill be downloaded{}\x1b[0K\r\n",
+                    p, bgc
+                )
+                .unwrap(),
             }
         }
     }
@@ -365,21 +400,24 @@ fn res_exists(
     path: &str,
     ind_res: &str,
     stdout: &mut Stdout,
+    bgc: &String,
 ) -> Option<PathBuf> {
     let path = open_core_pkg.join(path).join(ind_res);
     if path.exists() {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K \x1b[32mtrue\x1B[0m\r\n",
-            path.parent().unwrap()
+            "inside {:?} dir?\x1B[0K \x1b[32mtrue{}\r\n",
+            path.parent().unwrap(),
+            bgc,
         )
         .unwrap();
         Some(path)
     } else {
         write!(
             stdout,
-            "inside {:?} dir?\x1B[0K \x1b[31mfalse\x1B[0m\r\n",
+            "inside {:?} dir?\x1B[0K \x1b[31mfalse{}\r\n",
             path.parent().unwrap(),
+            bgc,
         )
         .unwrap();
         None

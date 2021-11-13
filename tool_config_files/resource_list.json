@@ -6,25 +6,31 @@
     "parent": "OpenCorePkg"
   },
   "AudioDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "BootKicker.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "BOOTx64.efi": {
     "parent": "OpenCorePkg"
   },
   "ChipTune.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "CleanNvram.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "ControlMsrE2.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "CrScreenshotDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "CryptoTest.efi": {
     "parent": "OpenCorePkg"
@@ -33,7 +39,8 @@
     "parent": "OpenCorePkg"
   },
   "CsrUtil.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "DataHubTest.efi": {
     "parent": "OpenCorePkg"
@@ -45,46 +52,59 @@
     "parent": "OpenCorePkg"
   },
   "GopStop.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "HiiDatabase.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "KeyTester.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "MmapDump.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "NvmExpressDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenCanopy.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenControl.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "OpenCore.efi": {
     "parent": "OpenCorePkg"
   },
   "OpenHfsPlus.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenLinuxBoot.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenPartitionDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenRuntime.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenUsbKbDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "OpenShell.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "PavpProvision.efi": {
     "parent": "OpenCorePkg"
@@ -96,16 +116,20 @@
     "parent": "OpenCorePkg"
   },
   "Ps2KeyboardDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "Ps2MouseDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "ResetSystem.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "RtcRw.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "Shell.efi": {
     "parent": "OpenCorePkg"
@@ -117,10 +141,12 @@
     "parent": "OpenCorePkg"
   },
   "TmpInfo.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "tool"
   },
   "UsbMouseDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "VerifyMemOpt.efi": {
     "parent": "OpenCorePkg"
@@ -129,7 +155,8 @@
     "parent": "OpenCorePkg"
   },
   "XhciDxe.efi": {
-    "parent": "OpenCorePkg"
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "BrightnessKeys.kext": {
     "parent": "BrightnessKeys"
@@ -138,25 +165,32 @@
     "parent": "FeatureUnlock"
   },
   "ExFatDxe.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "ExFatDxeLegacy.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "HfsPlus.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "HfsPlus32.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "HfsPlusLegacy.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "btrfs_x64.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "ext4_x64.efi": {
-    "parent": "OcBinaryData"
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
   "WhateverGreen.kext": {
     "parent": "WhateverGreen"

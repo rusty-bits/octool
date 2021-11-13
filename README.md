@@ -49,8 +49,8 @@ Usage:
 - 'SPACE' will also toggle the Enabled status of kexts, drivers, tools, and amls when they are highlighted in the section list  
 - and will toggle binary values for fields that have bit values listed in the `Configuration.tex` file  
 
-'a' `add` - if in a resource section, give option to add a blank resource template to the working `plist` from the `Sample.plist`  
- - if in some other section, select a type and key name to add to the working plist  
+'a' `add` - if in a resource section there is option to select from a list of known resources, or add a blank resource template to the working `plist` from the `Sample.plist`  
+ - if in some other section you can only select a type and key name to add to the working plist  
 
 'ctrl-c' `copy` - copy the highlighted field or section  
 

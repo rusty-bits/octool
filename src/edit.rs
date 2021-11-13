@@ -311,7 +311,13 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         };
         for res in resources.resource_list.as_object().unwrap() {
             if res.0.contains(res_ext) {
-                res_list.push(res.0.clone());
+                if res_ext == ".efi" {
+                    if res.1["res_type"] == res_type {
+                        res_list.push(res.0.clone());
+                    }
+                } else {
+                    res_list.push(res.0.clone());
+                }
             }
         }
         res_list.sort();
@@ -384,7 +390,8 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
                 cursor::SavePosition,
             )
             .unwrap();
-            let new_val_set = edit::edit_string(&mut selected_res, Some(&res_list), stdout).unwrap();
+            let new_val_set =
+                edit::edit_string(&mut selected_res, Some(&res_list), stdout).unwrap();
             write!(stdout, "{}", cursor::Hide).unwrap();
             if !new_val_set {
                 return;

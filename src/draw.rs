@@ -24,7 +24,7 @@ pub struct Settings {
     pub oc_build_version: String,       // version number of OpenCorePkg to use
     pub oc_build_date: String,          // date binaries were built
     pub oc_build_version_res_index: usize, // index of OpenCorePkg in config.json
-    pub resource_ver_indexes: HashMap<String, (usize, String)>, // index of other parent resources
+    pub resource_ver_indexes: HashMap<String, Manifest>, // index of other parent resources
     pub can_expand: bool,               // true if highlighted field can have children
     pub find_string: String,            // last entered search string
     pub modified: bool,                 // true if plist changed and not saved
@@ -33,10 +33,7 @@ pub struct Settings {
 }
 
 #[derive(Debug)]
-pub struct Manifest {
-    pub index: usize,
-    pub shasum: String,
-}
+pub struct Manifest(pub usize, pub String);
 
 impl Settings {
     pub fn up(&mut self) {

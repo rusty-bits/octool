@@ -7,6 +7,9 @@ mod res;
 mod snake;
 
 use fs_extra::dir::{copy, CopyOptions};
+use std::collections::HashMap;
+//use std::collections::HashMap;
+use std::fs::File;
 use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::{env, error::Error};
@@ -18,9 +21,10 @@ use crossterm::{
     terminal, ExecutableCommand,
 };
 
-use edit::read_key;
-
+use crate::edit::read_key;
+use crate::draw::{Settings, Manifest};
 use crate::init::guess_version;
+use crate::res::Resources;
 
 fn process(
     config_plist: &mut PathBuf,
@@ -356,12 +360,16 @@ fn process(
                             if &parent_res == "OpenCorePkg" {
                                 settings.oc_build_version = new_ver;
                                 init::init_oc_build(&mut resources, settings, stdout)?;
+                                if settings.oc_build_version == "not found" {
+                                    stdout.flush()?;
+                                    showing_info = true;
+                                }
                             } else {
                                 for (i, v) in versions.iter().enumerate() {
                                     if v.split("---").next().unwrap_or("").trim() == new_ver {
                                         settings.resource_ver_indexes.insert(
                                             parent_res.to_owned(),
-                                            (
+                                            Manifest(
                                                 indexes[i],
                                                 resources.dortania[&parent_res]["versions"]
                                                     [indexes[i]]["commit"]["sha"]
@@ -384,6 +392,27 @@ fn process(
                         }
                     }
                     write!(stdout, "{}", cursor::Hide)?;
+                }
+                KeyCode::Char('R') => {
+                    if settings.is_resource() {
+                        let ext = match settings.sec_key[0].as_str() {
+                            "ACPI" => ".aml",
+                            "Kernel" => ".kext",
+                            "Misc" => ".efi",
+                            "UEFI" => ".efi",
+                            _ => "",
+                        };
+                        let mut a = vec![];
+                        for res in resources.resource_list.as_object().unwrap() {
+                            if res.0.contains(ext) {
+                                a.push(res.0);
+                            }
+                        }
+                        a.sort();
+                        write!(stdout, "{:?}", a)?;
+                        stdout.flush()?;
+                        read_key()?;
+                    }
                 }
                 KeyCode::Char('r') => {
                     if settings.depth < 4 {
@@ -533,17 +562,39 @@ fn process(
                         tmp.push_str(&config_file);
                         config_file = tmp.to_owned();
                     }
-                    let save_file = PathBuf::from("INPUT").join(&config_file);
+                    let save_path = PathBuf::from("INPUT").join(&config_file);
                     write!(
                         stdout,
                         "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32m\
                            Validating\x1B[0m {} with {} Acidanthera/ocvalidate\r\n",
                         config_file, settings.oc_build_version,
                     )?;
-                    resources.config_plist.to_file_xml(&save_file)?;
+                    resources.config_plist.to_file_xml(&save_path)?;
+
+                    //save manifest
+                    config_file.push_str(".man");
+                    let manifest_path = PathBuf::from("INPUT").join(&config_file);
+                    let manifest_file = match File::create(&manifest_path) {
+                        Err(e) => panic!("Couldn't open {:?}: {}", &save_path, e),
+                        Ok(f) => f,
+                    };
+
+//                    resources.sample_plist.to_writer_binary(&manifest_file)?;
+                    let mut out_indexes = HashMap::<String, String>::default();
+                    for v in &settings.resource_ver_indexes {
+                        out_indexes.insert(v.0.to_owned(), v.1.1.to_owned());
+                    }
+                    serde_json::to_writer(&manifest_file, &out_indexes)?;
+
+//                    let man_reader = File::open(&manifest_path)?;
+//                    let tp = plist::Value::from_file(&manifest_path)?;
+//                    let ta = "";
+//                    let ta: HashMap<String, (usize, String)> = serde_json::from_reader(&man_reader)?;
+//                    write!(stdout, "{:?}\r\n{:?}", tp, ta)?;
+
                     settings.modified = false;
                     let _ = init::validate_plist(
-                        &Path::new(&save_file).to_path_buf(),
+                        &Path::new(&save_path).to_path_buf(),
                         &resources,
                         stdout,
                     )?;
@@ -594,7 +645,7 @@ fn main() {
     }
     env::set_current_dir(&working_dir).expect("Unable to set environment");
 
-    let mut setup = draw::Settings {
+    let mut setup = Settings {
         config_file_name: String::new(),
         sec_num: [0; 5],
         depth: 0,
@@ -621,7 +672,7 @@ fn main() {
         },
     };
 
-    let mut resources = res::Resources {
+    let mut resources = Resources {
         dortania: serde_json::json!(null),
         octool_config: serde_json::json!(null),
         resource_list: serde_json::json!(null),

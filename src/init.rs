@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use plist::Value;
 
-use crate::draw::Settings;
+use crate::draw::{Settings, Manifest};
 use crate::edit::{find, Found};
 use crate::res::{self, Resources};
 
@@ -151,7 +151,7 @@ pub fn init_oc_build(
             } else {
                 write!(
                     stdout,
-                    "\r\n\x1b[33mERROR:\x1b[0m Version \x1b[32m{}\x1b[0m of OpenCorePkg not found in repos, please check your input\r\n\ne.g. './octool -o \x1b[4m0.7.4\x1b[0m'\n",
+                    "\r\n\x1b[33mERROR:\x1b[0m Version \x1b[32m{}\x1b[0m of OpenCorePkg not found in repos, please check your input\x1b[0K\r\n\x1b[0K\ne.g. './octool -o \x1b[4m0.7.4\x1b[0m'\x1b[0K\n",
                     settings.oc_build_version
                 )
                 .unwrap();
@@ -190,7 +190,7 @@ pub fn init_oc_build(
 
     settings.resource_ver_indexes.insert(
         "OpenCorePkg".to_owned(),
-        (
+        Manifest(
             settings.oc_build_version_res_index,
             resources.dortania["OpenCorePkg"]["versions"][settings.oc_build_version_res_index]
                 ["commit"]["sha"]

@@ -1,4 +1,5 @@
 use crate::draw::{self, Settings};
+use crate::edit;
 use crate::res::Resources;
 
 use crossterm::event::KeyModifiers;
@@ -283,13 +284,45 @@ pub fn find(find_string: &str, resource: &plist::Value, found: &mut Vec<Found>) 
 pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
     settings.modified = true;
     let mut selection = 1;
-    let mut item_types = Vec::<&str>::new();
-    let new_res_msg = format!(
-        "New {} {} template from Sample.plist",
-        settings.sec_key[0], settings.sec_key[1]
-    );
+    let mut selection_adjust = 0;
+    let mut item_types = Vec::<String>::new();
+    let mut res_list = vec![];
+    let mut res_type = "";
+    let mut res_ext = "";
     if settings.is_resource() {
-        item_types.push(&new_res_msg);
+        match settings.sec_key[0].as_str() {
+            "ACPI" => {
+                res_ext = ".aml";
+                res_type = "acpi";
+            }
+            "Kernel" => {
+                res_ext = ".kext";
+                res_type = "kext";
+            }
+            "Misc" => {
+                res_ext = ".efi";
+                res_type = "tool";
+            }
+            "UEFI" => {
+                res_ext = ".efi";
+                res_type = "driver";
+            }
+            _ => (),
+        };
+        for res in resources.resource_list.as_object().unwrap() {
+            if res.0.contains(res_ext) {
+                res_list.push(res.0.clone());
+            }
+        }
+        res_list.sort();
+        let msg = format!("Select new {} from a list", res_type,);
+        item_types.push(msg);
+        let msg = format!(
+            "New {} {} template from Sample.plist",
+            settings.sec_key[0], settings.sec_key[1]
+        );
+        item_types.push(msg);
+        selection_adjust = 2;
     }
     for s in [
         "plist array",
@@ -299,11 +332,11 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         "plist integer",
         "plist string",
     ] {
-        item_types.push(s);
+        item_types.push(s.to_owned());
     }
     write!(
         stdout,
-        "\r\nSelect type of item to add to plist:\x1B[0K\r\n{}",
+        "\r\n\x1b[32mSelect type of item to add to plist:\x1b[0m\x1B[0K\r\n\x1b[0K\r\n{}",
         cursor::SavePosition,
     )
     .unwrap();
@@ -339,9 +372,63 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
     if selection == 0 {
         return;
     };
-    if item_types[selection - 1] == &new_res_msg {
-        if !extract_value(&mut settings, &resources.sample_plist, true, false) {
-            return;
+    if selection_adjust > 1 && selection < 3 {
+        if selection == 1 {
+            let mut selected_res = res_list[0].clone();
+            write!(
+                stdout,
+                "{}{}\r\x1B[2KSelect or edit {} to insert: {}\r\n\x1B[2K\x1B8",
+                cursor::RestorePosition,
+                cursor::Show,
+                res_type,
+                cursor::SavePosition,
+            )
+            .unwrap();
+            let new_val_set = edit::edit_string(&mut selected_res, Some(&res_list), stdout).unwrap();
+            write!(stdout, "{}", cursor::Hide).unwrap();
+            if !new_val_set {
+                return;
+            }
+            if !extract_value(&mut settings, &resources.sample_plist, true, false) {
+                return;
+            }
+            let item = settings
+                .held_item
+                .as_mut()
+                .unwrap()
+                .as_dictionary_mut()
+                .unwrap();
+            match res_type {
+                "acpi" | "driver" => {
+                    item.insert("Path".to_string(), plist::Value::String(selected_res));
+                }
+                "kext" => {
+                    item.insert("Arch".to_string(), plist::Value::String("Any".to_string()));
+                    item.insert(
+                        "BundlePath".to_string(),
+                        plist::Value::String(selected_res.clone()),
+                    );
+                    let mut ex_path = "Contents/MacOS/".to_string();
+                    ex_path.push_str(selected_res.split('.').next().unwrap());
+                    item.insert("ExecutablePath".to_string(), plist::Value::String(ex_path));
+                    item.insert(
+                        "PlistPath".to_string(),
+                        plist::Value::String("Contents/Info.plist".to_string()),
+                    );
+                }
+                "tool" => {
+                    item.insert("Path".to_string(), plist::Value::String(selected_res));
+                    item.insert(
+                        "Flavour".to_string(),
+                        plist::Value::String("Auto".to_string()),
+                    );
+                }
+                _ => (),
+            };
+        } else {
+            if !extract_value(&mut settings, &resources.sample_plist, true, false) {
+                return;
+            }
         }
     } else {
         write!(
@@ -356,13 +443,13 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         let mut key = String::new();
         edit_string(&mut key, None, stdout).unwrap();
         settings.held_key = String::from(key.trim());
-        settings.held_item = Some(match item_types[selection - 1] {
-            "plist array" => plist::Value::Array(vec![]),
-            "plist boolean" => false.into(),
-            "plist data" => plist::Value::Data(vec![]),
-            "plist dict" => plist::Value::Dictionary(plist::Dictionary::default()),
-            "plist integer" => 0.into(),
-            "plist string" => plist::Value::String("".to_string()),
+        settings.held_item = Some(match selection - selection_adjust {
+            1 => plist::Value::Array(vec![]),
+            2 => false.into(),
+            3 => plist::Value::Data(vec![]),
+            4 => plist::Value::Dictionary(plist::Dictionary::default()),
+            5 => 0.into(),
+            6 => plist::Value::String("".to_string()),
             _ => panic!("How did you select this?"),
         });
         write!(stdout, "{}", cursor::Hide).unwrap();
@@ -446,9 +533,15 @@ pub fn edit_value(
         }
     } else {
         match val {
-            Value::Integer(i) => edit_int(i, valid_values, stdout),
-            Value::String(s) => edit_string(s, valid_values, stdout)?,
-            Value::Data(d) => edit_data(d, stdout)?,
+            Value::Integer(i) => {
+                edit_int(i, valid_values, stdout);
+            }
+            Value::String(s) => {
+                edit_string(s, valid_values, stdout)?;
+            }
+            Value::Data(d) => {
+                edit_data(d, stdout)?;
+            }
             _ => (),
         }
     }
@@ -679,7 +772,8 @@ pub fn edit_string(
     val: &mut String,
     valid_values: Option<&Vec<String>>,
     stdout: &mut Stdout,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<bool, Box<dyn Error>> {
+    let mut new_val_set = false;
     let mut new = String::from(&*val);
     let mut pos = new.len();
     let mut selected = 0;
@@ -698,10 +792,14 @@ pub fn edit_string(
             if valid_values.len() > 0 {
                 write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
                 for (i, vals) in valid_values.iter().enumerate() {
-                    if i == selected {
-                        write!(stdout, "\x1b[7m").unwrap();
+                    if (selected < 5 && i < 10)
+                        || (selected >= 5 && i + 5 >= selected && i < selected + 5)
+                    {
+                        if i == selected {
+                            write!(stdout, "\x1b[7m").unwrap();
+                        }
+                        write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
                     }
-                    write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
                 }
                 write!(stdout, "\x1B[2K\r\n").unwrap();
             }
@@ -712,6 +810,7 @@ pub fn edit_string(
         match read_key().unwrap().0 {
             KeyCode::Enter => {
                 *val = new;
+                new_val_set = true;
                 break;
             }
             KeyCode::Backspace => {
@@ -782,5 +881,5 @@ pub fn edit_string(
             _ => (),
         };
     }
-    Ok(())
+    Ok(new_val_set)
 }

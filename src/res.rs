@@ -1,4 +1,4 @@
-use crate::draw::Settings;
+use crate::draw::{Settings, Manifest};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Stdout, Write};
@@ -38,9 +38,15 @@ pub fn get_parent_version_nums(parent: &str, resources: &Resources, versions: &m
                 ver.push_str(v);
                 ver.push_str(" --- ");
                 ver.push_str(
-                    resources.dortania[parent]["versions"][index]["date_committed"]
+                    &resources.dortania[parent]["versions"][index]["date_committed"]
                         .as_str()
-                        .unwrap_or("no date found"),
+                        .unwrap_or("no date found")[0..10],
+                );
+                ver.push(' ');
+                ver.push_str(
+                    &resources.dortania[parent]["versions"][index]["commit"]["message"]
+                        .as_str()
+                        .unwrap_or("").lines().next().unwrap(),
                 );
                 indexes.push(index);
                 versions.push(ver);
@@ -277,7 +283,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
         let res_index = settings
             .resource_ver_indexes
             .get(parent)
-            .unwrap_or(&(0, "".to_string()))
+            .unwrap_or(&Manifest(0, "".to_string()))
             .0;
         match &resources.dortania[parent]["versions"][res_index]["links"][&settings.build_type] {
             serde_json::Value::String(url) => {
@@ -286,10 +292,10 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                 crossterm::terminal::disable_raw_mode().unwrap();
                 write!(
                     stdout,
-                    " {grn}url:{bgc} {}{clr}\r\n {grn}commit date:{bgc} {}{clr}\r\n {grn}message:{bgc} {}{clr}\r\n",
+                    " {grn}url:{bgc} {}{clr}\r\n {grn}commit date/time:{bgc} {}{clr}\r\n {grn}message:{bgc} {}{clr}\r\n",
                     url,
                     res["date_committed"].as_str().unwrap_or(""),
-                    res["commit"]["message"].as_str().unwrap_or(""),
+                    res["commit"]["message"].as_str().unwrap_or("").lines().next().unwrap(),
                     grn = "\x1b[32m",
                     bgc = bgc,
                     clr = "\x1b[0K",
@@ -448,7 +454,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                         {
                             settings.resource_ver_indexes.insert(
                                 parent_res.to_owned(),
-                                (
+                                Manifest(
                                     p_index,
                                     resources.dortania[parent_res]["versions"][p_index]["commit"]
                                         ["sha"]
@@ -535,7 +541,7 @@ pub fn get_res_path(
             &settings
                 .resource_ver_indexes
                 .get(parent)
-                .unwrap_or(&(0, "".to_string()))
+                .unwrap_or(&Manifest(0, "".to_string()))
                 .0,
             false,
             true,

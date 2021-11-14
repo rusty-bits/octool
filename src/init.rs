@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use plist::Value;
 
-use crate::draw::{Settings, Manifest};
+use crate::draw::{Manifest, Settings};
 use crate::edit::{find, Found};
 use crate::res::{self, Resources};
 
@@ -105,7 +105,7 @@ pub fn init_oc_build(
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     settings.oc_build_version_res_index = Default::default(); // reset oc_build_version to top of dortania
-//    settings.resource_ver_indexes = Default::default(); // this will clear out resource version indexes for dortania
+                                                              //    settings.resource_ver_indexes = Default::default(); // this will clear out resource version indexes for dortania
 
     // test if version selected is latest version, don't try to download zip of latest
     // it doesn't exist yet
@@ -196,7 +196,7 @@ pub fn init_oc_build(
                 ["commit"]["sha"]
                 .as_str()
                 .unwrap_or("")
-                .to_string()
+                .to_string(),
         ),
     );
     settings.oc_build_date = resources.dortania["OpenCorePkg"]["versions"]

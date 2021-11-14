@@ -21,8 +21,8 @@ use crossterm::{
     terminal, ExecutableCommand,
 };
 
+use crate::draw::{Manifest, Settings};
 use crate::edit::read_key;
-use crate::draw::{Settings, Manifest};
 use crate::init::guess_version;
 use crate::res::Resources;
 
@@ -579,18 +579,18 @@ fn process(
                         Ok(f) => f,
                     };
 
-//                    resources.sample_plist.to_writer_binary(&manifest_file)?;
+                    //                    resources.sample_plist.to_writer_binary(&manifest_file)?;
                     let mut out_indexes = HashMap::<String, String>::default();
                     for v in &settings.resource_ver_indexes {
-                        out_indexes.insert(v.0.to_owned(), v.1.1.to_owned());
+                        out_indexes.insert(v.0.to_owned(), v.1 .1.to_owned());
                     }
                     serde_json::to_writer(&manifest_file, &out_indexes)?;
 
-//                    let man_reader = File::open(&manifest_path)?;
-//                    let tp = plist::Value::from_file(&manifest_path)?;
-//                    let ta = "";
-//                    let ta: HashMap<String, (usize, String)> = serde_json::from_reader(&man_reader)?;
-//                    write!(stdout, "{:?}\r\n{:?}", tp, ta)?;
+                    //                    let man_reader = File::open(&manifest_path)?;
+                    //                    let tp = plist::Value::from_file(&manifest_path)?;
+                    //                    let ta = "";
+                    //                    let ta: HashMap<String, (usize, String)> = serde_json::from_reader(&man_reader)?;
+                    //                    write!(stdout, "{:?}\r\n{:?}", tp, ta)?;
 
                     settings.modified = false;
                     let _ = init::validate_plist(

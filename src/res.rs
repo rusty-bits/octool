@@ -1,4 +1,4 @@
-use crate::draw::{Settings, Manifest};
+use crate::draw::{Manifest, Settings};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Stdout, Write};
@@ -27,7 +27,12 @@ pub struct Resources {
 
 /// get list of available version numbers for parent resource in the dortania build config.json
 /// returns list in versions and index number of first occurence in indexes
-pub fn get_parent_version_nums(parent: &str, resources: &Resources, versions: &mut Vec<String>, indexes: &mut Vec<usize>) {
+pub fn get_parent_version_nums(
+    parent: &str,
+    resources: &Resources,
+    versions: &mut Vec<String>,
+    indexes: &mut Vec<usize>,
+) {
     let mut ver = String::new();
     let mut last_ver = String::new();
     let mut index = 0;
@@ -46,7 +51,10 @@ pub fn get_parent_version_nums(parent: &str, resources: &Resources, versions: &m
                 ver.push_str(
                     &resources.dortania[parent]["versions"][index]["commit"]["message"]
                         .as_str()
-                        .unwrap_or("").lines().next().unwrap(),
+                        .unwrap_or("")
+                        .lines()
+                        .next()
+                        .unwrap(),
                 );
                 indexes.push(index);
                 versions.push(ver);

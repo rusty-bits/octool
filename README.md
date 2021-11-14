@@ -116,6 +116,5 @@ Usage:
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  
  - highlight if the kext/driver/etc exists in the known repos (currently shows the version number of the resource that will be used, maybe add some flag for resources that don't exist and need to be placed in the INPUT folder by the user)
  - add option to use IA32 versions instead of assuming X64  
- - add ability to change version number of a single resource, e.g. using an older version of WhateverGreen.kext on a current build  
  - keep the highlighted item on screen while reading info from the Configuration.tex so the user can edit the field while also reading the info  
  - fix some style formatting of the info screens so underline, bold, etc. looks better when it crosses multiple lines

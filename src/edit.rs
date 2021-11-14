@@ -104,13 +104,13 @@ pub fn extract_value(
                         settings.held_item = Some(ex_item);
                         settings.held_key = settings.sec_key[settings.depth].clone();
                     }
-                    None => extracted = false,
+                    None => settings.held_item = Some(ex_item), // not a dict in an array, return element "num"
                 }
             } else {
                 extracted = false;
             }
         }
-        _ => extracted = false,
+        _ => extracted = false, // not a dict or array
     }
     extracted
 }
@@ -399,17 +399,24 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
             if !extract_value(&mut settings, &resources.sample_plist, true, false) {
                 return;
             }
-            let item = settings
-                .held_item
-                .as_mut()
-                .unwrap()
-                .as_dictionary_mut()
-                .unwrap();
+            let item = settings.held_item.as_mut().unwrap();
             match res_type {
-                "acpi" | "driver" => {
-                    item.insert("Path".to_string(), plist::Value::String(selected_res));
+                "acpi" => {
+                    item.as_dictionary_mut()
+                        .unwrap()
+                        .insert("Path".to_string(), plist::Value::String(selected_res));
+                }
+                "driver" => {
+                    if settings.oc_build_version > "0.7.2".to_string() {
+                        item.as_dictionary_mut()
+                            .unwrap()
+                            .insert("Path".to_string(), plist::Value::String(selected_res));
+                    } else {
+                        settings.held_item = Some(plist::Value::String(selected_res));
+                    }
                 }
                 "kext" => {
+                    let item = item.as_dictionary_mut().unwrap();
                     item.insert("Arch".to_string(), plist::Value::String("Any".to_string()));
                     item.insert(
                         "BundlePath".to_string(),
@@ -424,6 +431,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
                     );
                 }
                 "tool" => {
+                    let item = item.as_dictionary_mut().unwrap();
                     item.insert("Path".to_string(), plist::Value::String(selected_res));
                     item.insert(
                         "Flavour".to_string(),
@@ -517,6 +525,15 @@ pub fn edit_value(
                 Some(Value::Boolean(b)) => *b = !*b,
                 _ => (),
             },
+            Value::String(s) => {
+                if settings.is_resource() {
+                    if s.chars().next() == Some('#') {
+                        s.remove(0);
+                    } else {
+                        s.insert(0, '#');
+                    }
+                }
+            }
             _ => (),
         }
     } else if edit_key {
@@ -805,10 +822,12 @@ pub fn edit_string(
                         if i == selected {
                             write!(stdout, "\x1b[7m").unwrap();
                         }
-                        write!(stdout, "{}\x1b[0m\x1B[0K\r\n", vals).unwrap();
+                        write!(stdout, "{}\x1b[0m\x1B[0K\r\n\x1b[2K", vals).unwrap();
+                    } else if i > 10 {
+                        write!(stdout, "<more>\r").unwrap();
                     }
                 }
-                write!(stdout, "\x1B[2K\r\n").unwrap();
+                write!(stdout, "\n\x1B[2K\r\n").unwrap();
             }
         }
         write!(stdout, "\x1B8{}\x1B[0K", new)?;

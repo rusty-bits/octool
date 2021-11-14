@@ -25,9 +25,9 @@ pub fn show_info(
     let rows = size()?.1;
     let mut row = 0;
     let bg_col = &settings.bg_col_info;
-//    if settings.depth == 0 {
-//        bg_col = "\x1b[0m".to_string();
-//    }
+    //    if settings.depth == 0 {
+    //        bg_col = "\x1b[0m".to_string();
+    //    }
 
     let tex_path = &resources
         .open_core_source_path

@@ -64,7 +64,6 @@ fn process(
             let key_and_mods = read_key()?;
             key = key_and_mods.0;
             key_mod = key_and_mods.1;
-            // TODO: add option to change version of single kext, efi, etc...
             match key {
                 KeyCode::Char('q') => {
                     if showing_info {
@@ -230,7 +229,6 @@ fn process(
                 KeyCode::End | KeyCode::Char('b') => {
                     settings.sec_num[settings.depth] = settings.sec_length[settings.depth] - 1
                 }
-                // TODO: special check for driver section for OC 0.7.2 and earlier, uses # to enable/disable
                 KeyCode::Char(' ') => {
                     if !showing_info {
                         edit::edit_value(

@@ -12,7 +12,6 @@ use crate::{draw::Settings, edit::read_key, res::Resources};
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
 /// TODO: keep highlighted item on screen so it can be edited while looking at definition
-/// TODO: display info of NVRAM variables
 pub fn show_info(
     resources: &Resources,
     settings: &Settings,

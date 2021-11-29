@@ -12,7 +12,7 @@ You can build from the included source by running `cargo build --release` (if yo
 -h  print help/usage message  
 
 -o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
- - without this option, octool will make a quick guess as to which version to use  
+ - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest version of OpenCore  
 
 -v  print octool version information and booted OpenCore version if the var is in NVRAM, then exit  
 

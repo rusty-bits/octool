@@ -1,7 +1,7 @@
 [![Build Status](https://app.travis-ci.com/rusty-bits/octool.svg?branch=main)](https://app.travis-ci.com/rusty-bits/octool)
 
 A small project to help me learn the Rust language and to hopefully provide better features than my older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
-You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the binary from [the Releases section on GitHub](https://github.com/rusty-bits/octool/releases). The latest_dev_build release should contain the binary from the latest commit.  
+You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the binary from [the Releases section on GitHub](https://github.com/rusty-bits/octool/releases). The latest release should contain the binary from the latest commit since I have my automated build push the updates on top of the latest version.  Unlike my older OC-tool, this tool does not auto update itself to the latest version.  So, for now you will need to check on updates yourself.  I will try to include some type of update message in the future.  
 
 ## Command line options ##  
 
@@ -74,7 +74,7 @@ Usage:
 
 'K' `Key` - capital K - edit the name of the highlighted key  
 
-'m' `merge` - add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields  
+'m' `merge` - add missing fields to the current highlighted section of the `config.plist` if they are in the `Sample.plist` without changing any existing fields.  I will be adding an option at some time that will add all the missing fields in every section at once, but I havent finished it yet.  
 
 'n' `next` - jump to the next found item if more than one occurance was found  
 

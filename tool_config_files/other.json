@@ -121,6 +121,25 @@
       }
     ]
   },
+  "RadeonSensor": {
+    "versions": [
+      {
+        "version": "0.3.1",
+        "hashes": {
+          "debug": {
+            "sha256": "16c765cba88bb30c5cab46f9281903116b139307fd1a91f368998eb514bb3ae5"
+          },
+          "release": {
+            "sha256":"16c765cba88bb30c5cab46f9281903116b139307fd1a91f368998eb514bb3ae5"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/aluveitie/RadeonSensor/releases/download/0.3.1/RadeonSensor-0.3.1.zip",
+          "release": "https://github.com/aluveitie/RadeonSensor/releases/download/0.3.1/RadeonSensor-0.3.1.zip"
+        }
+      }
+    ]
+  },
   "OcBinaryData": {
     "versions": [
       {

@@ -201,6 +201,9 @@
   "CpuTscSync.kext": {
     "parent": "CpuTscSync"
   },
+  "CpuTopologySync.kext": {
+    "parent": "CpuTopologySync"
+  },
   "VoodooPS2Controller.kext": {
     "parent": "VoodooPS2"
   },
@@ -276,6 +279,9 @@
   "BrcmPatchRAM3.kext": {
     "parent": "BrcmPatchRAM"
   },
+  "BT4LEContinuityFixup.kext": {
+    "parent": "BT4LEContinuityFixup"
+  },
   "HibernationFixup.kext": {
     "parent": "HibernationFixup"
   },
@@ -321,8 +327,14 @@
   "RTCMemoryFixup.kext": {
     "parent": "RTCMemoryFixup"
   },
+  "RealtekRTL8111.kext": {
+    "parent": "RealtekRTL8111"
+  },
   "NVMeFix.kext": {
     "parent": "NVMeFix"
+  },
+  "NoTouchID.kext": {
+    "parent": "NoTouchID"
   },
   "DebugEnhancer.kext": {
     "parent": "DebugEnhancer"
@@ -428,5 +440,14 @@
   },
   "USBToolBox.kext": {
     "parent": "USBToolBox"
+  },
+  "RadeonSensor.kext": {
+    "parent": "RadeonSensor"
+  },
+  "SMCRadeonGPU.kext": {
+    "parent": "RadeonSensor"
+  },
+  "RadeonGadget.app": {
+    "parent": "RadeonSensor"
   }
 }

@@ -5,9 +5,8 @@ use std::io::{BufReader, Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-use walkdir::WalkDir;
-
 use curl::easy::Easy;
+use walkdir::WalkDir;
 
 use sha2::Digest;
 
@@ -174,6 +173,25 @@ pub fn curl_file(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     })?;
     easy.perform()?;
     Ok(())
+}
+
+/// use git-api to check the size of the dortania/builds/config.json file
+/// if the size has changed then need to download current version
+pub fn curl_git_api(path: &Path) -> Result<i64, Box<dyn Error>> {
+    let mut out_file = File::create(&path)?;
+    let mut easy = Easy::new();
+    easy.useragent("-H \"Accept: application/vnd.github.v3+json\"")?;
+    easy.url("https://api.github.com/repos/dortania/build-repo/git/trees/bdce8a4894939c1e2858e3d456bf61e11fef1d29")?;
+    easy.write_function(move |data| {
+        out_file.write_all(&data).unwrap();
+        Ok(data.len())
+    })?;
+    easy.perform()?;
+    let out_file = File::open(&path)?;
+    let buf = BufReader::new(out_file);
+    let size: serde_json::Value = serde_json::from_reader(buf)?;
+    let size = size["tree"][0]["size"].as_i64().unwrap();
+    Ok(size)
 }
 
 fn get_repo_and_unzip(

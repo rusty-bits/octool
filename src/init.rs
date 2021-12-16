@@ -1,5 +1,6 @@
 use std::error::Error;
-use std::io::{Read, Stdout, Write};
+use std::fs::File;
+use std::io::{BufReader, Stdout, Write};
 use std::path::{Path, PathBuf};
 
 use plist::Value;
@@ -61,21 +62,28 @@ pub fn init_static(
         write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
     } else {
         let path = path.parent().unwrap();
-        let last_updated = resources.octool_config["dortania_last_updated"]
-            .as_str()
-            .unwrap();
-        res::curl_file(&last_updated, &path.join("last.txt"))?;
-        let mut old_date = Vec::new();
-        let mut new_file = std::fs::File::open(&path.join("last.txt"))?;
-        let mut new_date = Vec::new();
-        new_file.read_to_end(&mut new_date).unwrap();
-        std::fs::remove_file(&path.join("last.txt"))?;
-        let last_up_path = &path.join("build-repo-builds/last_updated.txt");
-        if last_up_path.exists() {
-            let mut old_file = std::fs::File::open(&last_up_path)?;
-            old_file.read_to_end(&mut old_date)?;
-        };
-        if old_date != new_date {
+        let mut old_size = 0;
+        let mut current_size = 1;
+        let file_path = &path.join("build-repo-builds").join("size.json");
+        if file_path.exists() {
+            let size_file = File::open(&file_path)?;
+            let buf = BufReader::new(size_file);
+            let size: serde_json::Value = serde_json::from_reader(buf)?;
+            old_size = size["tree"][0]["size"].as_i64().unwrap();
+            current_size = res::curl_git_api(&file_path)?;
+        } else {
+            let _ = res::curl_git_api(&file_path)?;
+        }
+        #[cfg(debug_assertions)]
+        {
+            write!(
+                stdout,
+                "debug:  old {}  current {}\r\n",
+                old_size, current_size
+            )?;
+        }
+
+        if old_size != current_size {
             write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
             stdout.flush().unwrap();
             let path = path.join("builds.zip");

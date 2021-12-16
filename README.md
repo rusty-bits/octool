@@ -74,7 +74,7 @@ Usage:
 
 'K' `Key` - capital K - edit the name of the highlighted key  
 
-'m' `merge` - add missing fields to the current highlighted section of the `config.plist` if they are in the `Sample.plist` without changing any existing fields.  I will be adding an option at some time that will add all the missing fields in every section at once, but I havent finished it yet.  
+'M', 'm' `merge` - lowercase 'm' will add missing fields to the current highlighted section of the `config.plist` if they are in the `Sample.plist` without changing any existing fields.  Uppercase 'M' will check the entire config.plist for missing items.  
 
 'n' `next` - jump to the next found item if more than one occurance was found  
 

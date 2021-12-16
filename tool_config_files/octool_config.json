@@ -5,7 +5,6 @@
 
   "dortania_config_path": "tool_config_files/build-repo-builds",
   "dortania_config_zip": "https://github.com/dortania/build-repo/archive/refs/heads/builds.zip",
-  "dortania_last_updated": "https://raw.githubusercontent.com/dortania/build-repo/builds/last_updated.txt",
 
   "opencorepkg_path": "resources/OpenCorePkg",
   "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",

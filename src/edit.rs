@@ -909,3 +909,32 @@ pub fn edit_string(
     }
     Ok(new_val_set)
 }
+
+/// Compare the highlighted plist::Dictionary to the Sample.plist and add any missing fields to the
+/// config.plist ignoring any fields that already exist in the config.plist
+pub fn merge(settings: &mut Settings, resources: &mut Resources, initial_depth: usize) {
+    match settings.held_item.clone().unwrap() {
+        plist::Value::Dictionary(mut d) => {
+            if edit::extract_value(settings, &resources.sample_plist, false, false) {
+                match settings.held_item.clone().unwrap() {
+                    plist::Value::Dictionary(d2) => {
+                        for (k, v) in d2 {
+                            if !d.contains_key(&k) {
+                                d.insert(k.to_owned(), v.to_owned());
+                            }
+                        }
+                    }
+                    _ => (),
+                }
+                let _ = edit::add_delete_value(settings, &mut resources.config_plist, false);
+                d.sort_keys();
+                settings.held_item = Some(plist::Value::Dictionary(d.to_owned()));
+                let _ = edit::add_delete_value(settings, &mut resources.config_plist, true);
+                if initial_depth != settings.depth {
+                    settings.sec_length[initial_depth] = d.len();
+                }
+            }
+        }
+        _ => (),
+    }
+}

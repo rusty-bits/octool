@@ -13,7 +13,7 @@ git:
   depth: 1
 cache: cargo
 before_deploy:
-  - export TRAVIS_TAG="v0.3.5"
+  - export TRAVIS_TAG="v0.3.6"
   - if [[ ${TRAVIS_OS_NAME} == "windows" ]]; then
       powershell Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
     else

@@ -19,7 +19,7 @@ jobs:
                   name: "APT Install Dependencies"
                   command: |
                       sudo apt-get update
-                      sudo apt-get install -y build-essential
+                      sudo apt-get install -y build-essential libssl-dev
             - run:
                   name: "Generate Cargo.lock"
                   command: |
@@ -91,13 +91,6 @@ jobs:
                       - C:\Users\circleci\.cargo\registry
                       - target
                   key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
-            - store_artifacts:
-                  path: build\\release
-                  destination: releases
-            - persist_to_workspace:
-                  root: build
-                  paths:
-                      - release
 
     publish-github-releases:
         docker:

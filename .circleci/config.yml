@@ -32,9 +32,9 @@ jobs:
                   command: |
                     cargo build --release
                     cp target/release/octool .
-                    zip osx_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
+                    zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
                     ls -al
-                    rm osx_octool.zip
+                    rm linux_octool.zip
             - save_cache:
                   paths:
                       - /usr/local/cargo/registry
@@ -91,8 +91,9 @@ jobs:
                   command: |
                     $env:Path += ";C:\Users\circleci\.cargo\bin"
                     cargo build --release
-                    powershell Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
+                    Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
                     dir
+                    Remove-Item windows_octool.zip
             - save_cache:
                   paths:
                       - C:\Users\circleci\.cargo\registry

@@ -117,7 +117,7 @@ jobs:
           name: "Publish Release on GitHub"
           command: |
             ls -alh /tmp/workspace
-            ls -al
+            CIRCLE_TAG="v0.3.6"
 
             echo $CIRCLE_TAG
             echo $CIRCLE_PROJECT_USERNAME
@@ -125,16 +125,16 @@ jobs:
             echo $CIRCLE_SHA1
 
 #                      if [[ ! -z "${CIRCLE_TAG}" ]]; then
-#    go get github.com/tcnksm/ghr
-#    EXTRA_FLAGS="-replace"
+            go get github.com/tcnksm/ghr
+            EXTRA_FLAGS="-replace"
 #    if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
 #        EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
 #    fi
-#    ghr -t "${GITHUB_TOKEN}" \
-#        -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
-#        -c "${CIRCLE_SHA1}" \
-#        ${EXTRA_FLAGS} \
-#        "${CIRCLE_TAG}" /tmp/workspace/release
+            ghr -t "${GITHUB_TOKEN}" \
+            -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
+            -c "${CIRCLE_SHA1}" \
+            ${EXTRA_FLAGS} \
+            "${CIRCLE_TAG}" /tmp/workspace/*.zip
 #else
 #    echo "Current build is not tagged."
 #fi

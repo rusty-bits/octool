@@ -118,10 +118,6 @@ jobs:
           command: |
             ls -alh /tmp/workspace
             CIRCLE_TAG="v0.3.6"
-            echo $CIRCLE_TAG
-            echo $CIRCLE_PROJECT_USERNAME
-            echo $CIRCLE_PROJECT_REPONAME
-            echo $CIRCLE_SHA1
             if [[ ! -z "${CIRCLE_TAG}" ]]; then
               go get github.com/tcnksm/ghr
               echo "got ghr"
@@ -129,7 +125,14 @@ jobs:
               if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
                 EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
               fi
-              ghr -t "${GITHUB_TOKEN}" -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" -c "${CIRCLE_SHA1}" ${EXTRA_FLAGS} "${CIRCLE_TAG}" /tmp/workspace/*.zip
+              echo $CIRCLE_PROJECT_USERNAME
+              echo $CIRCLE_PROJECT_REPONAME
+              echo $CIRCLE_SHA1
+              echo $EXTRA_FLAGS
+              echo $CIRCLE_TAG
+              ghr -t "${GITHUB_TOKEN}" \
+                  -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
+                  -c "${CIRCLE_SHA1}" "${EXTRA_FLAGS}" "${CIRCLE_TAG}" /tmp/workspace/*.zip
             else
               echo "Current build is not tagged."
             fi

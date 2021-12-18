@@ -33,7 +33,7 @@ jobs:
             cargo build --release --verbose
             cp target/release/octool .
             strip octool
-            rm linux_octool.zip
+            rm -rf linux_octool.zip
             zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
             ls -al
       - save_cache:

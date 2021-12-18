@@ -126,13 +126,17 @@ jobs:
               --user "${CIRCLE_PROJECT_USERNAME}" \
               --repo "${CIRCLE_PROJECT_REPONAME}" \
               --tag "${CIRCLE_TAG}" \
-              --file /tmp/workspace/windows_octool.zip
+              --name "windows_octool.zip" \
+              --file "/tmp/workspace/windows_octool.zip" \
+              --replace
 
             github-release upload \
               --user "${CIRCLE_PROJECT_USERNAME}" \
               --repo "${CIRCLE_PROJECT_REPONAME}" \
               --tag "${CIRCLE_TAG}" \
-              --file /tmp/workspace/linux_octool.zip
+              --name "linux_octool.zip" \
+              --file "/tmp/workspace/linux_octool.zip" \
+              --replace
 
 workflows:
   version: 2

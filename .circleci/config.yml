@@ -117,25 +117,22 @@ jobs:
           name: "Publish Release on GitHub"
           command: |
             ls -alh /tmp/workspace
+
             CIRCLE_TAG="v0.3.6"
-            if [[ ! -z "${CIRCLE_TAG}" ]]; then
-              go get -u github.com/tcnksm/ghr
-              echo "got ghr"
-              EXTRA_FLAGS="-replace"
-              if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
-                EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
-              fi
-              echo $CIRCLE_PROJECT_USERNAME
-              echo $CIRCLE_PROJECT_REPONAME
-              echo $CIRCLE_SHA1
-              echo $EXTRA_FLAGS
-              echo $CIRCLE_TAG
-              ghr -t "${GITHUB_TOKEN}" \
-                  -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
-                  -replace "${CIRCLE_TAG}" /tmp/workspace/*.zip
-            else
-              echo "Current build is not tagged."
-            fi
+            
+            go get github.com/github-release/github-release
+            
+            github-release upload \
+              --user "${CIRCLE_PROJECT_USERNAME}" \
+              --repo "${CIRCLE_PROJECT_REPONAME}" \
+              --tag "${CIRCLE_TAG}" \
+              --file /tmp/workspace/windows_octool.zip
+
+            github-release upload \
+              --user "${CIRCLE_PROJECT_USERNAME}" \
+              --repo "${CIRCLE_PROJECT_REPONAME}" \
+              --tag "${CIRCLE_TAG}" \
+              --file /tmp/workspace/linux_octool.zip
 
 workflows:
   version: 2

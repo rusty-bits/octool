@@ -149,8 +149,8 @@ workflows:
 
       - publish-github-releases:
           requires:
+            - build-linux
             - build-windows
-            - build-docker
           filters:
             branches:
               ignore: /.*/

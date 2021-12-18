@@ -70,9 +70,9 @@ pub fn init_static(
             let buf = BufReader::new(size_file);
             let size: serde_json::Value = serde_json::from_reader(buf)?;
             old_size = size["tree"][0]["size"].as_i64().unwrap();
-            current_size = res::curl_git_api(&file_path)?;
+            current_size = res::curl_build_size(&file_path)?;
         } else {
-            let _ = res::curl_git_api(&file_path)?;
+            let _ = res::curl_build_size(&file_path)?;
         }
         #[cfg(debug_assertions)]
         {

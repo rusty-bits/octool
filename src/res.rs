@@ -177,11 +177,25 @@ pub fn curl_file(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
 
 /// use git-api to check the size of the dortania/builds/config.json file
 /// if the size has changed then need to download current version
-pub fn curl_git_api(path: &Path) -> Result<i64, Box<dyn Error>> {
+pub fn curl_build_size(path: &Path) -> Result<i64, Box<dyn Error>> {
     let mut out_file = File::create(&path)?;
     let mut easy = Easy::new();
     easy.useragent("-H \"Accept: application/vnd.github.v3+json\"")?;
-    easy.url("https://api.github.com/repos/dortania/build-repo/git/trees/bdce8a4894939c1e2858e3d456bf61e11fef1d29")?;
+    easy.url("https://api.github.com/repos/dortania/build-repo/branches/builds")?;
+    easy.write_function(move |data| {
+        out_file.write_all(&data).unwrap();
+        Ok(data.len())
+    })?;
+    easy.perform()?;
+    let out_file = File::open(&path)?;
+    let buf = BufReader::new(out_file);
+    let current_sha: serde_json::Value = serde_json::from_reader(buf)?;
+    let current_sha = current_sha["commit"]["sha"].as_str().unwrap();
+    let mut build_url = String::from("https://api.github.com/repos/dortania/build-repo/git/trees/");
+    build_url.push_str(current_sha);
+    let mut out_file = File::create(&path)?;
+    easy.useragent("-H \"Accept: application/vnd.github.v3+json\"")?;
+    easy.url(&build_url)?;
     easy.write_function(move |data| {
         out_file.write_all(&data).unwrap();
         Ok(data.len())

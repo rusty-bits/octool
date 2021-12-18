@@ -134,7 +134,7 @@ jobs:
               echo "Current build is not tagged."
             fi
 
-workflow:
+workflows:
   version: 2
   build-releases:
     jobs:

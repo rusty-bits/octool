@@ -100,6 +100,13 @@ jobs:
             - C:\Users\circleci\.cargo\registry
             - target
           key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+      - store_artifacts:
+          path: build\\release
+          destination: releases
+      - persist_to_workspace:
+          root: build
+          paths:
+            - release
 
   publish-github-releases:
     docker:
@@ -139,6 +146,8 @@ workflows:
     jobs:
       - build-linux:
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
 
@@ -149,7 +158,6 @@ workflows:
 
       - publish-github-releases:
           requires:
-            - build-linux
             - build-windows
           filters:
             tags:

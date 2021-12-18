@@ -1,158 +1,158 @@
 version: 2.1
 
 orbs:
-    windows: circleci/windows@2.4.1
+  windows: circleci/windows@2.4.1
 
 jobs:
-    build-linux:
-        docker:
-          - image: cimg/rust:1.57.0
+  build-linux:
+    docker:
+      - image: cimg/rust:1.57.0
 
         environment:
-            OPENSSL_STATIC: "1"
-            OPENSSL_LIB_DIR: "/usr/lib/x86_64-linux-gnu/"
-            OPENSSL_INCLUDE_DIR: "/usr/include/x86_64-linux-gnu/"
+          OPENSSL_STATIC: "1"
+          OPENSSL_LIB_DIR: "/usr/lib/x86_64-linux-gnu/"
+          OPENSSL_INCLUDE_DIR: "/usr/include/x86_64-linux-gnu/"
 
         steps:
-            - checkout
-            - run:
-                  name: "APT Install Dependencies"
-                  command: |
-                      sudo apt-get update
-                      sudo apt-get install -y build-essential libssl-dev
-            - run:
-                  name: "Generate Cargo.lock"
-                  command: |
-                      rustc --version >rust-version
-                      test -e Cargo.lock || cargo generate-lockfile
-            - restore_cache:
-                  key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
-            - run:
-                  name: "Build & zip Release"
-                  command: |
-                    cargo build --release --verbose
-                    cp target/release/octool .
-                    strip octool
-                    rm linux_octool.zip
-                    zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
-                    ls -al
-            - save_cache:
-                  paths:
-                      - /usr/local/cargo/registry
-                      - ./target
-                  key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+          - checkout
+          - run:
+              name: "APT Install Dependencies"
+                command: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential libssl-dev
+          - run:
+              name: "Generate Cargo.lock"
+                command: |
+                  rustc --version >rust-version
+                  test -e Cargo.lock || cargo generate-lockfile
+          - restore_cache:
+                key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+          - run:
+            name: "Build & zip Release"
+              command: |
+                cargo build --release --verbose
+                cp target/release/octool .
+                strip octool
+                rm linux_octool.zip
+                zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
+                ls -al
+          - save_cache:
+            paths:
+              - /usr/local/cargo/registry
+              - ./target
+            key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
 
-    build-windows:
-        executor: windows/default
+  build-windows:
+    executor: windows/default
 
-        environment:
-            OPENSSL_STATIC: "1"
-            OPENSSL_DIR: "C:\\OpenSSL"
-            CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+    environment:
+      OPENSSL_STATIC: "1"
+      OPENSSL_DIR: "C:\\OpenSSL"
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
-        steps:
-            - checkout
-            - run:
-                  name: "Install Rust"
-                  command: |
-                      $ProgressPreference = "SilentlyContinue"
-                      Invoke-WebRequest -Uri "https://win.rustup.rs/" -OutFile "C:\rustup-init.exe"
-                      & C:\rustup-init.exe -y --default-toolchain "stable-x86_64-pc-windows-msvc" --no-modify-path --profile minimal
+    steps:
+      - checkout
+      - run:
+        name: "Install Rust"
+          command: |
+            $ProgressPreference = "SilentlyContinue"
+            Invoke-WebRequest -Uri "https://win.rustup.rs/" -OutFile "C:\rustup-init.exe"
+            & C:\rustup-init.exe -y --default-toolchain "stable-x86_64-pc-windows-msvc" --no-modify-path --profile minimal
 
-                      $env:Path += ";C:\Users\circleci\.cargo\bin"
-                      rustc -Vv
-                      cargo --version
+            $env:Path += ";C:\Users\circleci\.cargo\bin"
+            rustc -Vv
+            cargo --version
 
-                      rustc --version | Out-File -FilePath "rust-version"
-                      if (!(Test-Path "Cargo.lock" -PathType Leaf)) {
-                          cargo generate-lockfile
-                      }
-            - run:
-               name: "Install OpenSSL"
-               command: |
-                    $env:Path += ";C:\Users\circleci\.cargo\bin"
-                    $TargetTriple = (rustc -Vv | Select-String -Pattern "host: (.*)" | foreach {$_.Matches.Value}).split()[-1]
-                    if ($TargetTriple.StartsWith("x86_64-")) {
-                        $OpenSSLBits = "64"
-                    } else {
-                        $OpenSSLBits = "32"
-                    }
-                    $OpenSSLVersion = "1_1_0L"
-                    $OpenSSLFileName = "Win${OpenSSLBits}OpenSSL-${OpenSSLVersion}.exe"
-                    $ProgressPreference = "SilentlyContinue"
-                    Invoke-WebRequest -Uri "http://slproweb.com/download/${OpenSSLFileName}" -OutFile "${OpenSSLFileName}"
-                    Write-Host "* Done downloading ${OpenSSLFileName}"
-                    dir
-                    Start-Process "${OpenSSLFileName}" -ArgumentList "/SILENT /VERYSILENT /SP- /SUPPRESSMSGBOXES /DIR=C:\OpenSSL" -Wait
-                    Write-Host "* Done installing ${OpenSSLFileName}"
-            - restore_cache:
-                  key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
-            - run:
-                  name: "Build & zip Release"
-                  command: |
-                    $env:Path += ";C:\Users\circleci\.cargo\bin"
-                    cargo build --release --verbose
-                    Remove-Item windows_octool.zip
-                    Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
-                    dir
-            - save_cache:
-                  paths:
-                      - C:\Users\circleci\.cargo\registry
-                      - target
-                  key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+            rustc --version | Out-File -FilePath "rust-version"
+            if (!(Test-Path "Cargo.lock" -PathType Leaf)) {
+                cargo generate-lockfile
+            }
+      - run:
+        name: "Install OpenSSL"
+          command: |
+            $env:Path += ";C:\Users\circleci\.cargo\bin"
+            $TargetTriple = (rustc -Vv | Select-String -Pattern "host: (.*)" | foreach {$_.Matches.Value}).split()[-1]
+            if ($TargetTriple.StartsWith("x86_64-")) {
+                $OpenSSLBits = "64"
+             } else {
+                 $OpenSSLBits = "32"
+             }
+            $OpenSSLVersion = "1_1_0L"
+            $OpenSSLFileName = "Win${OpenSSLBits}OpenSSL-${OpenSSLVersion}.exe"
+            $ProgressPreference = "SilentlyContinue"
+            Invoke-WebRequest -Uri "http://slproweb.com/download/${OpenSSLFileName}" -OutFile "${OpenSSLFileName}"
+            Write-Host "* Done downloading ${OpenSSLFileName}"
+            dir
+            Start-Process "${OpenSSLFileName}" -ArgumentList "/SILENT /VERYSILENT /SP- /SUPPRESSMSGBOXES /DIR=C:\OpenSSL" -Wait
+            Write-Host "* Done installing ${OpenSSLFileName}"
+      - restore_cache:
+            key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+      - run:
+        name: "Build & zip Release"
+          command: |
+            $env:Path += ";C:\Users\circleci\.cargo\bin"
+            cargo build --release --verbose
+            Remove-Item windows_octool.zip
+            Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
+            dir
+      - save_cache:
+        paths:
+          - C:\Users\circleci\.cargo\registry
+          - target
+        key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
 
-    publish-github-releases:
-        docker:
-            - image: circleci/golang:1.12
-        steps:
-            - attach_workspace:
-                  at: /tmp/workspace
-            - run:
-                  name: "Publish Release on GitHub"
-                  command: |
-                      ls -alh /tmp/workspace/release
-                      ls -al
+  publish-github-releases:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - attach_workspace:
+        at: /tmp/workspace
+      - run:
+        name: "Publish Release on GitHub"
+          command: |
+              ls -alh /tmp/workspace/release
+              ls -al
 
-                      echo $CIRCLE_TAG
-                      echo $CIRCLE_PROJECT_USERNAME
-                      echo $CIRCLE_PROJECT_REPONAME
-                      echo $CIRCLE_SHA1
+              echo $CIRCLE_TAG
+              echo $CIRCLE_PROJECT_USERNAME
+              echo $CIRCLE_PROJECT_REPONAME
+              echo $CIRCLE_SHA1
 
-                      #                      if [[ ! -z "${CIRCLE_TAG}" ]]; then
-                      #    go get github.com/tcnksm/ghr
-                      #    EXTRA_FLAGS="-replace"
-                      #    if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
-                      #        EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
-                      #    fi
-                      #    ghr -t "${GITHUB_TOKEN}" \
-                      #        -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
-                      #        -c "${CIRCLE_SHA1}" \
-                      #        ${EXTRA_FLAGS} \
-                      #        "${CIRCLE_TAG}" /tmp/workspace/release
-                      #else
-                      #    echo "Current build is not tagged."
-                      #fi
+#                      if [[ ! -z "${CIRCLE_TAG}" ]]; then
+#    go get github.com/tcnksm/ghr
+#    EXTRA_FLAGS="-replace"
+#    if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
+#        EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
+#    fi
+#    ghr -t "${GITHUB_TOKEN}" \
+#        -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
+#        -c "${CIRCLE_SHA1}" \
+#        ${EXTRA_FLAGS} \
+#        "${CIRCLE_TAG}" /tmp/workspace/release
+#else
+#    echo "Current build is not tagged."
+#fi
 
 workflows:
-    version: 2
-    build-releases:
-        jobs:
-          - build-linux:
-              filters:
-                tags:
-                  only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
+  version: 2
+  build-releases:
+    jobs:
+      - build-linux:
+        filters:
+          tags:
+            only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
 
-            - build-windows:
-              filters:
-                tags:
-                  only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
+      - build-windows:
+        filters:
+          tags:
+            only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
 
-            - publish-github-releases:
-                  requires:
-                      - build-windows
-                      - build-docker
-                  filters:
-                      branches:
-                          ignore: /.*/
-                      tags:
-                          only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
+      - publish-github-releases:
+          requires:
+            - build-windows
+            - build-docker
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/

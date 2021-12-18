@@ -124,20 +124,20 @@ jobs:
             echo $CIRCLE_PROJECT_REPONAME
             echo $CIRCLE_SHA1
 
-#                      if [[ ! -z "${CIRCLE_TAG}" ]]; then
-            go get github.com/tcnksm/ghr
-            EXTRA_FLAGS="-replace"
-#    if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
-#        EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
-#    fi
-            ghr -t "${GITHUB_TOKEN}" \
-            -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
-            -c "${CIRCLE_SHA1}" \
-            ${EXTRA_FLAGS} \
-            "${CIRCLE_TAG}" /tmp/workspace/*.zip
-#else
-#    echo "Current build is not tagged."
-#fi
+            if [[ ! -z "${CIRCLE_TAG}" ]]; then
+              go get github.com/tcnksm/ghr
+              EXTRA_FLAGS="-replace"
+              if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
+                EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
+              fi
+              ghr -t "${GITHUB_TOKEN}" \
+              -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
+              -c "${CIRCLE_SHA1}" \
+              ${EXTRA_FLAGS} \
+              "${CIRCLE_TAG}" /tmp/workspace/*.zip
+            else
+              echo "Current build is not tagged."
+            fi
 
 workflows:
   version: 2

@@ -17,18 +17,18 @@ jobs:
           - checkout
           - run:
               name: "APT Install Dependencies"
-                command: |
-                  sudo apt-get update
-                  sudo apt-get install -y build-essential libssl-dev
+              command: |
+                sudo apt-get update
+                sudo apt-get install -y build-essential libssl-dev
           - run:
               name: "Generate Cargo.lock"
-                command: |
-                  rustc --version >rust-version
-                  test -e Cargo.lock || cargo generate-lockfile
+              command: |
+                rustc --version >rust-version
+                test -e Cargo.lock || cargo generate-lockfile
           - restore_cache:
-                key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+              key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
           - run:
-            name: "Build & zip Release"
+              name: "Build & zip Release"
               command: |
                 cargo build --release --verbose
                 cp target/release/octool .
@@ -37,10 +37,10 @@ jobs:
                 zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
                 ls -al
           - save_cache:
-            paths:
-              - /usr/local/cargo/registry
-              - ./target
-            key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+              paths:
+                - /usr/local/cargo/registry
+                - ./target
+              key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
 
   build-windows:
     executor: windows/default
@@ -53,7 +53,7 @@ jobs:
     steps:
       - checkout
       - run:
-        name: "Install Rust"
+          name: "Install Rust"
           command: |
             $ProgressPreference = "SilentlyContinue"
             Invoke-WebRequest -Uri "https://win.rustup.rs/" -OutFile "C:\rustup-init.exe"
@@ -68,7 +68,7 @@ jobs:
                 cargo generate-lockfile
             }
       - run:
-        name: "Install OpenSSL"
+          name: "Install OpenSSL"
           command: |
             $env:Path += ";C:\Users\circleci\.cargo\bin"
             $TargetTriple = (rustc -Vv | Select-String -Pattern "host: (.*)" | foreach {$_.Matches.Value}).split()[-1]
@@ -86,9 +86,9 @@ jobs:
             Start-Process "${OpenSSLFileName}" -ArgumentList "/SILENT /VERYSILENT /SP- /SUPPRESSMSGBOXES /DIR=C:\OpenSSL" -Wait
             Write-Host "* Done installing ${OpenSSLFileName}"
       - restore_cache:
-            key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+          key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
       - run:
-        name: "Build & zip Release"
+          name: "Build & zip Release"
           command: |
             $env:Path += ";C:\Users\circleci\.cargo\bin"
             cargo build --release --verbose
@@ -96,19 +96,19 @@ jobs:
             Compress-Archive -Path "target\\release\\octool.exe", "README.md", "tool_config_files", "INPUT", "LICENSE" -DestinationPath "windows_octool.zip" -Update;
             dir
       - save_cache:
-        paths:
-          - C:\Users\circleci\.cargo\registry
-          - target
-        key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - C:\Users\circleci\.cargo\registry
+            - target
+          key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
 
   publish-github-releases:
     docker:
       - image: circleci/golang:1.12
     steps:
       - attach_workspace:
-        at: /tmp/workspace
+          at: /tmp/workspace
       - run:
-        name: "Publish Release on GitHub"
+          name: "Publish Release on GitHub"
           command: |
               ls -alh /tmp/workspace/release
               ls -al
@@ -138,14 +138,14 @@ workflows:
   build-releases:
     jobs:
       - build-linux:
-        filters:
-          tags:
-            only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
 
       - build-windows:
-        filters:
-          tags:
-            only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+(-alpha\.\d+)?$/
 
       - publish-github-releases:
           requires:

@@ -8,39 +8,39 @@ jobs:
     docker:
       - image: cimg/rust:1.57.0
 
-        environment:
-          OPENSSL_STATIC: "1"
-          OPENSSL_LIB_DIR: "/usr/lib/x86_64-linux-gnu/"
-          OPENSSL_INCLUDE_DIR: "/usr/include/x86_64-linux-gnu/"
+    environment:
+      OPENSSL_STATIC: "1"
+      OPENSSL_LIB_DIR: "/usr/lib/x86_64-linux-gnu/"
+      OPENSSL_INCLUDE_DIR: "/usr/include/x86_64-linux-gnu/"
 
-        steps:
-          - checkout
-          - run:
-              name: "APT Install Dependencies"
-              command: |
-                sudo apt-get update
-                sudo apt-get install -y build-essential libssl-dev
-          - run:
-              name: "Generate Cargo.lock"
-              command: |
-                rustc --version >rust-version
-                test -e Cargo.lock || cargo generate-lockfile
-          - restore_cache:
-              key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
-          - run:
-              name: "Build & zip Release"
-              command: |
-                cargo build --release --verbose
-                cp target/release/octool .
-                strip octool
-                rm linux_octool.zip
-                zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
-                ls -al
-          - save_cache:
-              paths:
-                - /usr/local/cargo/registry
-                - ./target
-              key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+    steps:
+      - checkout
+      - run:
+          name: "APT Install Dependencies"
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential libssl-dev
+      - run:
+          name: "Generate Cargo.lock"
+          command: |
+            rustc --version >rust-version
+            test -e Cargo.lock || cargo generate-lockfile
+      - restore_cache:
+          key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
+      - run:
+          name: "Build & zip Release"
+          command: |
+            cargo build --release --verbose
+            cp target/release/octool .
+            strip octool
+            rm linux_octool.zip
+            zip linux_octool.zip octool README.md tool_config_files/*.json INPUT/README.md LICENSE
+            ls -al
+      - save_cache:
+          paths:
+            - /usr/local/cargo/registry
+            - ./target
+          key: cargo-cache-{{ arch }}-{{ checksum "rust-version" }}-{{ checksum "Cargo.lock" }}
 
   build-windows:
     executor: windows/default
@@ -110,13 +110,13 @@ jobs:
       - run:
           name: "Publish Release on GitHub"
           command: |
-              ls -alh /tmp/workspace/release
-              ls -al
+            ls -alh /tmp/workspace/release
+            ls -al
 
-              echo $CIRCLE_TAG
-              echo $CIRCLE_PROJECT_USERNAME
-              echo $CIRCLE_PROJECT_REPONAME
-              echo $CIRCLE_SHA1
+            echo $CIRCLE_TAG
+            echo $CIRCLE_PROJECT_USERNAME
+            echo $CIRCLE_PROJECT_REPONAME
+            echo $CIRCLE_SHA1
 
 #                      if [[ ! -z "${CIRCLE_TAG}" ]]; then
 #    go get github.com/tcnksm/ghr

@@ -130,16 +130,12 @@ jobs:
               if [[ "${CIRCLE_TAG}" == *"-alpha."* ]]; then
                 EXTRA_FLAGS="${EXTRA_FLAGS} -prerelease"
               fi
-              ghr -t "${GITHUB_TOKEN}" \
-                -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" \
-                -c "${CIRCLE_SHA1}" \
-                ${EXTRA_FLAGS} \
-                "${CIRCLE_TAG}" /tmp/workspace/*.zip
+              ghr -t "${GITHUB_TOKEN}" -u "${CIRCLE_PROJECT_USERNAME}" -r "${CIRCLE_PROJECT_REPONAME}" -c "${CIRCLE_SHA1}" ${EXTRA_FLAGS} "${CIRCLE_TAG}" /tmp/workspace/*.zip
             else
               echo "Current build is not tagged."
             fi
 
-workflows:
+workflow:
   version: 2
   build-releases:
     jobs:

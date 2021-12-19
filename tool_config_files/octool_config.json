@@ -34,6 +34,9 @@
 
   "config_differences": [
     [
+      "UEFI", "Audio", "AudioOutMask", "0.7.7"
+    ],
+    [
       "UEFI", "Output", "UIScale", "0.7.6"
     ],
     [

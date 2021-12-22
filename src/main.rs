@@ -45,6 +45,13 @@ fn process(
     let mut key = KeyCode::Char('q');
     let mut key_mod;
 
+    write!(
+        stdout,
+        "\x1b[33mSUMMARY:\r\n\x1B[32moctool version\x1b[0m {}\r\n\
+        \x1b[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
+        settings.octool_version, settings.build_type, settings.oc_build_version,
+    )?;
+
     if settings.oc_build_version != "not found" {
         write!(
         stdout,
@@ -722,10 +729,9 @@ fn process(
 }
 
 fn main() {
-    let current_dir = env::current_dir().expect("Didn't find current directory");
-
+    let current_dir = env::current_dir().expect("Finding current directory");
     let working_dir;
-    let ver;
+
     #[cfg(not(debug_assertions))]
     {
         working_dir = env::current_exe()
@@ -733,15 +739,13 @@ fn main() {
             .parent()
             .expect("Didn't find working directory")
             .to_path_buf();
-        ver = "0.3.6";
     }
 
     #[cfg(debug_assertions)]
     {
         working_dir = current_dir.to_owned();
-        ver = "0.3.6 debug";
     }
-    env::set_current_dir(&working_dir).expect("Unable to set environment");
+    env::set_current_dir(&working_dir).expect("Setting up environment");
 
     let mut setup = Settings {
         held_item: None,
@@ -770,6 +774,49 @@ fn main() {
         open_core_source_path: Default::default(),
     };
 
+    terminal::enable_raw_mode().unwrap();
+
+    let mut stdout = stdout();
+
+    stdout
+        .execute(cursor::Hide)
+        .unwrap()
+        .execute(cursor::MoveTo(0, 0))
+        .unwrap();
+    write!(stdout, "\x1b[2J").unwrap();
+
+    //load octool config file
+    resources.octool_config =
+        res::get_serde_json("tool_config_files/octool_config.json", &mut stdout).unwrap();
+    setup.octool_version = resources.octool_config["octool_version"]
+        .as_str()
+        .expect("getting version number")
+        .to_owned();
+    let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
+    if latest_octool_ver > setup.octool_version {
+        write!(
+            stdout,
+            "\x1b[33mNOTICE: Updated version of octool is available, it can be found at\r\n{}\r\n\
+            Latest version of octool is \x1b[0m{}\x1b[33m you are\x1b[0m\r\n",
+            resources.octool_config["octool_releases_url"].as_str().unwrap(),
+            latest_octool_ver,
+        )
+        .unwrap();
+        setup.octool_version.push_str(" \x1b[31mupdate available\x1b[0m");
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        setup.octool_version.push_str(" debug");
+    }
+
+    write!(
+        stdout,
+        "\x1b[32mRunning\x1b[0m octool {}\r\n",
+        setup.octool_version
+    )
+    .unwrap();
+
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();
@@ -790,7 +837,7 @@ fn main() {
                             }
                         },
                         'v' => {
-                            println!("\noctool v{}", ver);
+                            println!("\noctool {}", setup.octool_version);
                             if std::env::consts::OS == "macos" {
                                 match res::status(
                                     "nvram",
@@ -822,19 +869,6 @@ fn main() {
             break;
         }
     }
-
-    terminal::enable_raw_mode().unwrap();
-
-    let mut stdout = stdout();
-
-    write!(stdout, "\x1b[2J").unwrap();
-
-    stdout
-        .execute(cursor::Hide)
-        .unwrap()
-        .execute(cursor::MoveTo(0, 0))
-        .unwrap();
-    write!(stdout, "octool v{}\r\n", ver).unwrap();
 
     match init::init_static(&mut resources, &mut setup, &mut stdout) {
         Ok(_) => (),

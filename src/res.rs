@@ -635,3 +635,25 @@ pub fn get_res_path(
         }
     }
 }
+
+pub fn get_latest_ver(resources: &Resources) -> Result<String, Box<dyn Error>> {
+    let url = resources.octool_config["octool_latest_config_url"]
+        .as_str().expect("getting url from config");
+    let mut data = Vec::new();
+    let mut handle = Easy::new();
+    handle.url(&url)?;
+    {
+        let mut transfer = handle.transfer();
+        transfer
+            .write_function(|new_data| {
+                data.extend_from_slice(new_data);
+                Ok(new_data.len())
+            })?;
+        transfer.perform()?;
+    }
+    let data: serde_json::Value = serde_json::from_slice(&data)?;
+    match data["octool_version"].as_str() {
+        Some(v) => Ok(v.to_string()),
+        None => Ok("x.y.z".to_string()),
+    }
+}

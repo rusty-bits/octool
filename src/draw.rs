@@ -30,6 +30,7 @@ pub struct Settings {
     pub modified: bool,                 // true if plist changed and not saved
     pub bg_col: String,                 // colors for standard display
     pub bg_col_info: String,            // background color for info display
+    pub octool_version: String,         // octool version being used
 }
 
 #[derive(Debug)]

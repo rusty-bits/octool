@@ -1,4 +1,8 @@
 {
+  "octool_version": "v0.3.6 2021-12-21",
+  "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
+  "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
+
   "acpi_path": "Docs/AcpiSamples/Binaries",
   "drivers_path": "X64/EFI/OC/Drivers",
   "tools_path": "X64/EFI/OC/Tools",

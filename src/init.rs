@@ -18,8 +18,6 @@ pub fn init_static(
     settings: &mut Settings,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
-    //load octool config file
-    resources.octool_config = res::get_serde_json("tool_config_files/octool_config.json", stdout)?;
 
     //load other resource file
     resources.other = res::get_serde_json("tool_config_files/other.json", stdout)?;
@@ -284,12 +282,6 @@ pub fn init_plist(
             }
         }
     }
-
-    write!(
-        stdout,
-        "\x1B[32mbuild_type set to\x1B[0m {}\r\n\x1B[32mbuild_version set to\x1B[0m {}\r\n",
-        settings.build_type, settings.oc_build_version,
-    )?;
 
     Ok(())
 }

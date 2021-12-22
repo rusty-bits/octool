@@ -424,6 +424,16 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
 }
 
 /// Read the `path` file into a `serde_json::Value`
+pub fn get_serde_json_quiet(
+    path: &str,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    let file = File::open(Path::new(path))?;
+    let buf = BufReader::new(file);
+    let v = serde_json::from_reader(buf)?;
+    Ok(v)
+}
+
+/// Read the `path` file into a `serde_json::Value`
 pub fn get_serde_json(
     path: &str,
     stdout: &mut Stdout,

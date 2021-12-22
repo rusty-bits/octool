@@ -774,48 +774,17 @@ fn main() {
         open_core_source_path: Default::default(),
     };
 
-    terminal::enable_raw_mode().unwrap();
 
     let mut stdout = stdout();
 
-    stdout
-        .execute(cursor::Hide)
-        .unwrap()
-        .execute(cursor::MoveTo(0, 0))
-        .unwrap();
-    write!(stdout, "\x1b[2J").unwrap();
-
     //load octool config file
     resources.octool_config =
-        res::get_serde_json("tool_config_files/octool_config.json", &mut stdout).unwrap();
+        res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
     setup.octool_version = resources.octool_config["octool_version"]
         .as_str()
         .expect("getting version number")
         .to_owned();
     let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
-    if latest_octool_ver > setup.octool_version {
-        write!(
-            stdout,
-            "\x1b[33mNOTICE: Updated version of octool is available, it can be found at\r\n{}\r\n\
-            Latest version of octool is \x1b[0m{}\x1b[33m you are\x1b[0m\r\n",
-            resources.octool_config["octool_releases_url"].as_str().unwrap(),
-            latest_octool_ver,
-        )
-        .unwrap();
-        setup.octool_version.push_str(" \x1b[31mupdate available\x1b[0m");
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        setup.octool_version.push_str(" debug");
-    }
-
-    write!(
-        stdout,
-        "\x1b[32mRunning\x1b[0m octool {}\r\n",
-        setup.octool_version
-    )
-    .unwrap();
 
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
@@ -828,25 +797,31 @@ fn main() {
                         'o' => match args.next() {
                             Some(version) => setup.oc_build_version = version.to_owned(),
                             _ => {
-                                println!(
-                                    "\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
-                                    with the -o option\n"
-                                );
-                                println!("e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\n");
+                                write!(stdout,
+                                    "\r\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
+                                    with the -o option\r\n"
+                                )
+                                .unwrap();
+                                write!(stdout, "e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\r\n")
+                                    .unwrap();
                                 std::process::exit(0);
                             }
                         },
                         'v' => {
-                            println!("\noctool {}", setup.octool_version);
+                            write!(stdout, "\r\noctool {}", setup.octool_version).unwrap();
+                            if latest_octool_ver > setup.octool_version {
+                                write!(stdout, " \x1b[31mupdate available\x1b[0m").unwrap();
+                            }
+                            write!(stdout, "\r\n").unwrap();
                             if std::env::consts::OS == "macos" {
                                 match res::status(
                                     "nvram",
                                     &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
                                 ) {
-                                    Ok(s) => println!(
-                                        "\ncurrent loaded OpenCore version\n{}",
+                                    Ok(s) => write!(stdout,
+                                        "\r\ncurrent loaded OpenCore version\r\n{}",
                                         String::from_utf8_lossy(&s.stdout)
-                                    ),
+                                    ).unwrap(),
                                     Err(_) => (),
                                 }
                             }
@@ -854,9 +829,9 @@ fn main() {
                         }
                         'd' => setup.build_type = "debug".to_string(),
                         'h' => {
-                            println!("SYNOPSIS\n\t./octool [options] [-o x.y.z] [config.plist]\n");
-                            println!("OPTIONS\n\t-d  build debug version\n\t-h  print this help and exit\n\t-o x.y.z  \
-                                     select OpenCore version number\n\t-v  show octool version info");
+                            write!(stdout, "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n").unwrap();
+                            write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
+                                     select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
                             std::process::exit(0);
                         }
                         _ => (),
@@ -870,6 +845,42 @@ fn main() {
         }
     }
 
+    terminal::enable_raw_mode().unwrap();
+    stdout
+        .execute(cursor::Hide)
+        .unwrap()
+        .execute(cursor::MoveTo(0, 0))
+        .unwrap();
+
+    write!(stdout, "\x1b[2J").unwrap();
+
+    if latest_octool_ver > setup.octool_version {
+        write!(
+            stdout,
+            "\x1b[33mNOTICE: Updated version of octool is available, it can be found at\r\n{}\r\n\
+            Latest version of octool is \x1b[0m{}\x1b[33m you are\x1b[0m\r\n",
+            resources.octool_config["octool_releases_url"]
+                .as_str()
+                .unwrap(),
+            latest_octool_ver,
+        )
+        .unwrap();
+        setup
+            .octool_version
+            .push_str(" \x1b[31mupdate available\x1b[0m");
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        setup.octool_version.push_str(" debug");
+    }
+
+    write!(
+        stdout,
+        "\x1b[32musing\x1b[0m octool {}\r\n",
+        setup.octool_version
+    )
+    .unwrap();
     match init::init_static(&mut resources, &mut setup, &mut stdout) {
         Ok(_) => (),
         Err(e) => {

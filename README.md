@@ -1,9 +1,9 @@
 # octool
 
-[![License](https://img.shields.io/github/license/rusty-bits/octool.svg)](https://github.com/rusty-bits/octool)
-[![Release](https://img.shields.io/github/release/rusty-bits/octool.svg)](https://github.com/rusty-bits/octool/releases)
-[![CircleCI](https://circleci.com/gh/rusty-bits/octool.svg?style=shield)](https://circleci.com/gh/rusty-bits/octool)
-
+[![license](https://img.shields.io/github/license/rusty-bits/octool.svg)](https://github.com/rusty-bits/octool/blob/main/LICENSE)
+[![downloads](https://img.shields.io/github/downloads/rusty-bits/octool/total)]()
+[![release](https://img.shields.io/github/v/release/rusty-bits/octool?display_name=tag)](https://github.com/rusty-bits/octool/releases)
+[![circleci](https://circleci.com/gh/rusty-bits/octool.svg?style=shield)](https://circleci.com/gh/rusty-bits/octool)
 
 A small project to help me learn the Rust language and to hopefully provide better features than my older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
 You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the binary from [the Releases section on GitHub](https://github.com/rusty-bits/octool/releases). The latest release should contain the binary from the latest commit since I have my automated build push the updates on top of the latest version.  Unlike my older OC-tool, this tool does not auto update itself to the latest version.  So, for now you will need to check on updates yourself.  I will try to include some type of update message in the future.  

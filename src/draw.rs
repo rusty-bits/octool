@@ -1,99 +1,12 @@
 use plist::Value;
-use std::collections::HashMap;
 
 use std::error::Error;
 use std::io::{Stdout, Write};
 
+use crate::init::Settings;
 use crate::res::{self, Resources};
 
 use crossterm::terminal::size;
-
-#[derive(Debug, Default)]
-pub struct Settings {
-    pub config_file_name: String,       // name of config.plist
-    pub sec_num: [usize; 5],            // selected section for each depth
-    pub depth: usize,                   // depth of plist section we are looking at
-    pub sec_key: [String; 5],           // key of selected section
-    pub item_instructions: String,      // item instructions for display in header
-    pub held_item: Option<Value>,       // last deleted or placed item value
-    pub held_key: String,               // last deleted or placed key
-    pub live_value: String,             // current value of highlighted key
-    pub sec_length: [usize; 5],         // number of items in current section
-    pub resource_sections: Vec<String>, // concat name of sections that contain resources
-    pub build_type: String,             // building release or debug version
-    pub oc_build_version: String,       // version number of OpenCorePkg to use
-    pub oc_build_date: String,          // date binaries were built
-    pub oc_build_version_res_index: usize, // index of OpenCorePkg in config.json
-    pub resource_ver_indexes: HashMap<String, Manifest>, // index of other parent resources
-    pub can_expand: bool,               // true if highlighted field can have children
-    pub find_string: String,            // last entered search string
-    pub modified: bool,                 // true if plist changed and not saved
-    pub bg_col: String,                 // colors for standard display
-    pub bg_col_info: String,            // background color for info display
-    pub octool_version: String,         // octool version being used
-}
-
-#[derive(Debug)]
-pub struct Manifest(pub usize, pub String);
-
-impl Settings {
-    pub fn up(&mut self) {
-        if self.sec_num[self.depth] > 0 {
-            self.sec_num[self.depth] -= 1;
-        }
-    }
-    pub fn down(&mut self) {
-        if self.sec_length[self.depth] > 0 {
-            if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
-                self.sec_num[self.depth] += 1;
-            }
-        }
-    }
-    pub fn left(&mut self) {
-        if self.depth > 0 {
-            self.sec_key[self.depth].clear();
-            self.depth -= 1;
-        }
-    }
-    pub fn right(&mut self) {
-        if self.depth < 3 && self.can_expand {
-            self.depth += 1;
-            self.sec_num[self.depth] = 0;
-        }
-    }
-    pub fn add(&mut self) {
-        self.sec_length[self.depth] += 1;
-        self.modified = true;
-    }
-    pub fn delete(&mut self) {
-        if self.sec_length[self.depth] > 0 {
-            self.sec_length[self.depth] -= 1;
-        }
-        if self.sec_num[self.depth] == self.sec_length[self.depth] {
-            self.up();
-        }
-        self.modified = true;
-    }
-    /// return true if current selected item is a resource
-    pub fn is_resource(&self) -> bool {
-        if self.depth != 2 {
-            false
-        } else {
-            let mut sec_sub = self.sec_key[0].clone();
-            sec_sub.push_str(&self.sec_key[1]);
-            self.resource_sections.contains(&sec_sub)
-        }
-    }
-    /// strip resource name from full path
-    pub fn res_name(&self, name: &mut String) {
-        *name = self.sec_key[self.depth]
-            .to_owned()
-            .split('/')
-            .last()
-            .unwrap()
-            .to_string();
-    }
-}
 
 /// Redraws the plist on the screen
 /// Draws the Footer first, in case it needs to be overwritten
@@ -109,7 +22,7 @@ pub fn update_screen(
     let plist = &resources.config_plist;
     let rows: i32 = size().unwrap().1.into();
     settings.can_expand = false;
-//    let bgc = &settings.bg_col.clone();
+    //    let bgc = &settings.bg_col.clone();
     let bgc = "\x1b[0m";
 
     write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
@@ -172,7 +85,7 @@ pub fn update_screen(
         stdout,
         "\x1b[1;{}H\x1b[2KOC \x1b[7mV{}ersion {}",
         (size().unwrap().0 - 16).to_string(),
-//        &settings.bg_col,
+        //        &settings.bg_col,
         "\x1b[0m",
         settings.oc_build_version,
     )
@@ -228,7 +141,7 @@ fn display_value(
     let mut key_style = String::new();
     let mut pre_key = '>';
     let mut row = 1;
-//    let bgc = &settings.bg_col.clone();
+    //    let bgc = &settings.bg_col.clone();
     let bgc = "\x1b[0m";
     write!(stdout, "\r\n{}\x1B[0K", "    ".repeat(display_depth))?; // indent to section and clear rest of line
     if settings.sec_num[display_depth] == item_num {

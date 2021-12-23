@@ -7,7 +7,7 @@ use std::{
 use crossterm::event::KeyCode;
 use crossterm::terminal::size;
 
-use crate::{draw::Settings, edit::read_key, res::Resources};
+use crate::{edit::read_key, init::Settings, res::Resources};
 
 /// Read through the Configuration.tex and display the info for the highlighted plist item
 ///
@@ -326,26 +326,12 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
                 // end of key - may be special character or formatting
                 ' ' | ',' | '(' | ')' | '\\' | '0'..='9' | '$' | '&' => {
                     build_key = false;
-                    match key.as_str() {
-                        "kappa" => ret.push('\u{03f0}'),
-                        "lambda" => ret.push('\u{03bb}'),
-                        "mu" => ret.push('\u{03bc}'),
-                        "alpha" => ret.push('\u{03b1}'),
-                        "beta" => ret.push('\u{03b2}'),
-                        "gamma" => ret.push('\u{03b3}'),
-                        "leq" => ret.push('\u{2264}'),
-                        "cdot" => ret.push('\u{00b7}'),
-                        "in" => ret.push('\u{220a}'),
-                        "infty" => ret.push('\u{221e}'),
-                        "textbackslash" => ret.push('\\'),
-                        "item" => {
-                            if !gather_valid {
-                                ret.push_str("• ");
-                            }
+                    if &key == "item" {
+                        if !gather_valid {
+                            ret.push('•');
                         }
-                        "" => ret.push(' '),
-                        _ => (),
                     }
+                    ret.push(special_char(&key));
                     col_contents_len += 1;
                     if c == ',' || c == '(' || c == ')' || (c >= '0' && c <= '9') || c == '$' {
                         ret.push(c);
@@ -413,21 +399,7 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
         }
     }
     if key.len() > 0 {
-        match key.as_str() {
-            // repetitive - TODO: move to a function
-            "kappa" => ret.push('\u{03f0}'),
-            "lambda" => ret.push('\u{03bb}'),
-            "mu" => ret.push('\u{03bc}'),
-            "alpha" => ret.push('\u{03b1}'),
-            "beta" => ret.push('\u{03b2}'),
-            "gamma" => ret.push('\u{03b3}'),
-            "leq" => ret.push('\u{2264}'),
-            "cdot" => ret.push('\u{00b7}'),
-            "in" => ret.push('\u{220a}'),
-            "infty" => ret.push('\u{221e}'),
-            "textbackslash" => ret.push('\\'),
-            _ => (),
-        }
+        ret.push(special_char(&key));
     }
     if !gather_valid {
         if key == "tightlist" {
@@ -442,4 +414,21 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
     }
 
     ret
+}
+
+fn special_char(key: &str) -> char {
+    match key {
+        "kappa" => '\u{03f0}',
+        "lambda" => '\u{03bb}',
+        "mu" => '\u{03bc}',
+        "alpha" => '\u{03b1}',
+        "beta" => '\u{03b2}',
+        "gamma" => '\u{03b3}',
+        "leq" => '\u{2264}',
+        "cdot" => '\u{00b7}',
+        "in" => '\u{220a}',
+        "infty" => '\u{221e}',
+        "textbackslash" => '\\',
+        _ => '\u{200b}',
+    }
 }

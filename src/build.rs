@@ -1,4 +1,4 @@
-use crate::draw::Settings;
+use crate::init::Settings;
 use crate::res::{self, get_res_path, res_version, status, Resources};
 
 use fs_extra::dir::{self, CopyOptions};
@@ -255,15 +255,9 @@ pub fn build_output(
         }
         write!(
             stdout,
-            "\x1B[31mIf you want octool to include them automatically,\r\n"
-        )?;
-        write!(
-            stdout,
-            "they need to be placed in the \x1B[32mINPUT\x1B[31m folder before building.\r\n"
-        )?;
-        write!(
-            stdout,
-            "Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n"
+            "\x1B[31mIf you want octool to include them automatically,\r\n\
+            they need to be placed in the \x1B[32mINPUT\x1B[31m folder before building.\r\n\
+            Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n"
         )?;
         stdout.flush()?;
     }

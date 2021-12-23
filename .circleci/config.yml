@@ -118,10 +118,10 @@ jobs:
           command: |
             ls -alh /tmp/workspace
 
-            CIRCLE_TAG="v0.3.6"
-            
+            CIRCLE_TAG="v0.3.7"
+
             go get github.com/github-release/github-release
-            
+
             github-release upload \
               --user "${CIRCLE_PROJECT_USERNAME}" \
               --repo "${CIRCLE_PROJECT_REPONAME}" \

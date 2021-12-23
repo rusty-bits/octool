@@ -5,11 +5,99 @@ use std::path::{Path, PathBuf};
 
 use plist::Value;
 
-use crate::draw::{Manifest, Settings};
 use crate::edit::{find, Found};
 use crate::res::{self, Resources};
 
 use crossterm::terminal;
+
+use std::collections::HashMap;
+
+#[derive(Debug, Default)]
+pub struct Settings {
+    pub config_file_name: String,          // name of config.plist
+    pub sec_num: [usize; 5],               // selected section for each depth
+    pub depth: usize,                      // depth of plist section we are looking at
+    pub sec_key: [String; 5],              // key of selected section
+    pub item_instructions: String,         // item instructions for display in header
+    pub held_item: Option<Value>,          // last deleted or placed item value
+    pub held_key: String,                  // last deleted or placed key
+    pub live_value: String,                // current value of highlighted key
+    pub sec_length: [usize; 5],            // number of items in current section
+    pub resource_sections: Vec<String>,    // concat name of sections that contain resources
+    pub build_type: String,                // building release or debug version
+    pub oc_build_version: String,          // version number of OpenCorePkg to use
+    pub oc_build_date: String,             // date binaries were built
+    pub oc_build_version_res_index: usize, // index of OpenCorePkg in config.json
+    pub resource_ver_indexes: HashMap<String, Manifest>, // index of other parent resources
+    pub can_expand: bool,                  // true if highlighted field can have children
+    pub find_string: String,               // last entered search string
+    pub modified: bool,                    // true if plist changed and not saved
+    pub bg_col: String,                    // colors for standard display
+    pub bg_col_info: String,               // background color for info display
+    pub octool_version: String,            // octool version being used
+}
+
+#[derive(Debug, Default)]
+pub struct Manifest(pub usize, pub String);
+
+impl Settings {
+    pub fn up(&mut self) {
+        if self.sec_num[self.depth] > 0 {
+            self.sec_num[self.depth] -= 1;
+        }
+    }
+    pub fn down(&mut self) {
+        if self.sec_length[self.depth] > 0 {
+            if self.sec_num[self.depth] < self.sec_length[self.depth] - 1 {
+                self.sec_num[self.depth] += 1;
+            }
+        }
+    }
+    pub fn left(&mut self) {
+        if self.depth > 0 {
+            self.sec_key[self.depth].clear();
+            self.depth -= 1;
+        }
+    }
+    pub fn right(&mut self) {
+        if self.depth < 3 && self.can_expand {
+            self.depth += 1;
+            self.sec_num[self.depth] = 0;
+        }
+    }
+    pub fn add(&mut self) {
+        self.sec_length[self.depth] += 1;
+        self.modified = true;
+    }
+    pub fn delete(&mut self) {
+        if self.sec_length[self.depth] > 0 {
+            self.sec_length[self.depth] -= 1;
+        }
+        if self.sec_num[self.depth] == self.sec_length[self.depth] {
+            self.up();
+        }
+        self.modified = true;
+    }
+    /// return true if current selected item is a resource
+    pub fn is_resource(&self) -> bool {
+        if self.depth != 2 {
+            false
+        } else {
+            let mut sec_sub = self.sec_key[0].clone();
+            sec_sub.push_str(&self.sec_key[1]);
+            self.resource_sections.contains(&sec_sub)
+        }
+    }
+    /// strip resource name from full path
+    pub fn res_name(&self, name: &mut String) {
+        *name = self.sec_key[self.depth]
+            .to_owned()
+            .split('/')
+            .last()
+            .unwrap()
+            .to_string();
+    }
+}
 
 /// load static resources into resources struct, shouldn't need to change even if user
 /// changes opencore build version on the fly
@@ -18,7 +106,6 @@ pub fn init_static(
     settings: &mut Settings,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
-
     //load other resource file
     resources.other = res::get_serde_json("tool_config_files/other.json", stdout)?;
 

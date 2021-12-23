@@ -9,7 +9,6 @@ mod snake;
 use fs_extra::dir::{copy, CopyOptions};
 use std::collections::HashMap;
 
-//use std::collections::HashMap;
 use std::fs::File;
 use std::io::{stdout, Stdout, Write};
 use std::path::{Path, PathBuf};
@@ -23,16 +22,15 @@ use crossterm::{
     terminal, ExecutableCommand,
 };
 
-use crate::draw::{Manifest, Settings};
 use crate::edit::read_key;
-use crate::init::guess_version;
+use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
 fn process(
     config_plist: &mut PathBuf,
     current_dir: &PathBuf,
-    settings: &mut draw::Settings,
-    mut resources: &mut res::Resources,
+    settings: &mut Settings,
+    mut resources: &mut Resources,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
@@ -774,7 +772,6 @@ fn main() {
         open_core_source_path: Default::default(),
     };
 
-
     let mut stdout = stdout();
 
     //load octool config file
@@ -818,10 +815,12 @@ fn main() {
                                     "nvram",
                                     &["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version"],
                                 ) {
-                                    Ok(s) => write!(stdout,
+                                    Ok(s) => write!(
+                                        stdout,
                                         "\r\ncurrent loaded OpenCore version\r\n{}",
                                         String::from_utf8_lossy(&s.stdout)
-                                    ).unwrap(),
+                                    )
+                                    .unwrap(),
                                     Err(_) => (),
                                 }
                             }
@@ -829,7 +828,11 @@ fn main() {
                         }
                         'd' => setup.build_type = "debug".to_string(),
                         'h' => {
-                            write!(stdout, "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n").unwrap();
+                            write!(
+                                stdout,
+                                "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n"
+                            )
+                            .unwrap();
                             write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
                                      select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
                             std::process::exit(0);

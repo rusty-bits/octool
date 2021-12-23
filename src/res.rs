@@ -1,4 +1,4 @@
-use crate::draw::{Manifest, Settings};
+use crate::init::{Manifest, Settings};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Stdout, Write};
@@ -424,9 +424,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
 }
 
 /// Read the `path` file into a `serde_json::Value`
-pub fn get_serde_json_quiet(
-    path: &str,
-) -> Result<serde_json::Value, Box<dyn Error>> {
+pub fn get_serde_json_quiet(path: &str) -> Result<serde_json::Value, Box<dyn Error>> {
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
@@ -648,17 +646,17 @@ pub fn get_res_path(
 
 pub fn get_latest_ver(resources: &Resources) -> Result<String, Box<dyn Error>> {
     let url = resources.octool_config["octool_latest_config_url"]
-        .as_str().expect("getting url from config");
+        .as_str()
+        .expect("getting url from config");
     let mut data = Vec::new();
     let mut handle = Easy::new();
     handle.url(&url)?;
     {
         let mut transfer = handle.transfer();
-        transfer
-            .write_function(|new_data| {
-                data.extend_from_slice(new_data);
-                Ok(new_data.len())
-            })?;
+        transfer.write_function(|new_data| {
+            data.extend_from_slice(new_data);
+            Ok(new_data.len())
+        })?;
         transfer.perform()?;
     }
     let data: serde_json::Value = serde_json::from_slice(&data)?;

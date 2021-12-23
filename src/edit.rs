@@ -1,5 +1,6 @@
-use crate::draw::{self, Settings};
+use crate::draw;
 use crate::edit;
+use crate::init::Settings;
 use crate::res::Resources;
 
 use crossterm::event::KeyModifiers;

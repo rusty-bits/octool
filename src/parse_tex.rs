@@ -429,6 +429,7 @@ fn special_char(key: &str) -> char {
         "in" => '\u{220a}',
         "infty" => '\u{221e}',
         "textbackslash" => '\\',
-        _ => '\u{200b}',
+        "hline" => '\u{200b}',
+        _ => ' ',
     }
 }

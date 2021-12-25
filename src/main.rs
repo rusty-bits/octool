@@ -914,7 +914,7 @@ fn main() {
                 setup.oc_build_version = "0.5.9".to_string();
             }
             write!(stdout, "\x1b[33mGUESSING:\x1b[0m at OpenCore version of \x1b[33m{}\x1b[0m based on the input config.plist file\r\n\
-                \tIf this is incorrect you can change the version used with the capital 'V' key in the editor\r\n\
+                \tIf this is incorrect you can change the version used with the capital 'V' key on the next screen\r\n\
                 \tor run octool with the -o option and provide an OpenCore version number\r\n\n", setup.oc_build_version ).unwrap();
         }
     }

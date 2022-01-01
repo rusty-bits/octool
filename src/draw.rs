@@ -29,7 +29,7 @@ pub fn update_screen(
     write!(
         stdout,
         " {inv}D{res}/{inv}^x{res}cut {inv}^c{res}op{inv}y{res} {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
-        {inv}a{res}dd {inv}d{res}el   {inv}M{res}/{inv}m{res}erge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave\
+        {inv}a{res}dd {inv}d{res}el   {inv}M{res}/{inv}m{res}erge {inv}P{res}urge {inv}r{res}eset   {inv}K{res}ey\x1B[0K\r\n {inv}s{res}ave\
         +validate {inv}q{res}uit   {inv}G{res}o build EFI  {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
         {res}integer {inv} {res}string\x1B[0K",
         inv = "\x1b[7m",

@@ -118,7 +118,7 @@ jobs:
           command: |
             ls -alh /tmp/workspace
 
-            CIRCLE_TAG="v0.3.7"
+            CIRCLE_TAG="v0.3.8"
 
             go get github.com/github-release/github-release
 

@@ -23,10 +23,6 @@ pub fn show_info(
     let mut align = false;
     let rows = size()?.1;
     let mut row = 0;
-    let bg_col = &settings.bg_col_info;
-    //    if settings.depth == 0 {
-    //        bg_col = "\x1b[0m".to_string();
-    //    }
 
     let tex_path = &resources
         .open_core_source_path
@@ -59,14 +55,13 @@ pub fn show_info(
         _ => return Ok(false),
     }
     if !gather_valid {
-        //        write!(stdout, "{}\r-\r\n", bg_col)?;
         write!(
             stdout,
             "{}\x1b[4m{}\x1b8\r\x1b[4m{}\r\n{}",
             &settings.live_value,
             " ".repeat(size()?.0.into()),
             "    ".repeat(settings.depth),
-            bg_col
+            settings.bg_col_info
         )?;
     }
     row += 1;
@@ -185,7 +180,7 @@ pub fn show_info(
         if line.contains("\\subsection{") || line.contains("\\section{") {
             break;
         }
-        let parsed_line = parse_line(line, columns, align, gather_valid, &bg_col);
+        let parsed_line = parse_line(line, columns, align, gather_valid, settings);
         if gather_valid {
             // gather list items to display when editing a string or integer
             if itemize > 0 {
@@ -221,9 +216,9 @@ pub fn show_info(
                         hit_bottom = true;
                     }
                     if i == result.len() - 1 {
-                        write!(stdout, "{}END{} ... 'q' to quit\x1B[G", "\x1b[7m", bg_col,)?;
+                        write!(stdout, "{}END{} ... 'q' to quit\x1B[G", "\x1b[7m", &settings.bg_col_info,)?;
                     } else {
-                        write!(stdout, "\x1b[7mmore{} ...\x1B[G", bg_col)?;
+                        write!(stdout, "\x1b[7mmore{} ...\x1B[G", &settings.bg_col_info)?;
                     }
                     stdout.flush()?;
                     match read_key().unwrap().0 {
@@ -288,7 +283,7 @@ pub fn show_info(
 ///
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
-fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col: &str) -> String {
+fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, settings: &Settings) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();
@@ -308,11 +303,17 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
                     //                    build_name = true;
                     if !gather_valid {
                         match key.as_str() {
-                            "text" => ret.push_str(bg_col),
+                            "text" => ret.push_str(&settings.bg_col_info),
                             "textbf" => ret.push_str("\x1B[1m"),
                             "emph" => ret.push_str("\x1B[7m"),
                             "texttt" => ret.push_str("\x1B[4m"),
-                            "href" => ret.push_str("\x1B[34m"),
+                            "href" => {
+                                if settings.show_info_url {
+                                    ret.push_str("\x1B[34m");
+                                } else {
+                                    ignore = true;
+                                }
+                            }
                             //                            "hyperref" => ret.push_str("\x1B[4m"),
                             //                            "hyperlink" => build_key = true, // ignore link text
                             _ => ignore = true,
@@ -359,7 +360,7 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, bg_col:
                 '}' | ']' => {
                     if !ignore {
                         if !gather_valid {
-                            ret.push_str(bg_col);
+                            ret.push_str(&settings.bg_col_info);
                             if &key == "href" {
                                 ret.push(' ');
                                 key.clear();

@@ -221,6 +221,10 @@ fn process(
                         settings.add();
                     }
                 }
+                KeyCode::Char('P') => {
+                    res::purge_whole_plist(settings, resources, stdout);
+                    showing_info = true;
+                }
                 KeyCode::Char('v') => {
                     if key_mod == KeyModifiers::CONTROL
                         && edit::add_delete_value(settings, &mut resources.config_plist, true)
@@ -462,139 +466,7 @@ fn process(
                     }
                 }
                 KeyCode::Char('M') => {
-                    let mut changed = false;
-                    for sample_sec in resources.sample_plist.as_dictionary().unwrap() {
-                        match sample_sec.1 {
-                            plist::Value::Dictionary(_) => {
-                                let r = resources.config_plist.as_dictionary_mut().unwrap();
-                                if !r.contains_key(sample_sec.0) {
-                                    changed = true;
-                                    write!(
-                                        stdout,
-                                        "\r\n\x1b[7mAdded\x1b[0m {} section\x1b[0K",
-                                        sample_sec.0
-                                    )?;
-                                    stdout.flush()?;
-                                    let r = resources.config_plist.as_dictionary_mut().unwrap();
-                                    r.insert(sample_sec.0.to_string(), sample_sec.1.clone());
-                                    settings.sec_length[0] += 1;
-                                    r.sort_keys();
-                                };
-                                for sample_sub in sample_sec.1.as_dictionary().unwrap() {
-                                    let r = resources
-                                        .config_plist
-                                        .as_dictionary_mut()
-                                        .unwrap()
-                                        .get_mut(sample_sec.0)
-                                        .unwrap()
-                                        .as_dictionary_mut()
-                                        .unwrap();
-                                    if !r.contains_key(sample_sub.0) {
-                                        changed = true;
-                                        write!(
-                                            stdout,
-                                            "\r\n\x1b[7mAdded\x1b[0m {}->{} section\x1b[0K",
-                                            sample_sec.0, sample_sub.0
-                                        )?;
-                                        stdout.flush()?;
-                                        r.insert(sample_sub.0.to_string(), sample_sub.1.clone());
-                                        r.sort_keys();
-                                    }
-                                    match sample_sub.1 {
-                                        plist::Value::Dictionary(d) => {
-                                            for val in d {
-                                                let r = resources
-                                                    .config_plist
-                                                    .as_dictionary_mut()
-                                                    .unwrap()
-                                                    .get_mut(sample_sec.0)
-                                                    .unwrap()
-                                                    .as_dictionary_mut()
-                                                    .unwrap()
-                                                    .get_mut(sample_sub.0)
-                                                    .unwrap()
-                                                    .as_dictionary_mut()
-                                                    .unwrap();
-                                                if !r.contains_key(val.0) {
-                                                    changed = true;
-                                                    write!(
-                                                        stdout,
-                                                        "\r\n\x1b[7mAdded\x1b[0m {}->{}->{}\x1b[0K",
-                                                        sample_sec.0, sample_sub.0, val.0
-                                                    )?;
-                                                    stdout.flush()?;
-                                                    r.insert(val.0.to_string(), val.1.clone());
-                                                    r.sort_keys();
-                                                }
-                                            }
-                                        }
-                                        plist::Value::Array(a) => {
-                                            if a.len() > 0 {
-                                                match &a[0] {
-                                                    plist::Value::Dictionary(sample_dict) => {
-                                                        for (i, item) in resources
-                                                            .config_plist
-                                                            .as_dictionary_mut()
-                                                            .unwrap()
-                                                            .get_mut(sample_sec.0)
-                                                            .unwrap()
-                                                            .as_dictionary_mut()
-                                                            .unwrap()
-                                                            .get_mut(sample_sub.0)
-                                                            .unwrap()
-                                                            .as_array_mut()
-                                                            .unwrap()
-                                                            .iter_mut()
-                                                            .enumerate()
-                                                        {
-                                                            for val in sample_dict {
-                                                                if !item
-                                                                    .as_dictionary()
-                                                                    .unwrap()
-                                                                    .contains_key(&val.0)
-                                                                {
-                                                                    changed = true;
-                                                                    write!(
-                                            stdout,
-                                            "\r\n\x1b[7mAdded\x1b[0m {}->{}->{}->{}\x1b[0K",
-                                            sample_sec.0, sample_sub.0, i, val.0
-                                        )?;
-                                                                    stdout.flush()?;
-                                                                    item.as_dictionary_mut()
-                                                                        .unwrap()
-                                                                        .insert(
-                                                                            val.0.to_string(),
-                                                                            val.1.clone(),
-                                                                        );
-                                                                    item.as_dictionary_mut()
-                                                                        .unwrap()
-                                                                        .sort_keys();
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    _ => (),
-                                                } // end match a[0]
-                                            };
-                                        }
-                                        _ => (),
-                                    } // end match sample_sub.1
-                                }
-                            }
-                            _ => (),
-                        } // end match sample_sec.1
-                    }
-                    // merge entire config.plist
-                    if !changed {
-                        write!(
-                            stdout,
-                            "\r\n\x1b[33mNo additions made to config.plist\x1b[0m\x1b[0K"
-                        )?;
-                    } else {
-                        settings.modified = true;
-                    }
-                    write!(stdout, "\r\n\x1b[2K")?;
-                    stdout.flush()?;
+                    res::merge_whole_plist(settings, resources, stdout);
                     showing_info = true;
                 }
                 KeyCode::Char('m') => {
@@ -709,6 +581,7 @@ fn process(
                 && key != KeyCode::Char('s')
                 && key != KeyCode::Char('V')
                 && key != KeyCode::Char('M')
+                && key != KeyCode::Char('P')
             {
                 showing_info = false;
             }
@@ -745,21 +618,6 @@ fn main() {
     }
     env::set_current_dir(&working_dir).expect("Setting up environment");
 
-    let mut setup = Settings {
-        held_item: None,
-        build_type: "release".to_string(),
-        oc_build_version: "latest".to_string(),
-        can_expand: false,
-        modified: false,
-        bg_col: "\x1b[0;38;5;231;48;5;232m".to_string(),
-        bg_col_info: if available_color_count() >= 256 {
-            "\x1b[0;38;5;231;48;5;235m".to_string()
-        } else {
-            "\x1b[0;100m".to_string()
-        },
-        ..Default::default()
-    };
-
     let mut resources = Resources {
         dortania: Default::default(),
         octool_config: Default::default(),
@@ -772,16 +630,34 @@ fn main() {
         open_core_source_path: Default::default(),
     };
 
-    let mut stdout = stdout();
-
     //load octool config file
     resources.octool_config =
         res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
-    setup.octool_version = resources.octool_config["octool_version"]
-        .as_str()
-        .expect("getting version number")
-        .to_owned();
     let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
+
+    let mut setup = Settings {
+        held_item: None,
+        build_type: "release".to_string(),
+        oc_build_version: "latest".to_string(),
+        octool_version: resources.octool_config["octool_version"]
+            .as_str()
+            .expect("getting version number")
+            .to_owned(),
+        show_info_url: resources.octool_config["show_url_in_info_screens"]
+            .as_bool()
+            .unwrap_or(true),
+        can_expand: false,
+        modified: false,
+        bg_col: "\x1b[0;38;5;231;48;5;232m".to_string(),
+        bg_col_info: if available_color_count() >= 256 {
+            "\x1b[0;38;5;231;48;5;235m".to_string()
+        } else {
+            "\x1b[0;40m".to_string()
+        },
+        ..Default::default()
+    };
+
+    let mut stdout = stdout();
 
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();

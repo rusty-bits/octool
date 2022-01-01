@@ -82,8 +82,12 @@ Usage:
 'M', 'm' `merge`  
  - lowercase 'm' will add missing fields to the current highlighted section of the `config.plist` if they are in the `Sample.plist` without changing any existing fields.
  - capital 'M' will merge all missing items for the entire config.plist  
+ - - this command, coupled with its companion Purge command (capital P) will update a config.plist when any OpenCore changes occur  
 
 'n' `next` - jump to the next found item if more than one occurance was found  
+
+'P' `purge` - Capital P - removes fields from the config.plist that are not in the Sample.plist
+ - this command, coupled with it's companion merge command (capital M) will update a config.plist when any OpenCore changes occur  
 
 'p' `paste` - places the last deleted or modified etc. item into the plist (for those familiar with vi commands)  
 

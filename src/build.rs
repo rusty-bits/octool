@@ -59,7 +59,6 @@ pub fn build_output(
             .unwrap();
         let mut res;
         for val in enabled_resources {
-            //            write!(stdout, "{:?}\r\n", val).unwrap();
             match val {
                 // oc 0.7.3 and above
                 plist::Value::Dictionary(d) => {

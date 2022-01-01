@@ -35,6 +35,7 @@ pub struct Settings {
     pub bg_col: String,                    // colors for standard display
     pub bg_col_info: String,               // background color for info display
     pub octool_version: String,            // octool version being used
+    pub show_info_url: bool,               // display full url link in the info screens
 }
 
 #[derive(Debug, Default)]

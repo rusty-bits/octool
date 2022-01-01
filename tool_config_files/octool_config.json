@@ -1,5 +1,5 @@
 {
-  "octool_version": "v0.3.7 2021-12-25",
+  "octool_version": "v0.3.8 2022-01-01",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
 
@@ -20,6 +20,8 @@
     "AXEFIAudio_Click.mp3",
     "AXEFIAudio_VoiceOver_Boot.mp3"
   ],
+
+  "show_url_in_info_screens": false,
 
   "resource_sections": [
     [

@@ -665,3 +665,282 @@ pub fn get_latest_ver(resources: &Resources) -> Result<String, Box<dyn Error>> {
         None => Ok("x.y.z".to_string()),
     }
 }
+
+pub fn merge_whole_plist(settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
+    let mut changed = false;
+    for sample_sec in resources.sample_plist.as_dictionary().unwrap() {
+        if sample_sec.0 == "DeviceProperties" {
+            // do not modify DeviceProperties
+            continue;
+        }
+        match sample_sec.1 {
+            plist::Value::Dictionary(_) => {
+                let r = resources.config_plist.as_dictionary_mut().unwrap();
+                if !r.contains_key(sample_sec.0) {
+                    changed = true;
+                    write!(
+                        stdout,
+                        "\r\n\x1b[7mAdded\x1b[0m {} section\x1b[0K",
+                        sample_sec.0
+                    )
+                    .unwrap();
+                    stdout.flush().unwrap();
+                    let r = resources.config_plist.as_dictionary_mut().unwrap();
+                    r.insert(sample_sec.0.to_string(), sample_sec.1.clone());
+                    settings.sec_length[0] += 1;
+                    r.sort_keys();
+                };
+                for sample_sub in sample_sec.1.as_dictionary().unwrap() {
+                    let r = resources
+                        .config_plist
+                        .as_dictionary_mut()
+                        .unwrap()
+                        .get_mut(sample_sec.0)
+                        .unwrap()
+                        .as_dictionary_mut()
+                        .unwrap();
+                    if !r.contains_key(sample_sub.0) {
+                        changed = true;
+                        write!(
+                            stdout,
+                            "\r\n\x1b[7mAdded\x1b[0m {}->{} section\x1b[0K",
+                            sample_sec.0, sample_sub.0
+                        )
+                        .unwrap();
+                        stdout.flush().unwrap();
+                        r.insert(sample_sub.0.to_string(), sample_sub.1.clone());
+                        r.sort_keys();
+                    }
+                    match sample_sub.1 {
+                        plist::Value::Dictionary(d) => {
+                            for val in d {
+                                let r = resources
+                                    .config_plist
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut(sample_sec.0)
+                                    .unwrap()
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut(sample_sub.0)
+                                    .unwrap()
+                                    .as_dictionary_mut()
+                                    .unwrap();
+                                if !r.contains_key(val.0) {
+                                    changed = true;
+                                    write!(
+                                        stdout,
+                                        "\r\n\x1b[7mAdded\x1b[0m {}->{}->{}\x1b[0K",
+                                        sample_sec.0, sample_sub.0, val.0
+                                    )
+                                    .unwrap();
+                                    stdout.flush().unwrap();
+                                    r.insert(val.0.to_string(), val.1.clone());
+                                    r.sort_keys();
+                                }
+                            }
+                        }
+                        plist::Value::Array(a) => {
+                            if a.len() > 0 {
+                                match &a[0] {
+                                    plist::Value::Dictionary(sample_dict) => {
+                                        for (i, item) in resources
+                                            .config_plist
+                                            .as_dictionary_mut()
+                                            .unwrap()
+                                            .get_mut(sample_sec.0)
+                                            .unwrap()
+                                            .as_dictionary_mut()
+                                            .unwrap()
+                                            .get_mut(sample_sub.0)
+                                            .unwrap()
+                                            .as_array_mut()
+                                            .unwrap()
+                                            .iter_mut()
+                                            .enumerate()
+                                        {
+                                            match item {
+                                                plist::Value::Dictionary(_) => {
+                                                    for val in sample_dict {
+                                                        if !item
+                                                            .as_dictionary()
+                                                            .unwrap()
+                                                            .contains_key(&val.0)
+                                                        {
+                                                            changed = true;
+                                                            write!(
+                                                        stdout,
+                                                        "\r\n\x1b[7mAdded\x1b[0m {}->{}->{}->{}\x1b[0K",
+                                                        sample_sec.0, sample_sub.0, i, val.0
+                                                    )
+                                                    .unwrap();
+                                                            stdout.flush().unwrap();
+                                                            item.as_dictionary_mut()
+                                                                .unwrap()
+                                                                .insert(
+                                                                    val.0.to_string(),
+                                                                    val.1.clone(),
+                                                                );
+                                                            item.as_dictionary_mut()
+                                                                .unwrap()
+                                                                .sort_keys();
+                                                        }
+                                                    }
+                                                }
+                                                _ => (),
+                                            } // end match item
+                                        }
+                                    }
+                                    _ => (),
+                                } // end match a[0]
+                            };
+                        }
+                        _ => (),
+                    } // end match sample_sub.1
+                }
+            }
+            _ => (),
+        } // end match sample_sec.1
+    }
+    if !changed {
+        write!(
+            stdout,
+            "\r\n\x1b[33mNo additions made to config.plist\x1b[0m\x1b[0K"
+        )
+        .unwrap();
+    } else {
+        settings.modified = true;
+    }
+    write!(stdout, "\r\n\x1b[2K").unwrap();
+    stdout.flush().unwrap();
+}
+
+pub fn purge_whole_plist(settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
+    let mut changed = false;
+    let mut items: Vec<Vec<String>> = Default::default();
+    for config_sec in resources.config_plist.as_dictionary().unwrap() {
+        if config_sec.0 == "DeviceProperties" {
+            // do not modify DeviceProperties
+            continue;
+        }
+        match config_sec.1 {
+            plist::Value::Dictionary(_) => {
+                let r = resources.sample_plist.as_dictionary().unwrap();
+                if !r.contains_key(config_sec.0) {
+                    changed = true;
+                    items.push(vec![config_sec.0.to_owned()]);
+                    break;
+                };
+                for config_sub in config_sec.1.as_dictionary().unwrap() {
+                    let r = resources
+                        .sample_plist
+                        .as_dictionary()
+                        .unwrap()
+                        .get(config_sec.0)
+                        .unwrap()
+                        .as_dictionary()
+                        .unwrap();
+                    if !r.contains_key(config_sub.0) {
+                        changed = true;
+                        items.push(vec![config_sec.0.to_owned(), config_sub.0.to_owned()]);
+                    }
+                    match config_sub.1 {
+                        plist::Value::Dictionary(d) => {
+                            for val in d {
+                                let r = resources
+                                    .sample_plist
+                                    .as_dictionary()
+                                    .unwrap()
+                                    .get(config_sec.0)
+                                    .unwrap()
+                                    .as_dictionary()
+                                    .unwrap()
+                                    .get(config_sub.0)
+                                    .unwrap()
+                                    .as_dictionary()
+                                    .unwrap();
+                                if !r.contains_key(val.0) {
+                                    changed = true;
+                                    items.push(vec![
+                                        config_sec.0.to_owned(),
+                                        config_sub.0.to_owned(),
+                                        val.0.to_owned(),
+                                    ]);
+                                }
+                            }
+                        }
+                        plist::Value::Array(a) => {
+                            if a.len() > 0 {
+                                for a_index in 0..a.len() {
+                                    match &a[a_index] {
+                                        plist::Value::Dictionary(d) => {
+                                            if let plist::Value::Dictionary(sam) = &resources
+                                                .sample_plist
+                                                .as_dictionary()
+                                                .unwrap()
+                                                .get(config_sec.0)
+                                                .unwrap()
+                                                .as_dictionary()
+                                                .unwrap()
+                                                .get(config_sub.0)
+                                                .unwrap()
+                                                .as_array()
+                                                .unwrap()[0]
+                                            {
+                                                for val in d {
+                                                    if !sam.contains_key(&val.0) {
+                                                        changed = true;
+                                                        items.push(vec![
+                                                            config_sec.0.to_owned(),
+                                                            config_sub.0.to_owned(),
+                                                            a_index.to_string(),
+                                                            val.0.to_owned(),
+                                                        ]);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        _ => (),
+                                    } // end match a[a_index]
+                                }
+                            };
+                        }
+                        _ => (),
+                    } // end match sample_sub.1
+                }
+            }
+            _ => (),
+        } // end match sample_sec.1
+    }
+    if !changed {
+        write!(
+            stdout,
+            "\r\n\x1b[33mNo deletions made to config.plist\x1b[0m\x1b[0K"
+        )
+        .unwrap();
+    } else {
+        //        write!(stdout, "{:?}", items).unwrap();
+        //        stdout.flush().unwrap();
+        for item in items {
+            let mut del = resources.config_plist.as_dictionary_mut().unwrap();
+            write!(stdout, "\r\n\x1b[7mRemoved\x1b[0m ").unwrap();
+            for i in 0..item.len() - 1 {
+                if i == 1 && item.len() == 4 {
+                    del = del.get_mut(&item[1]).unwrap().as_array_mut().unwrap()
+                        [item[2].parse::<usize>().unwrap()]
+                    .as_dictionary_mut()
+                    .unwrap();
+                    write!(stdout, "{}->{}->", item[1], item[2]).unwrap();
+                } else if (i != 2 && item.len() == 4) || item.len() != 4 {
+                    del = del.get_mut(&item[i]).unwrap().as_dictionary_mut().unwrap();
+                    write!(stdout, "{}->", item[i]).unwrap();
+                }
+            }
+            del.remove(&item[item.len() - 1]);
+            write!(stdout, "{}", item[item.len() - 1]).unwrap();
+        }
+        settings.modified = true;
+    }
+    write!(stdout, "\r\n\x1b[2K").unwrap();
+    stdout.flush().unwrap();
+}

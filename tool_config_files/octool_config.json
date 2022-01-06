@@ -70,7 +70,7 @@
       "Booter", "Quirks", "ForceBooterSignature",  "0.6.8"
     ],
     [
-      "UEFI", "Quirks", "ActivateHpetSupport", " 0.6.7"
+      "UEFI", "Quirks", "ActivateHpetSupport", "0.6.7"
     ],
     [
       "UEFI", "Quirks", "DisableSecurityPolicy", "0.6.6"

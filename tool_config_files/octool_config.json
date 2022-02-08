@@ -1,5 +1,5 @@
 {
-  "octool_version": "v0.3.8 2022-01-01",
+  "octool_version": "v0.3.8 2022-02-08",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
 
@@ -40,7 +40,7 @@
 
   "config_differences": [
     [
-      "UEFI", "Audio", "AudioOutMask", "0.7.7"
+      "UEFI", "Audio", "AudioOutMask", "0.7.8"
     ],
     [
       "UEFI", "Output", "UIScale", "0.7.6"

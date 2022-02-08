@@ -304,6 +304,7 @@ fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, setting
                     if !gather_valid {
                         match key.as_str() {
                             "text" => ret.push_str(&settings.bg_col_info),
+                            "textit" => ret.push_str("\x1B[1m"),
                             "textbf" => ret.push_str("\x1B[1m"),
                             "emph" => ret.push_str("\x1B[7m"),
                             "texttt" => ret.push_str("\x1B[4m"),

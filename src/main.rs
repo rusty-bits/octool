@@ -76,7 +76,7 @@ fn process(
                     if showing_info {
                         showing_info = false;
                     } else {
-                        if settings.modified {
+                        if settings.modified == true {
                             write!(stdout, "\r\n\x1B[33;7mNOTICE:\x1B[0m changes have been made to the plist file\
                                    \x1B[0K\r\n capital 'Q' to quit without saving, any other key will cancel\
                                    \x1B[0K\r\n\x1B[2K").unwrap();
@@ -566,13 +566,13 @@ fn process(
                     //                    let ta: HashMap<String, (usize, String)> = serde_json::from_reader(&man_reader)?;
                     //                    write!(stdout, "{:?}\r\n{:?}", tp, ta)?;
 
-                    settings.modified = false;
                     let _ = init::validate_plist(
                         &Path::new(&save_path).to_path_buf(),
                         &resources,
                         stdout,
                     )?;
                     showing_info = true;
+                    settings.modified = false;
                 }
                 _ => (),
             }

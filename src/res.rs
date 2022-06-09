@@ -15,6 +15,7 @@ use sha2::Digest;
 pub struct Resources {
     pub dortania: serde_json::Value, // Dortania builds config.json file
     pub octool_config: serde_json::Value, // config file for octool itself
+    pub config_differences: serde_json::Value, // config file for octool itself
     pub resource_list: serde_json::Value, // list linking resources to their parents
     pub other: serde_json::Value,    // list of other party parent/childs
     pub config_plist: plist::Value,  // current active config.plist

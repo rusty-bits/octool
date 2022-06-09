@@ -1,7 +1,8 @@
 {
-  "octool_version": "v0.3.9 2022-03-02",
+  "octool_version": "v0.4.0 2022-06-09",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
+  "octool_latest_config_differences_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/config_differences.json",
 
   "acpi_path": "Docs/AcpiSamples/Binaries",
   "drivers_path": "X64/EFI/OC/Drivers",
@@ -35,66 +36,6 @@
     ],
     [
       "UEFI", "Drivers", "Path", "Drivers"
-    ]
-  ],
-
-  "config_differences": [
-    [
-      "Misc", "Debug", "LogModules", "0.7.9"
-    ],
-    [
-      "UEFI", "Audio", "AudioOutMask", "0.7.8"
-    ],
-    [
-      "UEFI", "Output", "UIScale", "0.7.6"
-    ],
-    [
-      "Booter", "Quirks", "ResizeAppleGpuBars", "0.7.5"
-    ],
-    [
-      "UEFI", "Drivers", "Comment", "0.7.4"
-    ],
-    [
-      "UEFI", "Quirks", "ForceOcWriteFlash", "0.7.3"
-    ],
-    [
-      "UEFI", "AppleInput", "GraphicsInputMirroring", "0.7.2"
-    ],
-    [
-      "Kernel", "Scheme", "CustomKernel", "0.7.1"
-    ],
-    [
-      "PlatformInfo", "Generic", "AdviseFeatures", "0.7.0"
-    ],
-    [
-      "UEFI", "Quirks", "EnableVectorAcceleration", "0.6.9"
-    ],
-    [
-      "Booter", "Quirks", "ForceBooterSignature",  "0.6.8"
-    ],
-    [
-      "UEFI", "Quirks", "ActivateHpetSupport", "0.6.7"
-    ],
-    [
-      "UEFI", "Quirks", "DisableSecurityPolicy", "0.6.6"
-    ],
-    [
-      "UEFI", "Audio", "SetupDelay", "0.6.5"
-    ],
-    [
-      "Misc", "Security", "BlacklistAppleUpdate", "0.6.4"
-    ],
-    [
-      "UEFI", "Output", "ForceResolution", "0.6.3"
-    ],
-    [
-      "PlatformInfo", "Generic", "ProcessorType", "0.6.2"
-    ],
-    [
-      "UEFI", "ProtocolOverrides", "AppleSecureBoot", "0.6.1"
-    ],
-    [
-      "UEFI", "ProtocolOverrides", "AppleFramebufferInfo", "0.6.0"
     ]
   ]
 }

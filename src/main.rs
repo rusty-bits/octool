@@ -469,22 +469,6 @@ fn process(
                     res::merge_whole_plist(settings, resources, stdout);
                     showing_info = true;
                 }
-                KeyCode::Char('m') => {
-                    // merge only highlighted section
-                    let initial_depth = settings.depth;
-                    let initial_key = settings.held_key.to_owned();
-                    let initial_item = settings.held_item.to_owned();
-                    if !settings.can_expand && settings.depth > 0 {
-                        settings.depth -= 1;
-                    }
-                    if edit::extract_value(settings, &resources.config_plist, false, true) {
-                        edit::merge(settings, resources, initial_depth);
-                    }
-                    settings.held_key = initial_key;
-                    settings.held_item = initial_item;
-                    settings.depth = initial_depth;
-                    settings.modified = true;
-                }
                 KeyCode::Char('i') => {
                     if !showing_info {
                         let mut empty_vec = vec![];
@@ -621,6 +605,7 @@ fn main() {
     let mut resources = Resources {
         dortania: Default::default(),
         octool_config: Default::default(),
+        config_differences: Default::default(),
         resource_list: Default::default(),
         other: Default::default(),
         config_plist: plist::Value::Boolean(false),
@@ -634,6 +619,10 @@ fn main() {
     resources.octool_config =
         res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
     let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
+
+    //load config_differences
+    resources.config_differences =
+        res::get_serde_json_quiet("tool_config_files/config_differences.json").unwrap();
 
     let mut setup = Settings {
         held_item: None,

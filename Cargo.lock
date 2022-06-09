@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "octool"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "crossterm",
  "curl",
@@ -377,15 +377,15 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl-probe"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28988d872ab76095a6e6ac88d99b54fd267702734fd7ffe610ca27f533ddb95a"
+checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.67"
+version = "0.9.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69df2d8dfc6ce3aaf44b40dec6f487d5a886516cf6879c49e98e0710f310a058"
+checksum = "7e46109c383602735fa0a2e48dd2b7c892b048e1bf69e5c3b1d804b7d9c203cb"
 dependencies = [
  "autocfg",
  "cc",

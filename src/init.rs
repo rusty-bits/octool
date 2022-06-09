@@ -426,7 +426,7 @@ pub fn validate_plist(
 pub fn guess_version(resources: &Resources) -> String {
     let mut found = vec![Found::new()];
     let config_differences: Vec<(String, String, String, String)> =
-        serde_json::from_value(resources.octool_config["config_differences"].clone()).unwrap();
+        serde_json::from_value(resources.config_differences["config_differences"].clone()).unwrap();
 
     for (sec, sub, search, ver) in config_differences {
         find(&search, &resources.config_plist, &mut found);

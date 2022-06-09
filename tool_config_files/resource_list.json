@@ -9,6 +9,10 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "BiosVideo.efi": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
+  },
   "BootKicker.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
@@ -90,6 +94,10 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "OpenNtfsDxe.efi": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
+  },
   "OpenPartitionDxe.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
@@ -123,6 +131,10 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "ResetNvramEntry.efi": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
+  },
   "ResetSystem.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
@@ -143,6 +155,10 @@
   "TmpInfo.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
+  },
+  "ToggleSipEntry": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "UsbMouseDxe.efi": {
     "parent": "OpenCorePkg",

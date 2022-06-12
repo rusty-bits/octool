@@ -654,11 +654,20 @@ fn main() {
 
     let mut stdout = stdout();
 
+    // get dynamic res list zip
     let url = resources.octool_config["octool_latest_dyn_res_list_url"]
         .as_str()
         .expect("getting url from config");
-    write!(stdout, "{}\n", &url).unwrap();
-    res::curl_file(&url, &working_dir.join("tool_config_files/dyn_res_list.zip")).expect("getting res zip");
+    let zip_path = &working_dir.join("tool_config_files/dyn_res_list.zip");
+    res::curl_file(&url, &zip_path).expect("getting dynamic res list");
+
+    // unzip dynamic res list
+    let z_file = File::open(&zip_path).expect("opening zip file");
+    let mut z_archive = zip::ZipArchive::new(z_file).expect("creating archive");
+    match z_archive.extract(&working_dir.join("tool_config_files")) {
+        Ok(_) => (), // leave zip file in place
+        Err(e) => panic!("{:?}", e),
+    }
 
     //load config_differences
     resources.config_differences =

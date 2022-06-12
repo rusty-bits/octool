@@ -2,7 +2,7 @@
   "octool_version": "v0.4.0 2022-06-09",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
-  "octool_latest_config_differences_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/config_differences.json",
+  "octool_latest_dyn_res_list_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/dyn_res_list.zip",
 
   "acpi_path": "Docs/AcpiSamples/Binaries",
   "drivers_path": "X64/EFI/OC/Drivers",

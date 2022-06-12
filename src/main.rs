@@ -602,6 +602,16 @@ fn main() {
     }
     env::set_current_dir(&working_dir).expect("Setting up environment");
 
+    // pub dortania: serde_json::Value, // Dortania builds config.json file
+    // pub octool_config: serde_json::Value, // config file for octool itself
+    // pub config_differences: serde_json::Value, // config file for octool itself
+    // pub resource_list: serde_json::Value, // list linking resources to their parents
+    // pub other: serde_json::Value,    // list of other party parent/childs
+    // pub config_plist: plist::Value,  // current active config.plist
+    // pub sample_plist: plist::Value,  // latest Sample.plist
+    // pub working_dir_path: PathBuf,   // location of octool and files
+    // pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
+    // pub open_core_source_path: PathBuf, // location of OpenCore source files
     let mut resources = Resources {
         dortania: Default::default(),
         octool_config: Default::default(),
@@ -619,10 +629,6 @@ fn main() {
     resources.octool_config =
         res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
     let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
-
-    //load config_differences
-    resources.config_differences =
-        res::get_serde_json_quiet("tool_config_files/config_differences.json").unwrap();
 
     let mut setup = Settings {
         held_item: None,
@@ -648,6 +654,17 @@ fn main() {
 
     let mut stdout = stdout();
 
+    let url = resources.octool_config["octool_latest_dyn_res_list_url"]
+        .as_str()
+        .expect("getting url from config");
+    write!(stdout, "{}\n", &url).unwrap();
+    res::curl_file(&url, &working_dir.join("tool_config_files/dyn_res_list.zip")).expect("getting res zip");
+
+    //load config_differences
+    resources.config_differences =
+        res::get_serde_json_quiet("tool_config_files/config_differences.json").unwrap();
+
+
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();
@@ -656,18 +673,15 @@ fn main() {
             if arg.starts_with('-') {
                 for c in arg.chars() {
                     match c {
-                        'o' => match args.next() {
-                            Some(version) => setup.oc_build_version = version.to_owned(),
-                            _ => {
-                                write!(stdout,
-                                    "\r\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
-                                    with the -o option\r\n"
-                                )
-                                .unwrap();
-                                write!(stdout, "e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\r\n")
-                                    .unwrap();
-                                std::process::exit(0);
-                            }
+                        'h' => {
+                            write!(
+                                stdout,
+                                "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n"
+                            )
+                            .unwrap();
+                            write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
+                                     select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
+                            std::process::exit(0);
                         },
                         'v' => {
                             write!(stdout, "\r\noctool {}", setup.octool_version).unwrap();
@@ -690,18 +704,21 @@ fn main() {
                                 }
                             }
                             std::process::exit(0);
-                        }
+                        },
+                        'o' => match args.next() {
+                            Some(version) => setup.oc_build_version = version.to_owned(),
+                            _ => {
+                                write!(stdout,
+                                    "\r\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
+                                    with the -o option\r\n"
+                                )
+                                .unwrap();
+                                write!(stdout, "e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\r\n")
+                                    .unwrap();
+                                std::process::exit(0);
+                            }
+                        },
                         'd' => setup.build_type = "debug".to_string(),
-                        'h' => {
-                            write!(
-                                stdout,
-                                "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n"
-                            )
-                            .unwrap();
-                            write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
-                                     select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
-                            std::process::exit(0);
-                        }
                         _ => (),
                     }
                 }

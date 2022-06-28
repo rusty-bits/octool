@@ -10,7 +10,7 @@ use fs_extra::dir::{copy, CopyOptions};
 use std::collections::HashMap;
 
 use std::fs::File;
-use std::io::{stdout, Stdout, Write};
+use std::io::{stdout, BufReader, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::{env, error::Error};
@@ -25,6 +25,8 @@ use crossterm::{
 use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
+
+const OCTOOL_VERSION: &str = &"v0.4.2 2022-06-28";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -129,6 +131,8 @@ fn process(
                         writeln!(stdout, "\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m\r")?;
                         if &env::current_dir().unwrap() != current_dir {
                             writeln!(stdout, "Copying OUTPUT EFI folder to this directory\r")?;
+                            fs_extra::dir::remove(current_dir.join("EFI"))?;
+                            //are copy options needed anymore since the EFI is deleted first?
                             let mut options = CopyOptions::new();
                             options.overwrite = true;
                             copy("OUTPUT/EFI", current_dir, &options)?;
@@ -326,6 +330,7 @@ fn process(
                 KeyCode::Char('V') => {
                     let mut parent_res = "OpenCorePkg".to_string();
                     if settings.is_resource() {
+                        // get parent name of selected resource
                         settings.res_name(&mut parent_res);
                         if let Some(p) = resources.resource_list[&parent_res]["parent"].as_str() {
                             parent_res = p.to_string();
@@ -352,8 +357,10 @@ fn process(
                         let mut new_ver;
                         if versions.len() > 0 {
                             if &parent_res != "OpenCorePkg" {
-                                new_ver =
-                                    versions[0].split("---").next().unwrap().trim().to_owned();
+                                let mut res_ver_name = String::new();
+                                settings.res_name(&mut res_ver_name);
+                                new_ver = res::res_version(settings, &resources, &res_ver_name);
+                                //versions[0].split("---").next().unwrap().trim().to_owned();
                             } else {
                                 new_ver = settings.oc_build_version.to_owned();
                             }
@@ -435,8 +442,8 @@ fn process(
                                '{grn}p{yel}' to place old {grn}{cur}{yel} back into plist if needed{res}{clr}\r\n{clr}",
                             obj = &obj,
                             cur = &settings.sec_key[settings.depth],
-                            yel = "\x1b[32m",
-                            grn = "\x1b[33m",
+                            yel = "\x1b[33m",
+                            grn = "\x1b[32m",
                             und = "\x1b[4m",
                             res = "\x1b[0m",
                             clr = "\x1b[0K",
@@ -537,18 +544,18 @@ fn process(
                         Ok(f) => f,
                     };
 
-                    //                    resources.sample_plist.to_writer_binary(&manifest_file)?;
-                    let mut out_indexes = HashMap::<String, String>::default();
+                    let mut out_parent_shas = HashMap::<String, String>::default();
                     for v in &settings.resource_ver_indexes {
-                        out_indexes.insert(v.0.to_owned(), v.1 .1.to_owned());
+                        out_parent_shas.insert(v.0.to_owned(), v.1 .1.to_owned());
                     }
-                    serde_json::to_writer(&manifest_file, &out_indexes)?;
-
-                    //                    let man_reader = File::open(&manifest_path)?;
-                    //                    let tp = plist::Value::from_file(&manifest_path)?;
-                    //                    let ta = "";
-                    //                    let ta: HashMap<String, (usize, String)> = serde_json::from_reader(&man_reader)?;
-                    //                    write!(stdout, "{:?}\r\n{:?}", tp, ta)?;
+                    let man_out = (
+                        &settings.build_type,
+                        &settings.oc_build_version,
+                        &out_parent_shas,
+                        &resources.config_plist,
+                    );
+                    serde_json::to_writer(&manifest_file, &man_out)?;
+                    //                    resources.config_plist.to_writer_xml(&manifest_file)?;
 
                     let _ = init::validate_plist(
                         &Path::new(&save_path).to_path_buf(),
@@ -602,16 +609,6 @@ fn main() {
     }
     env::set_current_dir(&working_dir).expect("Setting up environment");
 
-    // pub dortania: serde_json::Value, // Dortania builds config.json file
-    // pub octool_config: serde_json::Value, // config file for octool itself
-    // pub config_differences: serde_json::Value, // config file for octool itself
-    // pub resource_list: serde_json::Value, // list linking resources to their parents
-    // pub other: serde_json::Value,    // list of other party parent/childs
-    // pub config_plist: plist::Value,  // current active config.plist
-    // pub sample_plist: plist::Value,  // latest Sample.plist
-    // pub working_dir_path: PathBuf,   // location of octool and files
-    // pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
-    // pub open_core_source_path: PathBuf, // location of OpenCore source files
     let mut resources = Resources {
         dortania: Default::default(),
         octool_config: Default::default(),
@@ -625,6 +622,24 @@ fn main() {
         open_core_source_path: Default::default(),
     };
 
+    if !working_dir.join("INPUT").exists() {
+        std::fs::create_dir_all(working_dir.join("INPUT")).expect("creating INPUT directory");
+    }
+
+    if !working_dir.join("tool_config_files").exists() {
+        std::fs::create_dir_all(working_dir.join("tool_config_files"))
+            .expect("creating tool_config_files directory");
+    }
+
+    if !working_dir
+        .join("tool_config_files/octool_config.json")
+        .exists()
+    {
+        let url = "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json";
+        let path = working_dir.join("tool_config_files/octool_config.json");
+        res::curl_file(&url, &path).expect("getting latest octool_config file");
+    }
+
     //load octool config file
     resources.octool_config =
         res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
@@ -634,10 +649,7 @@ fn main() {
         held_item: None,
         build_type: "release".to_string(),
         oc_build_version: "latest".to_string(),
-        octool_version: resources.octool_config["octool_version"]
-            .as_str()
-            .expect("getting version number")
-            .to_owned(),
+        octool_version: OCTOOL_VERSION.to_string(),
         show_info_url: resources.octool_config["show_url_in_info_screens"]
             .as_bool()
             .unwrap_or(true),
@@ -673,7 +685,6 @@ fn main() {
     resources.config_differences =
         res::get_serde_json_quiet("tool_config_files/config_differences.json").unwrap();
 
-
     let mut config_file = working_dir.join("INPUT/config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();
@@ -691,7 +702,7 @@ fn main() {
                             write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
                                      select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
                             std::process::exit(0);
-                        },
+                        }
                         'v' => {
                             write!(stdout, "\r\noctool {}", setup.octool_version).unwrap();
                             if latest_octool_ver > setup.octool_version {
@@ -713,7 +724,7 @@ fn main() {
                                 }
                             }
                             std::process::exit(0);
-                        },
+                        }
                         'o' => match args.next() {
                             Some(version) => setup.oc_build_version = version.to_owned(),
                             _ => {
@@ -796,6 +807,47 @@ fn main() {
         config_file = Path::new("").to_path_buf();
     } else {
         write!(stdout, "\r\nUsing {:?}\r\n", config_file).unwrap();
+        if config_file.to_str().unwrap().ends_with(".man") {
+            let manifest_file = match File::open(&config_file) {
+                Err(e) => panic!("Couldn't open {:?}: {}", &config_file, e),
+                Ok(f) => f,
+            };
+            let manifest_reader = BufReader::new(&manifest_file);
+
+            let parent_shas: HashMap<String, String>;
+            (
+                setup.build_type,
+                setup.oc_build_version,
+                parent_shas,
+                resources.config_plist,
+            ) = serde_json::from_reader(manifest_reader).unwrap();
+            for (parent, sha) in parent_shas {
+                let mut i = 0;
+                loop {
+                    if let Some(v) =
+                        resources.dortania[&parent]["versions"][i]["commit"]["sha"].as_str()
+                    {
+                        if v == &sha {
+                            setup.resource_ver_indexes.insert(parent, Manifest(i, sha));
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                    i += 1;
+                }
+            }
+
+            config_file =
+                PathBuf::from(config_file.to_str().unwrap().strip_suffix(".man").unwrap());
+            /* do not write config.plist out until DATA as byte array issue is resolved
+                        resources
+                            .config_plist
+                            .to_file_xml(&config_file)
+                            .expect("writing config.plist");
+            */
+        }
+
         resources.config_plist = plist::Value::from_file(&config_file)
             .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
         if &setup.oc_build_version == "latest" {

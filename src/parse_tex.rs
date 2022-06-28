@@ -216,7 +216,11 @@ pub fn show_info(
                         hit_bottom = true;
                     }
                     if i == result.len() - 1 {
-                        write!(stdout, "{}END{} ... 'q' to quit\x1B[G", "\x1b[7m", &settings.bg_col_info,)?;
+                        write!(
+                            stdout,
+                            "{}END{} ... 'q' to quit\x1B[G",
+                            "\x1b[7m", &settings.bg_col_info,
+                        )?;
                     } else {
                         write!(stdout, "\x1b[7mmore{} ...\x1B[G", &settings.bg_col_info)?;
                     }
@@ -283,7 +287,13 @@ pub fn show_info(
 ///
 /// TODO: pass back attributes so formatting/mode can exist for more than 1 line
 ///
-fn parse_line(line: &str, columns: i32, align: bool, gather_valid: bool, settings: &Settings) -> String {
+fn parse_line(
+    line: &str,
+    columns: i32,
+    align: bool,
+    gather_valid: bool,
+    settings: &Settings,
+) -> String {
     let mut ret = String::new();
     let mut build_key = false;
     let mut key = String::new();

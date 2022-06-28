@@ -282,6 +282,8 @@ pub fn init_oc_build(
         }
     }
 
+    //this will always set the build index to the top value for the particular opencore version
+    //selected, this will currently override any manifest setting for which sha to use
     settings.resource_ver_indexes.insert(
         "OpenCorePkg".to_owned(),
         Manifest(

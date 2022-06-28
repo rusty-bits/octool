@@ -12,6 +12,8 @@ use sha2::Digest;
 
 // TODO: much of this module needs refactoring, well, I'm learning
 // TODO: many of the functions seem redundant and need improvement, soon, lol
+
+#[derive(Debug)]
 pub struct Resources {
     pub dortania: serde_json::Value, // Dortania builds config.json file
     pub octool_config: serde_json::Value, // config file for octool itself
@@ -415,7 +417,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
                 }
                 _ => write!(
                     stdout,
-                    "{:?} \x1b[32mwill be downloaded{}\x1b[0K\r\n",
+                    "{:?} \x1b[33mwill be downloaded{}\x1b[0K\r\n",
                     p, bgc
                 )
                 .unwrap(),

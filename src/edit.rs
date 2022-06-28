@@ -140,6 +140,11 @@ pub fn add_delete_value(settings: &mut Settings, mut plist_val: &mut Value, add:
     match plist_val {
         Value::Dictionary(d) => {
             if add {
+                if d.contains_key(&settings.held_key) {
+                    settings
+                        .held_key
+                        .insert_str(settings.held_key.len(), "-copy");
+                }
                 match settings.held_item.clone() {
                     Some(item) => {
                         if d.insert(settings.held_key.to_owned(), item) == None {

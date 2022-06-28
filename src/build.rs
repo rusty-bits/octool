@@ -4,8 +4,8 @@ use crate::res::{self, get_res_path, res_version, status, Resources};
 use fs_extra::dir::{self, CopyOptions};
 use std::error::Error;
 use std::fs;
-use std::io::{self, Stdout, Write};
-use std::path::Path;
+use std::io::{Stdout, Write};
+use std::path::{Path, PathBuf};
 
 /// Create the OUTPUT/EFI from the loaded config.plist
 /// If octool is being run from a different directory then also copy the
@@ -139,13 +139,26 @@ pub fn build_output(
         lang.push_str(&canopy_language);
         lang.push('_');
         let input_resources = Path::new("INPUT/Resources");
+        let in_path = Path::new("resources/OcBinaryData/Resources");
+        let out_path = Path::new("OUTPUT/EFI/OC/Resources");
         for res in &["Audio", "Font", "Image", "Label"] {
-            let in_path = Path::new("resources/OcBinaryData/Resources");
-            let out_path = Path::new("OUTPUT/EFI/OC/Resources");
-            let mut entries = fs::read_dir(in_path.join(res))?
-                .map(|r| r.map(|p| p.path()))
-                .collect::<Result<Vec<_>, io::Error>>()?;
-            if res == &"Audio" {
+            let mut entries: Vec<PathBuf> = Default::default();
+            let mut res_source = "";
+            if input_resources.join(&res).exists() {
+                for r in fs::read_dir(input_resources.join(res))? {
+                    entries.push(r?.path());
+                }
+                res_source = "\x1b[33mINPUT/Resources\x1b[0m";
+            }
+            if entries.len() == 0 {
+                for r in fs::read_dir(in_path.join(res))? {
+                    entries.push(r?.path());
+                }
+                res_source = "OcBinaryData";
+            }
+            // only use selected language if using OcBinaryData as input source, otherwise do not
+            // modify the source list at all
+            if res == &"Audio" && res_source == "OcBinaryData" {
                 entries.retain(|p| p.to_str().unwrap().contains(&lang));
                 let f = Path::new("resources/OcBinaryData/Resources/Audio");
                 for file in resources.octool_config["global_audio_files"]
@@ -155,21 +168,17 @@ pub fn build_output(
                     entries.push(f.join(file.as_str().unwrap()));
                 }
             }
-            if input_resources.join(res).exists() {
-                for r in fs::read_dir(input_resources.join(res))? {
-                    entries.push(r?.path());
-                }
-            }
             let mut s = "";
             if entries.len() > 1 {
                 s = "s";
             };
             write!(
                 stdout,
-                "\x1B[32mCopying\x1B[0m {} {} resource{} from OcBinaryData ... ",
+                "\x1B[32mCopying\x1B[0m {} {} resource{} from {} ... ",
                 entries.len(),
                 res,
-                s
+                s,
+                res_source
             )?;
             stdout.flush()?;
             fs_extra::copy_items(&entries, out_path.join(res), &options)?;

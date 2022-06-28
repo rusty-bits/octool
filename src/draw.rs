@@ -25,7 +25,8 @@ pub fn update_screen(
     //    let bgc = &settings.bg_col.clone();
     let bgc = "\x1b[0m";
 
-    write!(stdout, "\x1B[{}H", rows - 1)?; // show footer first, in case we need to write over it
+    // show footer first, in case we need to write over it
+    write!(stdout, "\x1B[{}H", rows - 1)?;
     write!(
         stdout,
         " {inv}D{res}/{inv}^x{res}cut {inv}^c{res}op{inv}y{res} {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
@@ -41,7 +42,8 @@ pub fn update_screen(
         blu = "\x1b[34m",
     )?;
 
-    write!(stdout, "\x1B[3H")?; // jump under header
+    // jump under header, draw plist
+    write!(stdout, "\x1B[3H")?;
     let mut row = 4;
     let list = plist.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
@@ -73,8 +75,10 @@ pub fn update_screen(
         blanks = 0;
     }
 
-    write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?; // clear rows up to footer
-                                                                  // lastly draw the header
+    // clear rows up to footer
+    write!(stdout, "{}", "\r\n\x1B[0K".repeat(blanks as usize))?;
+
+    // lastly draw the header
     let mut info = String::new();
     settings.res_name(&mut info);
     if info.len() > 20 {

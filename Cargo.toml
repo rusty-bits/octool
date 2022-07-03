@@ -1,25 +1,27 @@
 [package]
-name = "octool"
-version = "0.4.2"
 authors = ["rusty-bits <rusty_bits@aol.com>"]
 edition = "2021"
+name = "octool"
+version = "0.4.2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-plist = "1.3.1"
+crossterm = "0.23.2"
+curl = "0.4.43"
+fs_extra = "1.2.0"
 hex = "0.4.3"
+plist = "1.3.1"
+rand = "0.8.5"
 serde_json = "1.0.81"
 sha2 = "0.10.2"
-fs_extra = "1.2.0"
-crossterm = "0.23.2"
-rand = "0.8.5"
-zip = "0.6.2"
-curl = "0.4.43"
 walkdir = "2.3.2"
+zip = "0.6.2"
 
 [profile.release]
-opt-level = "s"
-lto = true
 codegen-units = 1
+lto = true
+opt-level = "z"
 panic = "abort"
+strip = true
+

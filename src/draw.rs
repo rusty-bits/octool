@@ -282,7 +282,7 @@ fn display_value(
                 if v.keys().len() == 0 {
                     write!(
                         stdout,
-                        "\r\n\x1B[0K{}{}\x1B[7mempty{}",
+                        "\r\n\x1B[0K{}\x1B[7mempty{}{}",
                         "    ".repeat(display_depth + 1),
                         bgc,
                         save_curs_pos

@@ -98,6 +98,8 @@ pub fn extract_value(
                                 match val {
                                     Value::String(_) => *val = Value::String("".to_string()),
                                     Value::Boolean(_) => *val = Value::Boolean(false),
+                                    Value::Integer(_) => *val = Value::Integer(plist::Integer::from(0)),
+                                    Value::Data(_) => *val = Value::Data(Default::default()),
                                     _ => (),
                                 }
                             }
@@ -329,12 +331,15 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
         res_list.sort();
         let msg = format!("Select new {} from a list", res_type,);
         item_types.push(msg);
+        selection_adjust += 1;
+    }
+    if settings.inside_an_array && settings.depth == 2 {
         let msg = format!(
-            "New {} {} template from Sample.plist",
+            "New {} > {} template from Sample.plist",
             settings.sec_key[0], settings.sec_key[1]
         );
+        selection_adjust += 1;
         item_types.push(msg);
-        selection_adjust = 2;
     }
     for s in [
         "plist array",
@@ -384,8 +389,9 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
     if selection == 0 {
         return;
     };
-    if selection_adjust > 1 && selection < 3 {
-        if selection == 1 {
+//    if selection_adjust > 1 && selection < 3 {
+    if selection <= selection_adjust {
+        if selection == 1 && selection_adjust == 2 {
             let mut selected_res = res_list[0].clone();
             write!(
                 stdout,

@@ -20,13 +20,13 @@ pub fn update_screen(
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
     let plist = &resources.config_plist;
-    let rows: i32 = size().unwrap().1.into();
+    let screen_rows: i32 = size().unwrap().1.into();
     settings.can_expand = false;
     //    let bgc = &settings.bg_col.clone();
     let bgc = "\x1b[0m";
 
-    // show footer first, in case we need to write over it
-    write!(stdout, "\x1B[{}H", rows - 1)?;
+    // draw footer first, in case we need to write over it
+    write!(stdout, "\x1B[{}H", screen_rows - 1)?;
     write!(
         stdout,
         " {inv}D{res}/{inv}^x{res}cut {inv}^c{res}op{inv}y{res} {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
@@ -44,12 +44,12 @@ pub fn update_screen(
 
     // jump under header, draw plist
     write!(stdout, "\x1B[3H")?;
-    let mut row = 4;
+    let mut row_being_drawn = 4;
     let list = plist.as_dictionary().unwrap();
     let keys: Vec<String> = list.keys().map(|s| s.to_string()).collect();
     for (i, k) in keys.iter().enumerate() {
-        if row < rows {
-            row += display_value(
+        if row_being_drawn < screen_rows {
+            row_being_drawn += display_value(
                 k,
                 None,
                 settings,
@@ -66,11 +66,11 @@ pub fn update_screen(
     #[cfg(debug_assertions)]
     write!(
         stdout,
-        "debug-> {:?} {} {:?}",
-        settings.sec_length, settings.depth, settings.sec_num
+        "debug-> {:?} {} {:?} array? {}",
+        settings.sec_length, settings.depth, settings.sec_num, settings.inside_an_array
     )?;
 
-    let mut blanks = rows - row - 1;
+    let mut blanks = screen_rows - row_being_drawn - 1;
     if blanks < 0 {
         blanks = 0;
     }
@@ -176,7 +176,12 @@ fn display_value(
                 settings.live_value.clear();
             }
             if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
+                // we have an open array
                 pre_key = 'v';
+                if settings.depth == display_depth + 1 {
+                    // we are in the first level of an array
+                    settings.inside_an_array = true;
+                }
             }
             write!(
                 stdout,

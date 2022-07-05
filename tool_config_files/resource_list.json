@@ -5,20 +5,74 @@
   "AcpiTestApp.efi": {
     "parent": "OpenCorePkg"
   },
+  "AirPortBrcm4360_Injector.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "AirPortBrcmNIC_Injector.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "AirportBrcmFixup.kext": {
+    "parent": "AirportBrcmFixup"
+  },
+  "AppleALC.kext": {
+    "parent": "AppleALC"
+  },
+  "AppleMCEReporterDisabler.kext": {
+    "parent": "AppleMCEReporterDisabler"
+  },
+  "AtherosE2200Ethernet.kext": {
+    "parent": "AtherosEthernetE2200"
+  },
   "AudioDxe.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
+  },
+  "BOOTx64.efi": {
+    "parent": "OpenCorePkg"
+  },
+  "BT4LEContinuityFixup.kext": {
+    "parent": "BT4LEContinuityFixup"
   },
   "BiosVideo.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "BlueToolFixup.kext": {
+    "parent": "BrcmPatchRAM"
+  },
   "BootKicker.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
-  "BOOTx64.efi": {
-    "parent": "OpenCorePkg"
+  "BrcmBluetoothInjector.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmFirmwareData.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmFirmwareRepo.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmNonPatchRAM.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmNonPatchRAM2.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM2.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrcmPatchRAM3.kext": {
+    "parent": "BrcmPatchRAM"
+  },
+  "BrightnessKeys.kext": {
+    "parent": "BrightnessKeys"
+  },
+  "CPUFriend.kext": {
+    "parent": "CPUFriend"
   },
   "ChipTune.efi": {
     "parent": "OpenCorePkg",
@@ -31,6 +85,12 @@
   "ControlMsrE2.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
+  },
+  "CpuTopologySync.kext": {
+    "parent": "CpuTopologySync"
+  },
+  "CpuTscSync.kext": {
+    "parent": "CpuTscSync"
   },
   "CrScreenshotDxe.efi": {
     "parent": "OpenCorePkg",
@@ -52,6 +112,20 @@
   "DataHubTestApp.efi": {
     "parent": "OpenCorePkg"
   },
+  "DebugEnhancer.kext": {
+    "parent": "DebugEnhancer"
+  },
+  "ExFatDxe.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
+  },
+  "ExFatDxeLegacy.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
+  },
+  "FeatureUnlock.kext": {
+    "parent": "FeatureUnlock"
+  },
   "GdbSyms.efi": {
     "parent": "OpenCorePkg"
   },
@@ -59,17 +133,47 @@
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
+  "HfsPlus.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
+  },
+  "HfsPlus32.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
+  },
+  "HfsPlusLegacy.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
+  },
+  "HibernationFixup.kext": {
+    "parent": "HibernationFixup"
+  },
   "HiiDatabase.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
+  },
+  "IntelMausi.kext": {
+    "parent": "IntelMausi"
   },
   "KeyTester.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
+  "Lilu.kext": {
+    "parent": "Lilu"
+  },
+  "MacHyperVSupport.kext": {
+    "parent": "MacHyperVSupport"
+  },
   "MmapDump.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
+  },
+  "NVMeFix.kext": {
+    "parent": "NVMeFix"
+  },
+  "NoTouchID.kext": {
+    "parent": "NoTouchID"
   },
   "NvmExpressDxe.efi": {
     "parent": "OpenCorePkg",
@@ -106,13 +210,13 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
-  "OpenUsbKbDxe.efi": {
-    "parent": "OpenCorePkg",
-    "res_type": "driver"
-  },
   "OpenShell.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
+  },
+  "OpenUsbKbDxe.efi": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
   "PavpProvision.efi": {
     "parent": "OpenCorePkg"
@@ -131,6 +235,18 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "RTCMemoryFixup.kext": {
+    "parent": "RTCMemoryFixup"
+  },
+  "RadeonGadget.app": {
+    "parent": "RadeonSensor"
+  },
+  "RadeonSensor.kext": {
+    "parent": "RadeonSensor"
+  },
+  "RealtekRTL8111.kext": {
+    "parent": "RealtekRTL8111"
+  },
   "ResetNvramEntry.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
@@ -139,12 +255,126 @@
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
+  "RestrictEvents.kext": {
+    "parent": "RestrictEvents"
+  },
   "RtcRw.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
+  "SMCBatteryManager.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCDellSensors.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCLightSensor.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCProcessor.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SMCRadeonGPU.kext": {
+    "parent": "RadeonSensor"
+  },
+  "SMCSuperIO.kext": {
+    "parent": "VirtualSMC"
+  },
+  "SSDT-ALS0.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-AWAC-DISABLE.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-AWAC.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-BRG0.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-CPUR.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-DESKTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-LAPTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-USBX-DESKTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-USBX-LAPTOP.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-EC-USBX.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-EC.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-EHCx-DISABLE.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-CPU.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-PLUG.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-HV-VMBUS.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-IMEI-S.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-IMEI.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-PLUG-DRTNIA.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PLUG.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-PMC.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-PNLF-CFL.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-PNLF.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-PNLFCFL.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-RHUB.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-RTC0-RANGE-HEDT.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
+  "SSDT-RTC0-RANGE.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-RTC0.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-SBUS-MCHC.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-UNC.aml": {
+    "parent": "OpenCorePkg"
+  },
+  "SSDT-XOSI.aml": {
+    "parent": "Getting-Started-With-ACPI"
+  },
   "Shell.efi": {
     "parent": "OpenCorePkg"
+  },
+  "SmallTreeIntel82576.kext": {
+    "parent": "SmallTreeIntel82576"
   },
   "SmbiosTest.efi": {
     "parent": "OpenCorePkg"
@@ -160,6 +390,12 @@
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },
+  "UEFIGraphicsFB.kext": {
+    "parent": "UEFIGraphicsFB"
+  },
+  "USBToolBox.kext": {
+    "parent": "USBToolBox"
+  },
   "UsbMouseDxe.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
@@ -170,75 +406,13 @@
   "VerifyMsrE2.efi": {
     "parent": "OpenCorePkg"
   },
-  "XhciDxe.efi": {
-    "parent": "OpenCorePkg",
-    "res_type": "driver"
-  },
-  "BrightnessKeys.kext": {
-    "parent": "BrightnessKeys"
-  },
-  "FeatureUnlock.kext": {
-    "parent": "FeatureUnlock"
-  },
-  "ExFatDxe.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "ExFatDxeLegacy.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "HfsPlus.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "HfsPlus32.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "HfsPlusLegacy.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "btrfs_x64.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "ext4_x64.efi": {
-    "parent": "OcBinaryData",
-    "res_type": "driver"
-  },
-  "WhateverGreen.kext": {
-    "parent": "WhateverGreen"
-  },
-  "VoodooInput.kext": {
-    "parent": "VoodooInput"
-  },
-  "CpuTscSync.kext": {
-    "parent": "CpuTscSync"
-  },
-  "CpuTopologySync.kext": {
-    "parent": "CpuTopologySync"
-  },
-  "VoodooPS2Controller.kext": {
-    "parent": "VoodooPS2"
-  },
-  "VoodooPS2Keyboard.kext": {
-    "parent": "VoodooPS2"
-  },
-  "VoodooPS2Mouse.kext": {
-    "parent": "VoodooPS2"
-  },
-  "VoodooPS2Trackpad.kext": {
-    "parent": "VoodooPS2"
-  },
-  "VoodooI2C.kext": {
-    "parent": "VoodooI2C"
+  "VirtualSMC.kext": {
+    "parent": "VirtualSMC"
   },
   "VoodooGPIO.kext": {
     "parent": "VoodooI2C"
   },
-  "VoodooI2CServices.kext": {
+  "VoodooI2C.kext": {
     "parent": "VoodooI2C"
   },
   "VoodooI2CAtmelMXT.kext": {
@@ -253,217 +427,40 @@
   "VoodooI2CHID.kext": {
     "parent": "VoodooI2C"
   },
+  "VoodooI2CServices.kext": {
+    "parent": "VoodooI2C"
+  },
   "VoodooI2CSynaptics.kext": {
     "parent": "VoodooI2C"
   },
-  "IntelMausi.kext": {
-    "parent": "IntelMausi"
+  "VoodooInput.kext": {
+    "parent": "VoodooInput"
   },
-  "AirPortBrcm4360_Injector.kext": {
-    "parent": "AirportBrcmFixup"
+  "VoodooPS2Controller.kext": {
+    "parent": "VoodooPS2"
   },
-  "AirPortBrcmNIC_Injector.kext": {
-    "parent": "AirportBrcmFixup"
+  "VoodooPS2Keyboard.kext": {
+    "parent": "VoodooPS2"
   },
-  "AirportBrcmFixup.kext": {
-    "parent": "AirportBrcmFixup"
+  "VoodooPS2Mouse.kext": {
+    "parent": "VoodooPS2"
   },
-  "BlueToolFixup.kext": {
-    "parent": "BrcmPatchRAM"
+  "VoodooPS2Trackpad.kext": {
+    "parent": "VoodooPS2"
   },
-  "BrcmBluetoothInjector.kext": {
-    "parent": "BrcmPatchRAM"
+  "WhateverGreen.kext": {
+    "parent": "WhateverGreen"
   },
-  "BrcmFirmwareData.kext": {
-    "parent": "BrcmPatchRAM"
+  "XhciDxe.efi": {
+    "parent": "OpenCorePkg",
+    "res_type": "driver"
   },
-  "BrcmFirmwareRepo.kext": {
-    "parent": "BrcmPatchRAM"
+  "btrfs_x64.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   },
-  "BrcmNonPatchRAM.kext": {
-    "parent": "BrcmPatchRAM"
-  },
-  "BrcmNonPatchRAM2.kext": {
-    "parent": "BrcmPatchRAM"
-  },
-  "BrcmPatchRAM.kext": {
-    "parent": "BrcmPatchRAM"
-  },
-  "BrcmPatchRAM2.kext": {
-    "parent": "BrcmPatchRAM"
-  },
-  "BrcmPatchRAM3.kext": {
-    "parent": "BrcmPatchRAM"
-  },
-  "BT4LEContinuityFixup.kext": {
-    "parent": "BT4LEContinuityFixup"
-  },
-  "HibernationFixup.kext": {
-    "parent": "HibernationFixup"
-  },
-  "AppleALC.kext": {
-    "parent": "AppleALC"
-  },
-  "CPUFriend.kext": {
-    "parent": "CPUFriend"
-  },
-  "VirtualSMC.kext": {
-    "parent": "VirtualSMC"
-  },
-  "SMCBatteryManager.kext": {
-    "parent": "VirtualSMC"
-  },
-  "SMCDellSensors.kext": {
-    "parent": "VirtualSMC"
-  },
-  "SMCLightSensor.kext": {
-    "parent": "VirtualSMC"
-  },
-  "SMCProcessor.kext": {
-    "parent": "VirtualSMC"
-  },
-  "SMCSuperIO.kext": {
-    "parent": "VirtualSMC"
-  },
-  "Lilu.kext": {
-    "parent": "Lilu"
-  },
-  "MacHyperVSupport.kext": {
-    "parent": "MacHyperVSupport"
-  },
-  "RestrictEvents.kext": {
-    "parent": "RestrictEvents"
-  },
-  "SidecarFixup.kext": {
-    "parent": "SidecarFixup"
-  },
-  "UEFIGraphicsFB.kext": {
-    "parent": "UEFIGraphicsFB"
-  },
-  "RTCMemoryFixup.kext": {
-    "parent": "RTCMemoryFixup"
-  },
-  "RealtekRTL8111.kext": {
-    "parent": "RealtekRTL8111"
-  },
-  "NVMeFix.kext": {
-    "parent": "NVMeFix"
-  },
-  "NoTouchID.kext": {
-    "parent": "NoTouchID"
-  },
-  "DebugEnhancer.kext": {
-    "parent": "DebugEnhancer"
-  },
-  "SSDT-AWAC.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-AWAC-DISABLE.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-ALS0.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-BRG0.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-CPUR.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-EC.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-EC-DESKTOP.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-EC-LAPTOP.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-EC-USBX.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-EC-USBX-DESKTOP.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-EC-USBX-LAPTOP.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-EHCx-DISABLE.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-HV-CPU.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-HV-PLUG.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-HV-VMBUS.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-IMEI.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-IMEI-S.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-PLUG.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-PLUG-DRTNIA.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-PMC.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-PNLF.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-PNLF-CFL.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-PNLFCFL.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-RHUB.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-RTC0.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-RTC0-RANGE.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-RTC0-RANGE-HEDT.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "SSDT-SBUS-MCHC.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-UNC.aml": {
-    "parent": "OpenCorePkg"
-  },
-  "SSDT-XOSI.aml": {
-    "parent": "Getting-Started-With-ACPI"
-  },
-  "AppleMCEReporterDisabler.kext": {
-    "parent": "AppleMCEReporterDisabler"
-  },
-  "SmallTreeIntel82576.kext": {
-    "parent": "SmallTreeIntel82576"
-  },
-  "AtherosE2200Ethernet.kext": {
-    "parent": "AtherosEthernetE2200"
-  },
-  "USBToolBox.kext": {
-    "parent": "USBToolBox"
-  },
-  "RadeonSensor.kext": {
-    "parent": "RadeonSensor"
-  },
-  "SMCRadeonGPU.kext": {
-    "parent": "RadeonSensor"
-  },
-  "RadeonGadget.app": {
-    "parent": "RadeonSensor"
+  "ext4_x64.efi": {
+    "parent": "OcBinaryData",
+    "res_type": "driver"
   }
 }

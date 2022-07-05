@@ -13,6 +13,9 @@ use crossterm::terminal;
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
+pub struct Manifest(pub usize, pub String);
+
+#[derive(Debug, Default)]
 pub struct Settings {
     pub config_file_name: String,          // name of config.plist
     pub sec_num: [usize; 5],               // selected section for each depth
@@ -36,10 +39,8 @@ pub struct Settings {
     pub bg_col_info: String,               // background color for info display
     pub octool_version: String,            // octool version being used
     pub show_info_url: bool,               // display full url link in the info screens
+    pub inside_an_array: bool,             // true if current selection is inside an array
 }
-
-#[derive(Debug, Default)]
-pub struct Manifest(pub usize, pub String);
 
 impl Settings {
     pub fn up(&mut self) {
@@ -59,12 +60,14 @@ impl Settings {
             self.sec_key[self.depth].clear();
             self.depth -= 1;
         }
+        self.inside_an_array = false;
     }
     pub fn right(&mut self) {
         if self.depth < 3 && self.can_expand {
             self.depth += 1;
             self.sec_num[self.depth] = 0;
         }
+        self.inside_an_array = false;
     }
     pub fn add(&mut self) {
         self.sec_length[self.depth] += 1;

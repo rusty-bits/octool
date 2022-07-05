@@ -1,14 +1,4 @@
 {
-  "Getting-Started-With-ACPI": {
-    "versions": [
-      {
-        "links": {
-          "debug": "https://github.com/dortania/Getting-Started-With-ACPI/archive/refs/heads/master.zip",
-          "release": "https://github.com/dortania/Getting-Started-With-ACPI/archive/refs/heads/master.zip"
-        }
-      }
-    ]
-  },
   "AppleMCEReporterDisabler": {
     "versions": [
       {
@@ -45,78 +35,22 @@
       }
     ]
   },
-  "SmallTreeIntel82576": {
+  "Getting-Started-With-ACPI": {
     "versions": [
       {
         "links": {
-          "debug": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip",
-          "release": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip"
-        },
-        "hashes": {
-          "debug": {
-            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
-          },
-          "release": {
-            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
-          }
+          "debug": "https://github.com/dortania/Getting-Started-With-ACPI/archive/refs/heads/master.zip",
+          "release": "https://github.com/dortania/Getting-Started-With-ACPI/archive/refs/heads/master.zip"
         }
       }
     ]
   },
-  "USBToolBox": {
+  "OcBinaryData": {
     "versions": [
       {
-        "version": "1.0.1",
         "links": {
-          "debug": "https://github.com/USBToolBox/kext/releases/download/1.1.0/USBToolBox-1.0.1-DEBUG.zip",
-          "release": "https://github.com/USBToolBox/kext/releases/download/1.1.0/USBToolBox-1.0.1-RELEASE.zip"
-        },
-        "hashes": {
-          "debug": {
-            "sha256": "58b24231a49228aabb8bb96df1d47c8b8f4188be739d47f970616d7900723b90"
-          },
-          "release": {
-            "sha256": "540a34fd83ab590b80fbf9d91ba6f4ae97acb05fa52840f8874ca0a08f8cd6a0"
-          }
-        }
-      }
-    ]
-  },
-  "VoodooI2C": {
-    "versions": [
-      {
-        "version": "2.4.4",
-        "hashes": {
-          "debug": {
-            "sha256": "83cca05be19525c6e27153ac6b5f47cef8ca82cc4204757c23ffe3efc0cf0db8"
-          },
-          "release": {
-            "sha256": "4a335b0553961bdf7028a0264d50b7c8664dcfe32bccca908046b057c0997d32"
-          }
-        },
-        "links": {
-          "debug": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.4.4/VoodooI2C-Debug-Symbols-2.4.4.zip",
-          "release": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.4.4/VoodooI2C-2.4.4.zip"
-        }
-      }
-    ]
-  },
-  "SidecarFixup": {
-    "latestSource": "https://github.com/acidanthera/SidecarFixup",
-    "versions": [
-      {
-        "version": "1.0.2",
-        "hashes": {
-          "debug": {
-            "sha256": "847907f3ddb7d2062a5dad4c16ab1f7752b33f4b85232c6d837666d690005212"
-          },
-          "release": {
-            "sha256": "24f4a68fff83228bb9f7771f9292212dd8a4f6559b250dd7a9f4472a6d5eeba6"
-          }
-        },
-        "links": {
-          "debug": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-DEBUG.zip",
-          "release": "https://github.com/acidanthera/SidecarFixup/releases/download/1.0.2/SidecarFixup-1.0.2-RELEASE.zip"
+          "debug": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip",
+          "release": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip"
         }
       }
     ]
@@ -140,12 +74,58 @@
       }
     ]
   },
-  "OcBinaryData": {
+  "SmallTreeIntel82576": {
     "versions": [
       {
         "links": {
-          "debug": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip",
-          "release": "https://github.com/acidanthera/OcBinaryData/archive/refs/heads/master.zip"
+          "debug": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip",
+          "release": "https://github.com/khronokernel/SmallTree-I211-AT-patch/releases/download/1.3.0/SmallTreeIntel82576.kext.zip"
+        },
+        "hashes": {
+          "debug": {
+            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
+          },
+          "release": {
+            "sha256": "5fcced4fcd1e9f1b95012aca7cfd117f4eae13b525b215e740c851fda262fa6d"
+          }
+        }
+      }
+    ]
+  },
+  "USBToolBox": {
+    "versions": [
+      {
+        "version": "1.1.1",
+        "links": {
+          "debug": "https://github.com/USBToolBox/kext/releases/download/1.1.1/USBToolBox-1.1.1-DEBUG.zip",
+          "release": "https://github.com/USBToolBox/kext/releases/download/1.1.1/USBToolBox-1.1.1-RELEASE.zip"
+        },
+        "hashes": {
+          "debug": {
+            "sha256": "5c545703d90e0cf288148a39787e3302d1d1c246981fa53d39d449d81b4536bd"
+          },
+          "release": {
+            "sha256": "6e88bc00cf895620046b2850fa0bfe6d3e21385b6d1eaad86036468e59b664de"
+          }
+        }
+      }
+    ]
+  },
+  "VoodooI2C": {
+    "versions": [
+      {
+        "version": "2.7",
+        "hashes": {
+          "debug": {
+            "sha256": "9903af7a89b3a9547ba5979264d7e4ffcf3696b8b21d8f080b47a400b98520e8"
+          },
+          "release": {
+            "sha256": "ce843a10e1c89036b60adc0fe664412c0be788a08c2ca27cf5eac67af60f0cd0"
+          }
+        },
+        "links": {
+          "debug": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.7/VoodooI2C-Debug-Symbols-2.7.zip",
+          "release": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.7/VoodooI2C-2.7.zip"
         }
       }
     ]

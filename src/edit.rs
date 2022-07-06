@@ -600,7 +600,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
         let tmp_val = hex::decode(tmp_val).unwrap();
         write!(
             stdout,
-            "\x1B8\x1B[G{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B{}\x1B8",
+            "\x1B8\x1B[G{mag}as hex{res}\x1B8{}\x1B[0K\x1B[E{mag}as string\x1B[0K\x1B8\x1B[B\x1B[4m{}\x1B8",
             draw::hex_str_with_style(edit_hex.clone()),
             draw::get_lossy_string(&tmp_val),
             mag = "\x1b[35m",
@@ -623,8 +623,7 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
                 "\x1b[35m",
                 "\x1b[0m",
                 "\x1B[C".repeat(pos / 2)
-            )
-            .unwrap();
+            )?;
         }
         stdout.flush()?;
         match read_key().unwrap().0 {
@@ -842,7 +841,7 @@ pub fn edit_string(
                 write!(stdout, "\n\x1B[2K\r\n").unwrap();
             }
         }
-        write!(stdout, "\x1B8{}\x1B[0K", new)?;
+        write!(stdout, "\x1B8\x1B[4m{}\x1B[0K", new)?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
         match read_key().unwrap().0 {

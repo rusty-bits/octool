@@ -382,7 +382,7 @@
   "SmbiosTestApp.efi": {
     "parent": "OpenCorePkg"
   },
-  "TmpInfo.efi": {
+  "TpmInfo.efi": {
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },

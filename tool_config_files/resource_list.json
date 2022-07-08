@@ -386,7 +386,7 @@
     "parent": "OpenCorePkg",
     "res_type": "tool"
   },
-  "ToggleSipEntry": {
+  "ToggleSipEntry.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
   },

@@ -26,7 +26,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.2 2022-07-05";
+const OCTOOL_VERSION: &str = &"v0.4.3 2022-07-08";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -360,9 +360,16 @@ fn process(
                                 let mut res_ver_name = String::new();
                                 settings.res_name(&mut res_ver_name);
                                 new_ver = res::res_version(settings, &resources, &res_ver_name);
-                                //versions[0].split("---").next().unwrap().trim().to_owned();
+                                // versions[0].split("---").next().unwrap().trim().to_owned();
                             } else {
                                 new_ver = settings.oc_build_version.to_owned();
+                                // reset resource versions if OpenCore version is changed
+                                if resources.octool_config["reset_res_versions"]
+                                    .as_bool()
+                                    .unwrap_or(true)
+                                {
+                                    settings.resource_ver_indexes.clear();
+                                }
                             }
 
                             write!(
@@ -666,19 +673,24 @@ fn main() {
 
     let mut stdout = stdout();
 
-    // get dynamic res list zip
-    let url = resources.octool_config["octool_latest_dyn_res_list_url"]
-        .as_str()
-        .expect("getting url from config");
-    let zip_path = &working_dir.join("tool_config_files/dyn_res_list.zip");
-    res::curl_file(&url, &zip_path).expect("getting dynamic res list");
+    if resources.octool_config["clobber_local_dyn_res_list"]
+        .as_bool()
+        .unwrap_or(true)
+    {
+        // get dynamic res list zip
+        let url = resources.octool_config["octool_latest_dyn_res_list_url"]
+            .as_str()
+            .expect("getting url from config");
+        let zip_path = &working_dir.join("tool_config_files/dyn_res_list.zip");
+        res::curl_file(&url, &zip_path).expect("getting dynamic res list");
 
-    // unzip dynamic res list
-    let z_file = File::open(&zip_path).expect("opening zip file");
-    let mut z_archive = zip::ZipArchive::new(z_file).expect("creating archive");
-    match z_archive.extract(&working_dir.join("tool_config_files")) {
-        Ok(_) => (), // leave zip file in place
-        Err(e) => panic!("{:?}", e),
+        // unzip dynamic res list
+        let z_file = File::open(&zip_path).expect("opening zip file");
+        let mut z_archive = zip::ZipArchive::new(z_file).expect("creating archive");
+        match z_archive.extract(&working_dir.join("tool_config_files")) {
+            Ok(_) => (), // leave zip file in place
+            Err(e) => panic!("{:?}", e),
+        }
     }
 
     //load config_differences

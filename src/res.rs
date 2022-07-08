@@ -51,6 +51,12 @@ pub fn get_parent_version_nums(
                 );
                 ver.push(' ');
                 ver.push_str(
+                    &resources.dortania[parent]["versions"][index]["commit"]["sha"]
+                        .as_str()
+                        .unwrap_or("no sha found")[0..7],
+                );
+                ver.push_str(" · ");
+                ver.push_str(
                     &resources.dortania[parent]["versions"][index]["commit"]["message"]
                         .as_str()
                         .unwrap_or("")
@@ -481,8 +487,11 @@ fn res_exists(
     }
 }
 
+/// version number of resource that will be used based on its manifest info
+/// if no manifest info exists for the resource, it will be looked up and stored
 pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) -> String {
     let mut ver = String::new();
+    let res = res.split("/").last().unwrap_or("");
     if let Some(parent_res) = resources.resource_list[res]["parent"].as_str() {
         match settings.resource_ver_indexes.get(parent_res) {
             Some(p_manifest) => {
@@ -534,7 +543,7 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
         }
         ver
     } else {
-        "".to_owned()
+        " \x1b[33m∆\x1b[0m ".to_owned()
     }
 }
 

@@ -278,7 +278,17 @@ fn display_value(
                 },
                 key,
                 bgc,
-                res::res_version(settings, &resources, &key),
+                if display_depth == 2 {
+                    let mut sec_sub = settings.sec_key[0].clone();
+                    sec_sub.push_str(&settings.sec_key[1]);
+                    if settings.resource_sections.contains(&sec_sub) {
+                        res::res_version(settings, &resources, &key)
+                    } else {
+                        "".to_string()
+                    }
+                } else {
+                    "".to_string()
+                },
                 v.len(),
                 save_curs_pos
             )

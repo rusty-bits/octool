@@ -1,5 +1,5 @@
 {
-  "octool_version": "v0.4.2 2022-06-05",
+  "octool_version": "v0.4.3 2022-07-08",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
   "octool_latest_dyn_res_list_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/dyn_res_list.zip",
@@ -23,6 +23,10 @@
   ],
 
   "show_url_in_info_screens": false,
+
+  "reset_res_versions": true,
+
+  "clobber_local_dyn_res_list": true,
 
   "resource_sections": [
     [

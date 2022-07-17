@@ -1,5 +1,5 @@
 {
-  "octool_version": "v0.4.3 2022-07-08",
+  "octool_version": "v0.4.4 2022-07-17",
   "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
   "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
   "octool_latest_dyn_res_list_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/dyn_res_list.zip",
@@ -15,18 +15,27 @@
   "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",
   "current_sample_plist": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Sample.plist",
 
+  "//comm_can_lang": "only include language files containing 'canopy_language' when OpenCanopy is used",
   "canopy_language": "en",
+
+  "//comm_glob_audio": "always include these audio files when OpenCanopy is used",
   "global_audio_files": [
     "AXEFIAudio_Beep.mp3",
     "AXEFIAudio_Click.mp3",
     "AXEFIAudio_VoiceOver_Boot.mp3"
   ],
 
+  "//comm_show_url": "show url in info screens in addition to link name",
   "show_url_in_info_screens": false,
 
+  "//comm_reset_ver": "when OpenCore version is changed, set other resource versions to match",
   "reset_res_versions": true,
 
+  "//comm_clob_local": "replace local res list with updated list when octool is run",
   "clobber_local_dyn_res_list": true,
+
+  "//comm_build": "set use of either 'X64' or 'IA32' build architecture",
+  "build_architecture": "X64",
 
   "resource_sections": [
     [

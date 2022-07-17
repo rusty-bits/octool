@@ -23,11 +23,13 @@ pub fn build_output(
 
     let mut options = CopyOptions::new();
     options.overwrite = true;
-    let in_path;
-    if resources.open_core_binaries_path.join("X64/EFI").exists() {
-        in_path = "X64/EFI"; // TODO: add settings for IA32 as well instead of assuming X64
-    } else {
-        in_path = "EFI"; // older OpenCorePkg versions
+    let mut in_path = resources.octool_config["build_architecture"]
+        .as_str()
+        .unwrap_or("X64")
+        .to_string();
+    in_path.push_str("/EFI");
+    if !resources.open_core_binaries_path.join(&in_path).exists() {
+        in_path = "EFI".to_string(); // older OpenCorePkg versions
     }
     dir::copy(
         &resources.open_core_binaries_path.join(in_path),

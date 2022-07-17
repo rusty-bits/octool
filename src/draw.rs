@@ -282,7 +282,10 @@ fn display_value(
                     let mut sec_sub = settings.sec_key[0].clone();
                     sec_sub.push_str(&settings.sec_key[1]);
                     if settings.resource_sections.contains(&sec_sub) {
-                        res::res_version(settings, &resources, &key)
+                        match res::res_version(settings, &resources, &key) {
+                            Some(s) => s,
+                            None => " \x1b[33m∆\x1b[0m ".to_string(),
+                        }
                     } else {
                         "".to_string()
                     }

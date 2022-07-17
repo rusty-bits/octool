@@ -9,7 +9,7 @@ mod snake;
 use fs_extra::dir::{copy, CopyOptions};
 use std::collections::HashMap;
 
-use std::fs::File;
+use std::fs::{self, File, ReadDir};
 use std::io::{stdout, BufReader, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -26,7 +26,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.3 2022-07-08";
+const OCTOOL_VERSION: &str = &"v0.4.4 2022-07-17";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -131,8 +131,10 @@ fn process(
                         writeln!(stdout, "\n\x1B[32mFinished building OUTPUT/EFI\x1B[0m\r")?;
                         if &env::current_dir().unwrap() != current_dir {
                             writeln!(stdout, "Copying OUTPUT EFI folder to this directory\r")?;
-                            fs_extra::dir::remove(current_dir.join("EFI"))?;
-                            //are copy options needed anymore since the EFI is deleted first?
+
+                            delete_dir_contents(fs::read_dir(current_dir.join("EFI")));
+                            fs::remove_dir_all(current_dir.join("EFI"))?;
+
                             let mut options = CopyOptions::new();
                             options.overwrite = true;
                             copy("OUTPUT/EFI", current_dir, &options)?;
@@ -359,7 +361,11 @@ fn process(
                             if &parent_res != "OpenCorePkg" {
                                 let mut res_ver_name = String::new();
                                 settings.res_name(&mut res_ver_name);
-                                new_ver = res::res_version(settings, &resources, &res_ver_name);
+                                new_ver =
+                                    match res::res_version(settings, &resources, &res_ver_name) {
+                                        Some(s) => s,
+                                        None => "".to_string(),
+                                    }
                                 // versions[0].split("---").next().unwrap().trim().to_owned();
                             } else {
                                 new_ver = settings.oc_build_version.to_owned();
@@ -498,11 +504,6 @@ fn process(
                                 stdout,
                             )?;
                         }
-                        write!(
-                            stdout,
-                            "\x1b[4m{}\x1B[0K",
-                            " ".repeat(terminal::size()?.0.into())
-                        )?;
                         if !showing_info && empty_vec.len() == 0 {
                             settings.res_name(&mut res_name);
                             write!(
@@ -888,4 +889,24 @@ fn main() {
     stdout.execute(cursor::Show).unwrap();
 
     terminal::disable_raw_mode().unwrap();
+}
+
+fn delete_dir_contents(read_dir_res: Result<ReadDir, std::io::Error>) {
+    if let Ok(dir) = read_dir_res {
+        for entry in dir {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+
+                println!("removing {:?}", path);
+                if path.exists() {
+                    if path.is_dir() {
+                        delete_dir_contents(fs::read_dir(&path));
+                        fs::remove_dir_all(path).expect("Failed to remove a dir");
+                    } else {
+                        fs::remove_file(path).expect("Failed to remove a file");
+                    }
+                }
+            };
+        }
+    };
 }

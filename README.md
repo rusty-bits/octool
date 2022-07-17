@@ -16,22 +16,21 @@ You can build from the included source by running `cargo build --release` (if yo
 -h  print help/usage message then exit  
 
 -o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
- - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest version of OpenCore  
+ - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest OpenCore version  
 
 -v  print octool version information and booted OpenCore version if the var is in NVRAM then exit  
 
 octool takes a path to a `config.plist` to use if desired.
-If you run octool with no path provided `./octool` will first look for a `config.plist` in the `INPUT` folder, if it doesn't find one there it will use the corresponding `OpenCorePkg/Docs/Sample.plist` file.  
+If you run octool with no path provided `./octool` will look for `config.plist` in the `INPUT` folder, if it doesn't find it there it will use the `OpenCorePkg/Docs/Sample.plist` file.  
 
 ## Here's a rundown of the current process octool uses. ##  
 
 At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the prebuilt binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
- - If it finds it locally it updates it if needed 
- - If it doesn't find it locally octool downloads the `build-repo` into the `tool_config_files` folder.  
+ - It will update or download it to the `build-repo` into the `tool_config_files` folder as needed.  
 
 Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg), thanks to the [people of Acidanthera](https://github.com/acidanthera), in order to have the corresponding Sample.plist and Configuration.tex files, etc. for the version of OpenCore that you are building.  They will be placed into the `resources` folder along with the corresponding binaries from the Dortania builds.  This will allow `octool` to use Acidanthera tools while building the EFI, such as the ocvalitate and CreateVault tools.   Thanks, again [dhinakg](https://github.com/dhinakg).  
 
-As a last step, octool will run the input config.plist through ocvalitade, display any errors, and give you the option to quit or continue.  
+Lastly, octool will run the input config.plist through ocvalitade and give you the option to quit or continue.  
 If you continue you then enter the config.plist editor...  
 ```
 Navigation: arrow keys or some standard vi keys
@@ -67,29 +66,29 @@ Usage:
 
 'G' `go` (capital G) - make an OUTPUT/EFI/OC folder from the config.plist  
  - if `OpenCanopy.efi` is enabled it will copy the OcBinaryData Resources to `OUTPUT/EFI/OC/Resources`  
- - if Misc->Security->Vault is set to Basic or Secure, octool will compute the required files and sign the `OpenCore.efi` if needed  
- - right now, octool will ignore resources that it doesn't know unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist for the unknown resource  
+ - if `Misc > Security > Vault` is set to `Basic` or `Secure`, octool will compute the required files and sign the `OpenCore.efi` if needed  
+ - octool will ignore resources that it doesn't know unless they are placed in the INPUT folder, it will print out a warning, but it will not make a change to the config.plist for the unknown resource  
  - any file placed in the `INPUT` folder will take priority and will be used for the `OUTPUT/EFI`, even if a more recent version of that resource is available elsewhere. This is good for using a specific version of a kext, for example, or for using a specific SSDT or USBMap  
  - lastly, it will again validate the `OUTPUT/EFI/OC/config.plist` file with ocvalidate  
 
 'i' show `info` of highlighted item.  
  - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
- - If the highlighted item is a field of the config.plist, octool will show the description and info from the corresponding [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
+ - Otherwise, octool will show the description and info from the corresponding [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
 
 'K' `Key` - capital K - edit the name of the highlighted key  
 
-'M' `merge` - capital M - will add missing fields to the `config.plist` if they are in the `Sample.plist` without changing any existing fields.  
- - this command, coupled with its companion Purge command (capital P) will update a config.plist when any OpenCore plist format changes occur  
+'M' `merge` - capital M - will add missing fields to the `config.plist` from the `Sample.plist` without changing any existing fields.  
+ - this command, coupled with its companion Purge command (capital P) will update a config.plist when OpenCore plist format changes occur  
 
 'n' `next` - jump to the next found item if more than one occurance was found  
 
-'P' `purge` - Capital P - removes fields from the config.plist that are not in the Sample.plist  
- - this command, coupled with it's companion merge command (capital M) will update a config.plist when any OpenCore changes occur  
+'P' `purge` - Capital P - removes fields from the `config.plist` that are not in the `Sample.plist`  
+ - this command, coupled with it's companion merge command (capital M) will update a config.plist when OpenCore plst format changes occur  
 
 'p' `paste` - places the last deleted or modified etc. item into the plist (for those familiar with vi commands)  
  - if pasting into a dictionary, `octool` will append `-copy` to the pasted item  
 
-'q' `quit` - if unsaved changes were made to the `config.plist` octool will show a warning and allow changes to be saved or ignored  
+'q' `quit` - if unsaved changes were made to the `config.plist` octool will show a warning so changes can be saved  
 
 'r' `reset` - if a single item is selected, reset its value to the same as the `Sample.plist` value  
  - if a section is highlighted, reset the whole section to the same as the section in the `Sample.plist`  
@@ -99,7 +98,7 @@ Usage:
  - the saved file will be checked with `ocvalidate` for any errors  
 
 'V' `Version` - Capital V - change the version of OpenCore that will be checked against and used in the `OUTPUT` EFI  
- - if 'V' is used while a resource is highlighted, you can change the version of that specific resource  
+ - or, if 'V' is used while a resource is highlighted, you can change the version of that specific resource  
 
 'ctrl-x' `cut` - remove the highlighted field or section from the plist  
 
@@ -114,7 +113,7 @@ Usage:
  - `build-repo` folder - contains the `config.json` file from the Dortania builds repo with url, version, hash, date created, etc. info for the parent resources. octool will download this from Dortania if it doesn't exist    
  - `other.json` - contains a list of additional parent resources not included in the Dortania `build--repo`, octool will create this if it doesn't exist  
 
-`INPUT` folder - place `config.plist` here along with other files to be included in the `OUTPUT EFI`, such as custom SSDT files, custom Drivers, custom OpenCanopy themes, etc.  
+`INPUT` folder - place your `config.plist` here along with other files to be included in the `OUTPUT/EFI`, such as custom SSDT files, custom Drivers, custom OpenCanopy themes, etc.  
  - `octool` will not overwrite the input config.plist on save, instead it will save a version called `modified_config.plist` in this folder so the original `config.plist` can still be used if needed  
  - `octool` will also automatically save a config.plist titled `last_built_config.plist` when the build command is run for easy reference to a copy of the config.plist that is in the OUTPUT/EFI folder  
 
@@ -124,6 +123,5 @@ Usage:
 
 ## To Do: ##  
  - change tool configuration from inside tool, the configuration file `tool_config_files/octool_config.json` contains vars to set up octool, for example the language versions of the audio files for OpenCanopy for e.g. `en`  
- - add option to use IA32 versions instead of assuming X64  
  - keep the highlighted item on screen while reading long info from the Configuration.tex so the user can edit the field while also reading the info  
  - fix some style formatting of the info screens so underline, bold, etc. looks better when it crosses multiple lines  

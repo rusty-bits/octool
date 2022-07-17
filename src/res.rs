@@ -7,6 +7,7 @@ use std::process::{Command, Output};
 
 use curl::easy::Easy;
 use walkdir::WalkDir;
+use crossterm::terminal::size;
 
 use sha2::Digest;
 
@@ -300,7 +301,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
         stdout,
         "\r\n{}{}\r the first found resource will be used in the OUTPUT/EFI{}\r\n",
         "\x1b[4m",
-        " ".repeat(crossterm::terminal::size().unwrap().0.into()),
+        " ".repeat(size().unwrap().0.into()),
         bgc,
     )
     .unwrap();
@@ -430,6 +431,7 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
             }
         }
     }
+    write!(stdout, "\x1b[4m{}\x1B[0K", " ".repeat(size().unwrap().0.into())).unwrap();
 }
 
 /// Read the `path` file into a `serde_json::Value`
@@ -489,7 +491,7 @@ fn res_exists(
 
 /// version number of resource that will be used based on its manifest info
 /// if no manifest info exists for the resource, it will be looked up and stored
-pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) -> String {
+pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) -> Option<String> {
     let mut ver = String::new();
     let res = res.split("/").last().unwrap_or("");
     if let Some(parent_res) = resources.resource_list[res]["parent"].as_str() {
@@ -541,9 +543,9 @@ pub fn res_version(settings: &mut Settings, resources: &Resources, res: &str) ->
                 }
             }
         }
-        ver
+        Some(ver)
     } else {
-        " \x1b[33m∆\x1b[0m ".to_owned()
+        None
     }
 }
 

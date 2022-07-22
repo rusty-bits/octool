@@ -869,7 +869,7 @@ fn main() {
             //use the latest version of OpenCore as a guess if there have been no changes to the
             //config.plist, this makes the assumption that the user wants to keep the OpenCore
             //version current, they can always use a Manifest or manually use an older version
-            if first_diff {
+            if first_diff && resources.octool_config["use_latest_oc_on_guess"].as_bool().unwrap_or(true) {
                 setup.oc_build_version = resources.dortania["OpenCorePkg"]["versions"][0]
                     ["version"]
                     .as_str()

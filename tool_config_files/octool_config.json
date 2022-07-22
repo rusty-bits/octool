@@ -32,7 +32,7 @@
   "reset_res_versions": true,
 
   "//comm_clob_local": "replace local res list with updated list when octool is run",
-  "clobber_local_dyn_res_list": false,
+  "clobber_local_dyn_res_list": true,
 
   "//comm_build": "set use of either 'X64' or 'IA32' build architecture",
   "build_architecture": "X64",

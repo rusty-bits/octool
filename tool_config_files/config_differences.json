@@ -1,7 +1,7 @@
 {
   "config_differences": [
     [
-      "Kernel", "Quirks", "ForceAquantiaEthernet", "0.8.2"
+      "Kernel", "Quirks", "ForceAquantiaEthernet", "0.8.0"
     ],
     [
       "Misc", "Debug", "LogModules", "0.7.9"

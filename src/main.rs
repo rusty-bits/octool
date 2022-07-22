@@ -26,7 +26,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.4 2022-07-17";
+const OCTOOL_VERSION: &str = &"v0.4.5 2022-07-22";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -864,7 +864,18 @@ fn main() {
         resources.config_plist = plist::Value::from_file(&config_file)
             .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
         if &setup.oc_build_version == "latest" {
-            setup.oc_build_version = guess_version(&resources);
+            let first_diff;
+            (setup.oc_build_version, first_diff) = guess_version(&resources);
+            //use the latest version of OpenCore as a guess if there have been no changes to the
+            //config.plist, this makes the assumption that the user wants to keep the OpenCore
+            //version current, they can always use a Manifest or manually use an older version
+            if first_diff {
+                setup.oc_build_version = resources.dortania["OpenCorePkg"]["versions"][0]
+                    ["version"]
+                    .as_str()
+                    .unwrap()
+                    .to_owned();
+            }
             if &setup.oc_build_version == "" {
                 // set to version befoce ocvalidate, maybe do something better in the future
                 setup.oc_build_version = "0.5.9".to_string();

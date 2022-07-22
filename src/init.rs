@@ -428,18 +428,20 @@ pub fn validate_plist(
 /// run through vec of "config_differences" from tool_config_files/octool_config.json
 /// if the current config.plist being worked on contains the field in the vec then
 /// it is most likely to be the correct version of OpenCore
-pub fn guess_version(resources: &Resources) -> String {
+pub fn guess_version(resources: &Resources) -> (String, bool) {
     let mut found = vec![Found::new()];
     let config_differences: Vec<(String, String, String, String)> =
         serde_json::from_value(resources.config_differences["config_differences"].clone()).unwrap();
 
+    let mut first_diff = true;
     for (sec, sub, search, ver) in config_differences {
         find(&search, &resources.config_plist, &mut found);
         for result in &found {
             if result.keys.contains(&sec) && result.keys.contains(&sub) {
-                return ver.to_owned();
+                return (ver.to_owned(), first_diff);
             }
         }
+        first_diff = false;
     }
-    "".to_string()
+    ("".to_string(), false)
 }

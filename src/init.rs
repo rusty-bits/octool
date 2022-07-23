@@ -158,7 +158,7 @@ pub fn init_static(
             let size_file = File::open(&file_path)?;
             let buf = BufReader::new(size_file);
             let size: serde_json::Value = serde_json::from_reader(buf)?;
-            old_size = size["tree"][0]["size"].as_i64().unwrap();
+            old_size = size["tree"][0]["size"].as_i64().unwrap_or(0);
             current_size = res::curl_build_size(&file_path)?;
         } else {
             let _ = res::curl_build_size(&file_path)?;

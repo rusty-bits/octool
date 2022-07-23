@@ -1,3 +1,4 @@
+use crate::edit;
 use crate::init::{Manifest, Settings};
 use std::error::Error;
 use std::fs::File;
@@ -5,9 +6,10 @@ use std::io::{BufReader, Read, Stdout, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-use curl::easy::Easy;
-use walkdir::WalkDir;
 use crossterm::terminal::size;
+use curl::easy::Easy;
+use plist::Value;
+use walkdir::WalkDir;
 
 use sha2::Digest;
 
@@ -200,7 +202,7 @@ pub fn curl_build_size(path: &Path) -> Result<i64, Box<dyn Error>> {
     let out_file = File::open(&path)?;
     let buf = BufReader::new(out_file);
     let current_sha: serde_json::Value = serde_json::from_reader(buf)?;
-    let current_sha = current_sha["commit"]["sha"].as_str().unwrap();
+    let current_sha = current_sha["commit"]["sha"].as_str().unwrap_or("");
     let mut build_url = String::from("https://api.github.com/repos/dortania/build-repo/git/trees/");
     build_url.push_str(current_sha);
     let mut out_file = File::create(&path)?;
@@ -288,7 +290,7 @@ pub fn get_file_and_unzip(
 
 /// Show the origin and local location, if any, of the currently highlighted item
 /// lastly, show which resource will be used in the build
-pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut Stdout) {
+pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout: &mut Stdout) {
     let mut res_path: Option<PathBuf>;
     let mut ind_res = String::new();
     let bgc = &settings.bg_col_info;
@@ -419,8 +421,65 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
             }
             match out {
                 Some(outp) => {
-                    let outp = String::from(outp.path().to_string_lossy());
-                    write!(stdout, "{:?}\x1b[0K\r\n", outp).unwrap();
+                    let outpath = String::from(outp.path().to_string_lossy());
+                    write!(stdout, "{:?}\x1b[0K\r\n", outpath).unwrap();
+                    let respath = resources
+                        .working_dir_path
+                        .join(outpath)
+                        .join("Contents/Info.plist");
+                    if respath.exists() {
+                        let info =
+                            plist::Value::from_file(&respath).expect("got Value from Info.plist");
+                        let cfbun = info.as_dictionary().unwrap().get("CFBundleIdentifier");
+                        let cfver = info.as_dictionary().unwrap().get("CFBundleVersion");
+                        let bunlib = info.as_dictionary().unwrap().get("OSBundleLibraries");
+                        write!(
+                            stdout,
+                            "\x1b[2K\r\nCFBundle  {} {}\x1b[0K\r\n",
+                            cfbun.unwrap().as_string().unwrap_or(""),
+                            cfver.unwrap().as_string().unwrap_or("")
+                        )
+                        .unwrap();
+                        if !bunlib.is_none() {
+                            match bunlib.unwrap() {
+                                Value::Dictionary(d) => {
+                                    let mut buns = vec![];
+                                    for val in d.iter() {
+                                        buns.push((val.0.to_owned(), val.1.as_string().unwrap().to_owned()));
+                                    }
+                                    for val in buns.iter().rev() {
+                                        if !val.0.contains("com.apple") {
+                                            write!(stdout, "\x1b[2K\r\n").unwrap();
+                                            write!(
+                                                stdout,
+                                                "requires  {} >= {}\x1b[0K\r\n",
+                                                val.0,
+                                                val.1,
+                                            )
+                                            .unwrap();
+                                            let mut item_to_add = val
+                                                .0
+                                                .to_string()
+                                                .as_str()
+                                                .split('.')
+                                                .last()
+                                                .to_owned()
+                                                .unwrap_or("Lilu")
+                                                .to_owned();
+                                            item_to_add.push_str(".kext");
+                                            edit::add_item(
+                                                settings,
+                                                resources,
+                                                &item_to_add,
+                                                stdout,
+                                            );
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                 }
                 _ => write!(
                     stdout,
@@ -431,7 +490,12 @@ pub fn show_res_info(resources: &Resources, settings: &Settings, stdout: &mut St
             }
         }
     }
-    write!(stdout, "\x1b[4m{}\x1B[0K", " ".repeat(size().unwrap().0.into())).unwrap();
+    write!(
+        stdout,
+        "\x1b[4m{}\x1B[0K",
+        " ".repeat(size().unwrap().0.into())
+    )
+    .unwrap();
 }
 
 /// Read the `path` file into a `serde_json::Value`

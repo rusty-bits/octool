@@ -98,7 +98,9 @@ pub fn extract_value(
                                 match val {
                                     Value::String(_) => *val = Value::String("".to_string()),
                                     Value::Boolean(_) => *val = Value::Boolean(false),
-                                    Value::Integer(_) => *val = Value::Integer(plist::Integer::from(0)),
+                                    Value::Integer(_) => {
+                                        *val = Value::Integer(plist::Integer::from(0))
+                                    }
                                     Value::Data(_) => *val = Value::Data(Default::default()),
                                     _ => (),
                                 }
@@ -289,7 +291,13 @@ pub fn find(find_string: &str, resource: &plist::Value, found: &mut Vec<Found>) 
 /// location.  If the highlighted location is inside a section that holds resources
 /// e.g. Kexts, Drivers, etc. then give an option to insert a blank template made from
 /// the format in the corresponding Sample.plist
-pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
+/// setting auto_add to a resource name will automatically add that resource then return
+pub fn add_item(
+    mut settings: &mut Settings,
+    resources: &mut Resources,
+    auto_add: &str,
+    stdout: &mut Stdout,
+) {
     settings.modified = true;
     let mut selection = 1;
     let mut selection_adjust = 0;
@@ -351,60 +359,71 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
     ] {
         item_types.push(s.to_owned());
     }
-    write!(
-        stdout,
-        "\r\n\x1b[32mSelect type of item to add to plist:\x1b[0m\x1B[0K\r\n\x1b[0K\r\n{}",
-        cursor::SavePosition,
-    )
-    .unwrap();
-    loop {
-        write!(stdout, "\x1B8").unwrap();
-        for (i, item_type) in item_types.iter().enumerate() {
-            if i == selection - 1 {
-                write!(stdout, "\x1B[7m").unwrap();
-            }
-            write!(stdout, "{}\x1B[0m\x1B[0K\r\n", item_type).unwrap();
-        }
-        write!(stdout, "\x1B[2K").unwrap();
-        stdout.flush().unwrap();
-        match read_key().unwrap().0 {
-            KeyCode::Up => {
-                if selection > 1 {
-                    selection -= 1;
+    if auto_add.len() == 0 {
+        write!(
+            stdout,
+            "\r\n\x1b[32mSelect type of item to add to plist:\x1b[0m\x1B[0K\r\n\x1b[0K\r\n{}",
+            cursor::SavePosition,
+        )
+        .unwrap();
+        loop {
+            write!(stdout, "\x1B8").unwrap();
+            for (i, item_type) in item_types.iter().enumerate() {
+                if i == selection - 1 {
+                    write!(stdout, "\x1B[7m").unwrap();
                 }
+                write!(stdout, "{}\x1B[0m\x1B[0K\r\n", item_type).unwrap();
             }
-            KeyCode::Down => {
-                if selection < item_types.len() {
-                    selection += 1;
+            write!(stdout, "\x1B[2K").unwrap();
+            stdout.flush().unwrap();
+            match read_key().unwrap().0 {
+                KeyCode::Up => {
+                    if selection > 1 {
+                        selection -= 1;
+                    }
                 }
+                KeyCode::Down => {
+                    if selection < item_types.len() {
+                        selection += 1;
+                    }
+                }
+                KeyCode::Enter => break,
+                KeyCode::Esc => {
+                    selection = 0;
+                    break;
+                }
+                _ => (),
             }
-            KeyCode::Enter => break,
-            KeyCode::Esc => {
-                selection = 0;
-                break;
-            }
-            _ => (),
         }
+        if selection == 0 {
+            return;
+        };
+    } else {
+        selection = 1;
+        selection_adjust = 2;
     }
-    if selection == 0 {
-        return;
-    };
-//    if selection_adjust > 1 && selection < 3 {
+    //    if selection_adjust > 1 && selection < 3 {
     if selection <= selection_adjust {
         if selection == 1 && selection_adjust == 2 {
+            let new_val_set;
             let mut selected_res = res_list[0].clone();
-            write!(
-                stdout,
-                "{}{}\r\x1B[2KSelect or edit {} to insert: {}\r\n\x1B[2K\x1B8",
-                cursor::RestorePosition,
-                cursor::Show,
-                res_type,
-                cursor::SavePosition,
-            )
-            .unwrap();
-            let new_val_set =
-                edit::edit_string(&mut selected_res, Some(&res_list), stdout).unwrap();
-            write!(stdout, "{}", cursor::Hide).unwrap();
+            if auto_add.len() == 0 {
+                write!(
+                    stdout,
+                    "{}{}\r\x1B[2KSelect or edit {} to insert: {}\r\n\x1B[2K\x1B8",
+                    cursor::RestorePosition,
+                    cursor::Show,
+                    res_type,
+                    cursor::SavePosition,
+                )
+                .unwrap();
+                new_val_set =
+                    edit::edit_string(&mut selected_res, Some(&res_list), stdout).unwrap();
+                write!(stdout, "{}", cursor::Hide).unwrap();
+            } else {
+                new_val_set = true;
+                selected_res = auto_add.to_owned();
+            }
             if !new_val_set {
                 return;
             }
@@ -417,12 +436,18 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
                     item.as_dictionary_mut()
                         .unwrap()
                         .insert("Path".to_string(), plist::Value::String(selected_res));
+                    item.as_dictionary_mut()
+                        .unwrap()
+                        .insert("Enabled".to_string(), plist::Value::Boolean(true));
                 }
                 "driver" => {
                     if settings.oc_build_version > "0.7.2".to_string() {
                         item.as_dictionary_mut()
                             .unwrap()
                             .insert("Path".to_string(), plist::Value::String(selected_res));
+                    item.as_dictionary_mut()
+                        .unwrap()
+                        .insert("Enabled".to_string(), plist::Value::Boolean(true));
                     } else {
                         settings.held_item = Some(plist::Value::String(selected_res));
                     }
@@ -441,6 +466,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
                         "PlistPath".to_string(),
                         plist::Value::String("Contents/Info.plist".to_string()),
                     );
+                    item.insert("Enabled".to_string(), plist::Value::Boolean(true));
                 }
                 "tool" => {
                     let item = item.as_dictionary_mut().unwrap();
@@ -449,6 +475,7 @@ pub fn add_item(mut settings: &mut Settings, resources: &mut Resources, stdout: 
                         "Flavour".to_string(),
                         plist::Value::String("Auto".to_string()),
                     );
+                    item.insert("Enabled".to_string(), plist::Value::Boolean(true));
                 }
                 _ => (),
             };

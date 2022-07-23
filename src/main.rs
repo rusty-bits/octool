@@ -31,7 +31,7 @@ const OCTOOL_VERSION: &str = &"v0.4.5 2022-07-22";
 fn process(
     config_plist: &mut PathBuf,
     current_dir: &PathBuf,
-    settings: &mut Settings,
+    mut settings: &mut Settings,
     mut resources: &mut Resources,
     stdout: &mut Stdout,
 ) -> Result<(), Box<dyn Error>> {
@@ -142,7 +142,7 @@ fn process(
                     }
                     break;
                 }
-                KeyCode::Char('a') => edit::add_item(settings, &mut resources, stdout),
+                KeyCode::Char('a') => edit::add_item(settings, &mut resources, "", stdout),
                 KeyCode::Char('f') => {
                     found = vec![];
                     found_id = 0;
@@ -493,7 +493,7 @@ fn process(
                     if !showing_info {
                         let mut empty_vec = vec![];
                         if settings.is_resource() {
-                            let _ = res::show_res_info(&resources, &settings, stdout);
+                            let _ = res::show_res_info(&mut resources, &mut settings, stdout);
                             showing_info = true;
                         } else {
                             showing_info = parse_tex::show_info(

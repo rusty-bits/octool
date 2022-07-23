@@ -110,24 +110,5 @@
         }
       }
     ]
-  },
-  "VoodooI2C": {
-    "versions": [
-      {
-        "version": "2.7",
-        "hashes": {
-          "debug": {
-            "sha256": "9903af7a89b3a9547ba5979264d7e4ffcf3696b8b21d8f080b47a400b98520e8"
-          },
-          "release": {
-            "sha256": "ce843a10e1c89036b60adc0fe664412c0be788a08c2ca27cf5eac67af60f0cd0"
-          }
-        },
-        "links": {
-          "debug": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.7/VoodooI2C-Debug-Symbols-2.7.zip",
-          "release": "https://github.com/VoodooI2C/VoodooI2C/releases/download/2.7/VoodooI2C-2.7.zip"
-        }
-      }
-    ]
   }
 }

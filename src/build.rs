@@ -84,7 +84,7 @@ pub fn build_output(
                 has_open_canopy = true;
             }
             res_version(settings, &resources, &res);
-            match get_res_path(&settings, &resources, &res, &sec, stdout) {
+            match get_res_path(&settings, &resources, &res, &sec, stdout, false) {
                 Some(res) => {
                     from_paths.push(res);
                 }
@@ -255,6 +255,7 @@ pub fn build_output(
         }
         _ => (),
     }
+
     if missing_files.len() > 0 {
         write!(
             stdout,

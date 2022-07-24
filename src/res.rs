@@ -1,4 +1,3 @@
-use crate::edit;
 use crate::init::{Manifest, Settings};
 use std::error::Error;
 use std::fs::File;
@@ -10,6 +9,8 @@ use crossterm::terminal::size;
 use curl::easy::Easy;
 use plist::Value;
 use walkdir::WalkDir;
+
+use crate::edit::add_item;
 
 use sha2::Digest;
 
@@ -216,7 +217,7 @@ pub fn curl_build_size(path: &Path) -> Result<i64, Box<dyn Error>> {
     let out_file = File::open(&path)?;
     let buf = BufReader::new(out_file);
     let size: serde_json::Value = serde_json::from_reader(buf)?;
-    let size = size["tree"][0]["size"].as_i64().unwrap();
+    let size = size["tree"][0]["size"].as_i64().unwrap_or(0);
     Ok(size)
 }
 
@@ -435,7 +436,7 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                         let bunlib = info.as_dictionary().unwrap().get("OSBundleLibraries");
                         write!(
                             stdout,
-                            "\x1b[2K\r\nCFBundle  {} {}\x1b[0K\r\n",
+                            "\x1b[2K\r\n\x1b[7mCFBundle\x1b[0m  {} {}\x1b[0K\r\n\x1b[2K\r\n",
                             cfbun.unwrap().as_string().unwrap_or(""),
                             cfver.unwrap().as_string().unwrap_or("")
                         )
@@ -445,34 +446,19 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                                 Value::Dictionary(d) => {
                                     let mut buns = vec![];
                                     for val in d.iter() {
-                                        buns.push((val.0.to_owned(), val.1.as_string().unwrap().to_owned()));
+                                        buns.push((
+                                            val.0.to_owned(),
+                                            val.1.as_string().unwrap().to_owned(),
+                                        ));
                                     }
-                                    for val in buns.iter().rev() {
+                                    for val in buns.iter() {
                                         if !val.0.contains("com.apple") {
-                                            write!(stdout, "\x1b[2K\r\n").unwrap();
                                             write!(
                                                 stdout,
-                                                "requires  {} >= {}\x1b[0K\r\n",
-                                                val.0,
-                                                val.1,
+                                                "\x1b[7mrequires\x1b[0m  {} >= {}\x1b[0K\r\n",
+                                                val.0, val.1,
                                             )
                                             .unwrap();
-                                            let mut item_to_add = val
-                                                .0
-                                                .to_string()
-                                                .as_str()
-                                                .split('.')
-                                                .last()
-                                                .to_owned()
-                                                .unwrap_or("Lilu")
-                                                .to_owned();
-                                            item_to_add.push_str(".kext");
-                                            edit::add_item(
-                                                settings,
-                                                resources,
-                                                &item_to_add,
-                                                stdout,
-                                            );
                                         }
                                     }
                                 }
@@ -620,6 +606,7 @@ pub fn get_res_path(
     ind_res: &str,
     section: &str,
     stdout: &mut Stdout,
+    silent: bool,
 ) -> Option<String> {
     let mut from_input = false;
     let mut res_path: Option<PathBuf>;
@@ -704,15 +691,17 @@ pub fn get_res_path(
             match out {
                 Some(outp) => {
                     let outp = String::from(outp.path().to_string_lossy());
-                    if from_input {
-                        write!(
-                            stdout,
-                            "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
-                            ind_res
-                        )
-                        .unwrap();
-                    } else {
-                        write!(stdout, "{:?}\r\n", outp).unwrap();
+                    if !silent {
+                        if from_input {
+                            write!(
+                                stdout,
+                                "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
+                                ind_res
+                            )
+                            .unwrap();
+                        } else {
+                            write!(stdout, "{:?}\r\n", outp).unwrap();
+                        }
                     }
                     Some(outp)
                 }
@@ -1021,4 +1010,202 @@ pub fn purge_whole_plist(settings: &mut Settings, resources: &mut Resources, std
     }
     write!(stdout, "\r\n\x1b[2K").unwrap();
     stdout.flush().unwrap();
+}
+
+pub fn check_order(
+    settings: &mut Settings,
+    resources: &mut Resources,
+    stdout: &mut Stdout,
+    check_only: bool,
+) -> bool {
+    let mut bundle_list = vec![];
+    let mut kext_list = vec![];
+    //run through Kernel Add section and add to kext_list
+    for res in resources
+        .config_plist
+        .as_dictionary()
+        .unwrap()
+        .get("Kernel")
+        .unwrap()
+        .as_dictionary()
+        .unwrap()
+        .get("Add")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .iter()
+    {
+        let res_bundle = res
+            .as_dictionary()
+            .unwrap()
+            .get("BundlePath")
+            .unwrap()
+            .as_string()
+            .unwrap_or("")
+            .to_owned();
+        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
+        let res_enabled = res
+            .as_dictionary()
+            .unwrap()
+            .get("Enabled")
+            .unwrap()
+            .as_boolean()
+            .unwrap_or(false);
+        kext_list.push((res_bundle, res_version, res_enabled));
+    }
+    //iterate kext_list and build bundle_list
+    for (res_bundle, _, _) in kext_list.iter() {
+        match get_res_path(&settings, &resources, &res_bundle, "Kernel", stdout, true) {
+            //found path to resource - check for Info.plist
+            Some(path) => {
+                let info_path = PathBuf::from(path).join("Contents/Info.plist");
+                if info_path.exists() {
+                    let info =
+                        plist::Value::from_file(&info_path).expect("got Value from Info.plist");
+                    let cfbun = info
+                        .as_dictionary()
+                        .unwrap()
+                        .get("CFBundleIdentifier")
+                        .unwrap()
+                        .as_string()
+                        .unwrap();
+                    let cfver = info
+                        .as_dictionary()
+                        .unwrap()
+                        .get("CFBundleVersion")
+                        .unwrap()
+                        .as_string()
+                        .unwrap();
+
+                    let os_bun_lib = info.as_dictionary().unwrap().get("OSBundleLibraries");
+                    if os_bun_lib.is_some() {
+                        match os_bun_lib.unwrap() {
+                            plist::Value::Dictionary(d) => {
+                                let mut buns = vec![];
+                                for val in d.iter() {
+                                    if !val.0.contains("com.apple") {
+                                        buns.push((
+                                            val.0.to_owned(),
+                                            val.1.as_string().unwrap().to_owned(),
+                                        ));
+                                    }
+                                }
+                                bundle_list.push((
+                                    cfbun.to_string(),
+                                    cfver.to_string(),
+                                    buns.clone(),
+                                ));
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        bundle_list.push((cfbun.to_string(), cfver.to_string(), vec![]));
+                    }
+                }
+            }
+            //didn't find path to resource
+            _ => {}
+        }
+    }
+    for (i, bun) in bundle_list.iter().enumerate() {
+        if kext_list[i].2 {
+            if bun.2.len() > 0 {
+                for (j, required) in bun.2.iter().enumerate() {
+                    let mut requirement_exists = false;
+                    let mut requirement_index = 0;
+                    let mut requirement_out_of_order = false;
+                    for k in 0..bundle_list.len() {
+                        if required.0 == bundle_list[k].0 {
+                            requirement_exists = true;
+                            requirement_index = k;
+                            if k > i {
+                                requirement_out_of_order = true;
+                            }
+                        }
+                    }
+                    if requirement_exists {
+                        if !kext_list[requirement_index].2 {
+                            if !check_only {
+                                write!(
+                                    stdout,
+                                    " \x1b[32menabling\x1b[0m {} for {}\x1b[0K\r\n",
+                                    kext_list[requirement_index].0, bun.0
+                                )
+                                .unwrap();
+                                //enable the requirement
+                                resources
+                                    .config_plist
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut("Kernel")
+                                    .unwrap()
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut("Add")
+                                    .unwrap()
+                                    .as_array_mut()
+                                    .unwrap()[requirement_index]
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .insert("Enabled".to_string(), plist::Value::Boolean(true));
+                            }
+                            return false;
+                        }
+                        if requirement_out_of_order {
+                            if !check_only {
+                                write!(
+                                    stdout,
+                                    " \x1b[32mfixing\x1b[0m {} order for {}\x1b[0K\r\n",
+                                    kext_list[requirement_index].0, bun.0
+                                )
+                                .unwrap();
+                                //place resource after requirement then remove resource from current
+                                //location
+                                let kernel_add_array = resources
+                                    .config_plist
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut("Kernel")
+                                    .unwrap()
+                                    .as_dictionary_mut()
+                                    .unwrap()
+                                    .get_mut("Add")
+                                    .unwrap()
+                                    .as_array_mut()
+                                    .unwrap();
+                                let held_kext = kernel_add_array[i].clone();
+                                kernel_add_array.insert(requirement_index + 1, held_kext);
+                                kernel_add_array.remove(i);
+                            }
+                            return false;
+                        }
+                    } else {
+                        if !check_only {
+                            write!(
+                                stdout,
+                                "  \x1b[32madding\x1b[0m requirement {} for {}\x1b[0K\r\n",
+                                required.0, bun.0
+                            )
+                            .unwrap();
+                            //add requirement
+                            let mut item_to_add =
+                                bundle_list[i].2[j].0.split('.').last().unwrap().to_owned();
+                            //hack fix for PS2Controller being in the VoodooPS2Controller.kext
+                            if item_to_add == "PS2Controller" {
+                                item_to_add = "VoodooPS2Controller".to_string();
+                            }
+                            //another hack to point BrcmStore to BrcmRepo
+                            if item_to_add == "BrcmFirmwareStore" {
+                                item_to_add = "BrcmFirmwareRepo".to_string();
+                            }
+                            item_to_add.push_str(".kext");
+                            add_item(settings, resources, &item_to_add, stdout);
+                        }
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    true
 }

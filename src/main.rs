@@ -7,6 +7,7 @@ mod res;
 mod snake;
 
 use fs_extra::dir::{copy, CopyOptions};
+use res::check_order;
 use std::collections::HashMap;
 
 use std::fs::{self, File, ReadDir};
@@ -26,7 +27,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.5 2022-07-22";
+const OCTOOL_VERSION: &str = &"v0.4.6 2022-07-24";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -44,6 +45,12 @@ fn process(
 
     let mut key = KeyCode::Char('q');
     let mut key_mod;
+
+    if !check_order(settings, resources, stdout, true) {
+        write!(stdout, "\x1b[33mWARNING: Trouble(s) found in the Kernel > Add section:\x1b[0m\r\n either a missing \
+                        dependency or a misordered resource\r\n go to the Kernel > Add section and use the 'O' command to \
+                        attempt an automatic repair\r\n\r\n").unwrap();
+    }
 
     write!(
         stdout,
@@ -94,6 +101,11 @@ fn process(
                 }
                 KeyCode::Char('G') => {
                     let build_okay = build::build_output(settings, &resources, stdout)?;
+                    if !check_order(settings, resources, stdout, true) {
+                        write!(stdout, "\x1b[33mWARNING: Trouble(s) found in the Kernel > Add section:\x1b[0m\r\n either a missing \
+                        dependency or a misordered resource\r\n go to the Kernel > Add section and use the 'O' command to \
+                        attempt an automatic repair\r\n\r\n").unwrap();
+                    }
                     writeln!(
                         stdout,
                         "\n\x1B[32mValidating\x1B[0m OUTPUT/EFI/OC/config.plist\r"
@@ -222,6 +234,36 @@ fn process(
                         settings.sec_num = found[found_id - 1].section;
                     }
                 }
+                KeyCode::Char('O') => {
+                    //limit 'O' command to Kernel>Add section
+                    if settings.depth != 2
+                        || settings.sec_key[0] != "Kernel"
+                        || settings.sec_key[1] != "Add"
+                    {
+                        continue;
+                    }
+                    //will need Multi_Pass to check, add & sort resources (she knows it's a Multi_Pass)
+                    write!(
+                        stdout,
+                        "\r\n\x1b[2K\x1b[32mChecking\x1b[0m for missing requirements and wrong order\r\n"
+                    )
+                    .unwrap();
+                    write!(stdout, "\x1b[2K\r\n").unwrap();
+                    let mut order_attempts = 0;
+                    while !res::check_order(settings, resources, stdout, false) {
+                        order_attempts += 1;
+                        if order_attempts > 10 {
+                            write!(stdout, "\x1b[2K\x1b[33mHmm, I just looped 10 times.  \
+                                   Am I broken or is it just many fixes?\x1b[0m\r\n").unwrap();
+                            break;
+                        }
+                    }
+                    write!(stdout, "\x1b[2K\r\n\x1b[32mDone\x1b[0m\x1b[0K\r\n").unwrap();
+
+                    //                    let _ = res::check_order(settings, &mut resources, stdout);
+
+                    showing_info = true;
+                }
                 KeyCode::Char('p') => {
                     if edit::add_delete_value(settings, &mut resources.config_plist, true) {
                         settings.add();
@@ -306,8 +348,8 @@ fn process(
                                any other key to cancel.{clr}\r\n{yel}You can use '{grn}p{yel}' to place {obj} \
                                back into plist{res}{clr}\r\n{clr}",
                             obj = &settings.sec_key[settings.depth],
-                            yel = "\x1b[32m",
-                            grn = "\x1b[33m",
+                            yel = "\x1b[33m",
+                            grn = "\x1b[32m",
                             und = "\x1b[4m",
                             res = "\x1b[0m",
                             clr = "\x1b[0K",
@@ -570,6 +612,12 @@ fn process(
                         &resources,
                         stdout,
                     )?;
+                    if !check_order(settings, resources, stdout, true) {
+                        write!(stdout, "\x1b[33mWARNING: Trouble(s) found in the Kernel > Add section:\x1b[0m\r\n either a missing \
+                        dependency or a misordered resource\r\n go to the Kernel > Add section and use the 'O' command to \
+                        attempt an automatic repair\r\n\r\n").unwrap();
+                    }
+
                     showing_info = true;
                     settings.modified = false;
                 }
@@ -581,6 +629,7 @@ fn process(
                 && key != KeyCode::Char('V')
                 && key != KeyCode::Char('M')
                 && key != KeyCode::Char('P')
+                && key != KeyCode::Char('O')
             {
                 showing_info = false;
             }
@@ -869,7 +918,11 @@ fn main() {
             //use the latest version of OpenCore as a guess if there have been no changes to the
             //config.plist, this makes the assumption that the user wants to keep the OpenCore
             //version current, they can always use a Manifest or manually use an older version
-            if first_diff && resources.octool_config["use_latest_oc_on_guess"].as_bool().unwrap_or(true) {
+            if first_diff
+                && resources.octool_config["use_latest_oc_on_guess"]
+                    .as_bool()
+                    .unwrap_or(true)
+            {
                 setup.oc_build_version = resources.dortania["OpenCorePkg"]["versions"][0]
                     ["version"]
                     .as_str()

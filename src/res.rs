@@ -1043,7 +1043,8 @@ pub fn check_order(
             .as_string()
             .unwrap_or("")
             .to_owned();
-        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
+        //        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
+        let res_version = res_version(settings, resources, &res_bundle);
         let res_enabled = res
             .as_dictionary()
             .unwrap()
@@ -1051,11 +1052,19 @@ pub fn check_order(
             .unwrap()
             .as_boolean()
             .unwrap_or(false);
-        kext_list.push((res_bundle, res_version, res_enabled));
+        if res_version.is_some() {
+            kext_list.push((res_bundle, res_version.unwrap(), res_enabled));
+        }
     }
+
+    #[cfg(debug_assertions)]
+    {
+        write!(stdout, "\x1b[0J{:?}\r\n", kext_list).unwrap();
+    }
+
     //iterate kext_list and build bundle_list
     for (res_bundle, _, _) in kext_list.iter() {
-        match get_res_path(&settings, &resources, &res_bundle, "Kernel", stdout, true) {
+        match get_res_path(&settings, &resources, &res_bundle.split('/').last().unwrap(), "Kernel", stdout, true) {
             //found path to resource - check for Info.plist
             Some(path) => {
                 let info_path = PathBuf::from(path).join("Contents/Info.plist");
@@ -1107,6 +1116,12 @@ pub fn check_order(
             _ => {}
         }
     }
+
+    #[cfg(debug_assertions)]
+    {
+        write!(stdout, "\r\n{:?}\r\n", bundle_list).unwrap();
+    }
+
     for (i, bun) in bundle_list.iter().enumerate() {
         if kext_list[i].2 {
             if bun.2.len() > 0 {

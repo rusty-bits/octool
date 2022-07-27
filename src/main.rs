@@ -27,7 +27,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.6 2022-07-24";
+const OCTOOL_VERSION: &str = &"v0.4.6 2022-07-27";
 
 fn process(
     config_plist: &mut PathBuf,

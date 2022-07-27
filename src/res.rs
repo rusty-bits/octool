@@ -1043,8 +1043,8 @@ pub fn check_order(
             .as_string()
             .unwrap_or("")
             .to_owned();
-        //        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
-        let res_version = res_version(settings, resources, &res_bundle);
+        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
+        //        let res_version = res_version(settings, resources, &res_bundle);
         let res_enabled = res
             .as_dictionary()
             .unwrap()
@@ -1052,9 +1052,10 @@ pub fn check_order(
             .unwrap()
             .as_boolean()
             .unwrap_or(false);
-        if res_version.is_some() {
-            kext_list.push((res_bundle, res_version.unwrap(), res_enabled));
-        }
+        //        if res_version.is_some() {
+        //            kext_list.push((res_bundle, res_version.unwrap(), res_enabled));
+        kext_list.push((res_bundle, res_version, res_enabled));
+        //        }
     }
 
     #[cfg(debug_assertions)]
@@ -1064,7 +1065,14 @@ pub fn check_order(
 
     //iterate kext_list and build bundle_list
     for (res_bundle, _, _) in kext_list.iter() {
-        match get_res_path(&settings, &resources, &res_bundle.split('/').last().unwrap(), "Kernel", stdout, true) {
+        match get_res_path(
+            &settings,
+            &resources,
+            &res_bundle.split('/').last().unwrap(),
+            "Kernel",
+            stdout,
+            true,
+        ) {
             //found path to resource - check for Info.plist
             Some(path) => {
                 let info_path = PathBuf::from(path).join("Contents/Info.plist");
@@ -1110,10 +1118,14 @@ pub fn check_order(
                     } else {
                         bundle_list.push((cfbun.to_string(), cfver.to_string(), vec![]));
                     }
+                } else {
+                    bundle_list.push(("bad_path".to_string(), "".to_string(), vec![]));
                 }
             }
             //didn't find path to resource
-            _ => {}
+            _ => {
+                bundle_list.push(("pathless".to_string(), "".to_string(), vec![]));
+            }
         }
     }
 

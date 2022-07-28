@@ -280,7 +280,7 @@ pub fn init_oc_build(
                 settings.oc_build_version
             )?;
             stdout.flush()?;
-            res::get_file_and_unzip(&url, "", &path, stdout)?;
+            res::get_file_and_unzip(&url, "", &path, stdout, false)?;
             write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
         } else {
             write!(stdout, "Already up to date.\r\n")?;
@@ -323,6 +323,7 @@ pub fn init_oc_build(
         true,
         true,
         stdout,
+        false
     )?;
 
     match path {

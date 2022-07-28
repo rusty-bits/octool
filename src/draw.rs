@@ -376,10 +376,22 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
             }
             match d.get("Enabled") {
                 Some(Value::Boolean(b)) => {
-                    if *b {
-                        return Some(true);
+                    return Some(*b);
+//                    if *b {
+//                        return Some(true);
+//                    } else {
+//                        return Some(false);
+//                    }
+                }
+                _ => (),
+            }
+
+            match d.get("Load") {
+                Some(Value::String(s)) => {
+                    if *s == "Disabled" {
+                        return Some(false)
                     } else {
-                        return Some(false);
+                        return Some(true)
                     }
                 }
                 _ => (),

@@ -89,6 +89,7 @@ pub fn get_or_update_local_parent(
     verbose: bool,
     do_update: bool,
     stdout: &mut Stdout,
+    silent: bool,
 ) -> Result<Option<PathBuf>, Box<dyn Error>> {
     let url = single_resource[parent]["versions"][build_index]["links"][build_type]
         .as_str()
@@ -123,18 +124,20 @@ pub fn get_or_update_local_parent(
                     sum_file.read_to_string(&mut sum)?;
                     if do_update {
                         if sum != hash {
-                            write!(
-                                stdout,
-                                "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
-                                hash, sum
-                            )?;
-                            write!(
-                                stdout,
-                                "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
-                                yel = "\x1b[33m",
-                                grn = "\x1b[32m",
-                            )?;
-                            get_file_and_unzip(url, hash, &path, stdout)?;
+                            if !silent {
+                                write!(
+                                    stdout,
+                                    "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                                    hash, sum
+                                )?;
+                                write!(
+                                    stdout,
+                                    "{yel}new version found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
+                                    yel = "\x1b[33m",
+                                    grn = "\x1b[32m",
+                                )?;
+                            }
+                            get_file_and_unzip(url, hash, &path, stdout, silent)?;
                         } else {
                             if verbose {
                                 write!(stdout, "Already up to date.\x1B[0K\r\n")?;
@@ -145,15 +148,17 @@ pub fn get_or_update_local_parent(
                 Err(e) => match e.kind() {
                     std::io::ErrorKind::NotFound => {
                         if do_update {
-                            write!(
+                            if !silent {
+                                write!(
                             stdout,
                             "{:?} {yel}local copy not found, {grn}Downloading\x1B[0m\x1B[0K\r\n",
                             dir,
                             yel = "\x1b[33m",
                             grn = "\x1b[32m",
                         )?;
-                            write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
-                            get_file_and_unzip(url, hash, &path, stdout)?;
+                                write!(stdout, "remote hash {}\x1B[0K\r\n", hash)?;
+                            }
+                            get_file_and_unzip(url, hash, &path, stdout, silent)?;
                         }
                     }
                     _ => panic!("{}", e),
@@ -261,6 +266,7 @@ pub fn get_file_and_unzip(
     hash: &str,
     path: &Path,
     stdout: &mut Stdout,
+    silent: bool,
 ) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path.parent().unwrap())?;
 
@@ -271,7 +277,9 @@ pub fn get_file_and_unzip(
         let mut data = Vec::new();
         z_file.read_to_end(&mut data).unwrap();
         let sum = format!("{:x}", sha2::Sha256::digest(&data));
-        write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
+        if !silent {
+            write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
+        }
         if sum != hash {
             panic!("Sum of {:?} does not match {}", path, hash);
         } else {
@@ -365,6 +373,7 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                         false,
                         false,
                         stdout,
+                        false,
                     )
                     .unwrap();
                 }
@@ -386,6 +395,7 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                         false,
                         false,
                         stdout,
+                        false,
                     )
                     .unwrap();
                 }
@@ -659,6 +669,7 @@ pub fn get_res_path(
             false,
             true,
             stdout,
+            silent,
         )
         .unwrap();
     }
@@ -671,6 +682,7 @@ pub fn get_res_path(
             false,
             true,
             stdout,
+            silent,
         )
         .unwrap();
     }

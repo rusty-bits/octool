@@ -10,6 +10,18 @@
       "Kernel",
       "Quirks",
       "ForceAquantiaEthernet",
+      "0.8.2"
+    ],
+    [
+      "Kernel",
+      "Quirks",
+      "ForceAquantiaEthernet",
+      "0.8.1"
+    ],
+    [
+      "Kernel",
+      "Quirks",
+      "ForceAquantiaEthernet",
       "0.8.0"
     ],
     [

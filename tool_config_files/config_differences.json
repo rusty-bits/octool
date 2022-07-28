@@ -1,64 +1,130 @@
 {
   "config_differences": [
     [
-      "Kernel", "Quirks", "ForceAquantiaEthernet", "0.8.0"
+      "UEFI",
+      "Drivers",
+      "Load",
+      "0.8.3"
     ],
     [
-      "Misc", "Debug", "LogModules", "0.7.9"
+      "Kernel",
+      "Quirks",
+      "ForceAquantiaEthernet",
+      "0.8.0"
     ],
     [
-      "UEFI", "Audio", "AudioOutMask", "0.7.8"
+      "Misc",
+      "Debug",
+      "LogModules",
+      "0.7.9"
     ],
     [
-      "UEFI", "Output", "UIScale", "0.7.6"
+      "UEFI",
+      "Audio",
+      "AudioOutMask",
+      "0.7.8"
     ],
     [
-      "Booter", "Quirks", "ResizeAppleGpuBars", "0.7.5"
+      "UEFI",
+      "Output",
+      "UIScale",
+      "0.7.6"
     ],
     [
-      "UEFI", "Drivers", "Comment", "0.7.4"
+      "Booter",
+      "Quirks",
+      "ResizeAppleGpuBars",
+      "0.7.5"
     ],
     [
-      "UEFI", "Quirks", "ForceOcWriteFlash", "0.7.3"
+      "UEFI",
+      "Drivers",
+      "Comment",
+      "0.7.4"
     ],
     [
-      "UEFI", "AppleInput", "GraphicsInputMirroring", "0.7.2"
+      "UEFI",
+      "Quirks",
+      "ForceOcWriteFlash",
+      "0.7.3"
     ],
     [
-      "Kernel", "Scheme", "CustomKernel", "0.7.1"
+      "UEFI",
+      "AppleInput",
+      "GraphicsInputMirroring",
+      "0.7.2"
     ],
     [
-      "PlatformInfo", "Generic", "AdviseFeatures", "0.7.0"
+      "Kernel",
+      "Scheme",
+      "CustomKernel",
+      "0.7.1"
     ],
     [
-      "UEFI", "Quirks", "EnableVectorAcceleration", "0.6.9"
+      "PlatformInfo",
+      "Generic",
+      "AdviseFeatures",
+      "0.7.0"
     ],
     [
-      "Booter", "Quirks", "ForceBooterSignature",  "0.6.8"
+      "UEFI",
+      "Quirks",
+      "EnableVectorAcceleration",
+      "0.6.9"
     ],
     [
-      "UEFI", "Quirks", "ActivateHpetSupport", "0.6.7"
+      "Booter",
+      "Quirks",
+      "ForceBooterSignature",
+      "0.6.8"
     ],
     [
-      "UEFI", "Quirks", "DisableSecurityPolicy", "0.6.6"
+      "UEFI",
+      "Quirks",
+      "ActivateHpetSupport",
+      "0.6.7"
     ],
     [
-      "UEFI", "Audio", "SetupDelay", "0.6.5"
+      "UEFI",
+      "Quirks",
+      "DisableSecurityPolicy",
+      "0.6.6"
     ],
     [
-      "Misc", "Security", "BlacklistAppleUpdate", "0.6.4"
+      "UEFI",
+      "Audio",
+      "SetupDelay",
+      "0.6.5"
     ],
     [
-      "UEFI", "Output", "ForceResolution", "0.6.3"
+      "Misc",
+      "Security",
+      "BlacklistAppleUpdate",
+      "0.6.4"
     ],
     [
-      "PlatformInfo", "Generic", "ProcessorType", "0.6.2"
+      "UEFI",
+      "Output",
+      "ForceResolution",
+      "0.6.3"
     ],
     [
-      "UEFI", "ProtocolOverrides", "AppleSecureBoot", "0.6.1"
+      "PlatformInfo",
+      "Generic",
+      "ProcessorType",
+      "0.6.2"
     ],
     [
-      "UEFI", "ProtocolOverrides", "AppleFramebufferInfo", "0.6.0"
+      "UEFI",
+      "ProtocolOverrides",
+      "AppleSecureBoot",
+      "0.6.1"
+    ],
+    [
+      "UEFI",
+      "ProtocolOverrides",
+      "AppleFramebufferInfo",
+      "0.6.0"
     ]
   ]
 }

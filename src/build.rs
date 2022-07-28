@@ -64,8 +64,18 @@ pub fn build_output(
             match val {
                 // oc 0.7.3 and above
                 plist::Value::Dictionary(d) => {
-                    if d["Enabled"].as_boolean().unwrap() {
-                        res = d[&pth].as_string().unwrap().split('/').next().unwrap();
+                    if d.contains_key("Enabled") {
+                        if d["Enabled"].as_boolean().unwrap() {
+                            res = d[&pth].as_string().unwrap().split('/').next().unwrap();
+                        } else {
+                            continue;
+                        }
+                    } else if d.contains_key("Load") {
+                        if d["Load"].as_string().unwrap() != "Disabled" {
+                            res = d[&pth].as_string().unwrap().split('/').next().unwrap();
+                        } else {
+                            continue;
+                        }
                     } else {
                         continue;
                     }
@@ -133,7 +143,7 @@ pub fn build_output(
             true,
             true,
             stdout,
-            false
+            false,
         )?;
         let canopy_language = resources.octool_config["canopy_language"]
             .as_str()

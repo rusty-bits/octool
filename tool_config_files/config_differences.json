@@ -3,7 +3,7 @@
     [
       "UEFI",
       "Drivers",
-      "Load",
+      "LoadEarly",
       "0.8.3"
     ],
     [

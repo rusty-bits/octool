@@ -27,7 +27,7 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.6 2022-07-27";
+const OCTOOL_VERSION: &str = &"v0.4.7 2022-07-31";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -253,8 +253,12 @@ fn process(
                     while !res::check_order(settings, resources, stdout, false) {
                         order_attempts += 1;
                         if order_attempts > 10 {
-                            write!(stdout, "\x1b[2K\x1b[33mHmm, I just looped 10 times.  \
-                                   Am I broken or is it just many fixes?\x1b[0m\r\n").unwrap();
+                            write!(
+                                stdout,
+                                "\x1b[2K\x1b[33mHmm, I just looped 10 times.  \
+                                   Am I broken or is it just many fixes?\x1b[0m\r\n"
+                            )
+                            .unwrap();
                             break;
                         }
                     }
@@ -528,7 +532,13 @@ fn process(
                     }
                 }
                 KeyCode::Char('M') => {
-                    res::merge_whole_plist(settings, resources, stdout);
+                    res::merge_whole_plist(settings, resources, stdout, false);
+                    stdout.flush().unwrap();
+                    showing_info = true;
+                }
+                KeyCode::Char('I') => {
+                    res::merge_whole_plist(settings, resources, stdout, true);
+                    stdout.flush().unwrap();
                     showing_info = true;
                 }
                 KeyCode::Char('i') => {
@@ -630,6 +640,7 @@ fn process(
                 && key != KeyCode::Char('M')
                 && key != KeyCode::Char('P')
                 && key != KeyCode::Char('O')
+                && key != KeyCode::Char('I')
             {
                 showing_info = false;
             }

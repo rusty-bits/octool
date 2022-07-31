@@ -31,7 +31,7 @@ pub fn update_screen(
         stdout,
         " {inv}D{res}/{inv}^x{res}cut {inv}^c{res}op{inv}y{res} {inv}^v{res}/{inv}p{res}aste   {inv}f{res}ind {inv}n{res}ext   \
         {inv}a{res}dd {inv}d{res}el   {inv}M{res}erge {inv}P{res}urge {inv}r{res}eset   {inv}O{res}rder(Kernel>Add)\x1B[0K\r\n {inv}s{res}ave\
-        +validate {inv}q{res}uit   {inv}G{res}o build EFI   {inv}K{res}ey     {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
+        +validate {inv}q{res}uit   {inv}G{res}o build EFI   {inv}K{res}ey     {inv}I{res}nsert   {inv}{red} {grn} {res}boolean {inv}{mag} {res}data {inv}{blu} \
         {res}integer {inv} {res}string\x1B[0K",
         inv = "\x1b[7m",
 //        res = &settings.bg_col,
@@ -67,7 +67,11 @@ pub fn update_screen(
     write!(
         stdout,
         "debug-> {:?} {} {:?} array? {} {:?}",
-        settings.sec_length, settings.depth, settings.sec_num, settings.inside_an_array, settings.sec_key
+        settings.sec_length,
+        settings.depth,
+        settings.sec_num,
+        settings.inside_an_array,
+        settings.sec_key
     )?;
 
     let mut blanks = screen_rows - row_being_drawn - 1;
@@ -377,11 +381,6 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
             match d.get("Enabled") {
                 Some(Value::Boolean(b)) => {
                     return Some(*b);
-//                    if *b {
-//                        return Some(true);
-//                    } else {
-//                        return Some(false);
-//                    }
                 }
                 _ => (),
             }
@@ -389,9 +388,9 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
             match d.get("Load") {
                 Some(Value::String(s)) => {
                     if *s == "Disabled" {
-                        return Some(false)
+                        return Some(false);
                     } else {
-                        return Some(true)
+                        return Some(true);
                     }
                 }
                 _ => (),

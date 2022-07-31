@@ -185,7 +185,10 @@ pub fn init_static(
             }
             write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
         } else if old_size == 0 {
-            write!(stdout, "Could not retrieve config.json info from Github API at this time.\r\n")?;
+            write!(
+                stdout,
+                "Could not retrieve config.json info from Github API at this time.\r\n"
+            )?;
         } else {
             write!(stdout, "Already up to date.\r\n")?;
         }
@@ -323,7 +326,7 @@ pub fn init_oc_build(
         true,
         true,
         stdout,
-        false
+        false,
     )?;
 
     match path {

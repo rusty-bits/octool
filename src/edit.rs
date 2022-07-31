@@ -445,9 +445,9 @@ pub fn add_item(
                         item.as_dictionary_mut()
                             .unwrap()
                             .insert("Path".to_string(), plist::Value::String(selected_res));
-                    item.as_dictionary_mut()
-                        .unwrap()
-                        .insert("Enabled".to_string(), plist::Value::Boolean(true));
+                        item.as_dictionary_mut()
+                            .unwrap()
+                            .insert("Enabled".to_string(), plist::Value::Boolean(true));
                     } else {
                         settings.held_item = Some(plist::Value::String(selected_res));
                     }

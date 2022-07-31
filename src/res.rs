@@ -1,3 +1,4 @@
+use crate::edit;
 use crate::init::{Manifest, Settings};
 use std::error::Error;
 use std::fs::File;
@@ -745,11 +746,65 @@ pub fn get_latest_ver(resources: &Resources) -> Result<String, Box<dyn Error>> {
     }
 }
 
-pub fn merge_whole_plist(settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
+pub fn merge_whole_plist(
+    settings: &mut Settings,
+    resources: &mut Resources,
+    stdout: &mut Stdout,
+    use_other_sample: bool,
+) {
     let mut changed = false;
-    for sample_sec in resources.sample_plist.as_dictionary().unwrap() {
+    let sample;
+    if use_other_sample {
+        write!(
+            stdout,
+            "\x1b[2K\r\n\x1b[2KEnter 'path of file' to Insert or drop file here: \x1b7\r\n\x1b[2K\x1b8"
+        )
+        .unwrap();
+        let mut file_name = String::new();
+        edit::edit_string(&mut file_name, None, stdout).unwrap();
+        let file_name = PathBuf::from(&file_name.trim());
+        if file_name.exists() {
+            sample = match Value::from_file(&file_name) {
+                Ok(v) => v,
+                Err(_) => {
+                    write!(
+                        stdout,
+                        "\r\n\x1b[2K\x1b[31mERROR: \x1b[0m{:?} is not a valid plist file\r\n\x1b[2K",
+                        file_name
+                    )
+                    .unwrap();
+                    return;
+                }
+            };
+        } else {
+            write!(
+                stdout,
+                "\r\n\x1b[2K\x1b[31mERROR: \x1b[0mFile {:?} does not exist\r\n\x1b[2K",
+                file_name
+            )
+            .unwrap();
+            return;
+        }
+    } else {
+        sample = resources.sample_plist.clone();
+    }
+    //    for sample_sec in resources.sample_plist.as_dictionary().unwrap() {
+    for sample_sec in sample.as_dictionary().unwrap() {
         if sample_sec.0 == "DeviceProperties" {
             // do not modify DeviceProperties
+            if !resources
+                .config_plist
+                .as_dictionary()
+                .unwrap()
+                .contains_key("DeviceProperties")
+            {
+                resources
+                    .config_plist
+                    .as_dictionary_mut()
+                    .unwrap()
+                    .insert("DeviceProperties".to_string(), sample_sec.1.clone());
+                settings.sec_length[0] += 1;
+            }
             continue;
         }
         match sample_sec.1 {
@@ -823,6 +878,40 @@ pub fn merge_whole_plist(settings: &mut Settings, resources: &mut Resources, std
                             if a.len() > 0 {
                                 match &a[0] {
                                     plist::Value::Dictionary(sample_dict) => {
+                                        if use_other_sample {
+                                            //insert dict from other_sample into
+                                            //config.plist
+                                            for b in 0..a.len() {
+                                                match &a[b] {
+                                                    plist::Value::Dictionary(sample_all) => {
+                                                        resources
+                                                            .config_plist
+                                                            .as_dictionary_mut()
+                                                            .unwrap()
+                                                            .get_mut(sample_sec.0)
+                                                            .unwrap()
+                                                            .as_dictionary_mut()
+                                                            .unwrap()
+                                                            .get_mut(sample_sub.0)
+                                                            .unwrap()
+                                                            .as_array_mut()
+                                                            .unwrap()
+                                                            .insert(
+                                                                0,
+                                                                Value::Dictionary(
+                                                                    sample_all.clone(),
+                                                                ),
+                                                            );
+                                                        changed = true;
+                                                        write!(stdout,
+                                                               "\r\n\x1b[7mAdded\x1b[0m {}->{} item\x1b[0K"
+                                                               ,sample_sec.0, sample_sub.0).unwrap();
+                                                        stdout.flush().unwrap();
+                                                    }
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
                                         for (i, item) in resources
                                             .config_plist
                                             .as_dictionary_mut()
@@ -891,7 +980,6 @@ pub fn merge_whole_plist(settings: &mut Settings, resources: &mut Resources, std
         settings.modified = true;
     }
     write!(stdout, "\r\n\x1b[2K").unwrap();
-    stdout.flush().unwrap();
 }
 
 pub fn purge_whole_plist(settings: &mut Settings, resources: &mut Resources, stdout: &mut Stdout) {
@@ -1033,6 +1121,14 @@ pub fn check_order(
     let mut bundle_list = vec![];
     let mut kext_list = vec![];
     //run through Kernel Add section and add to kext_list
+    if !resources
+        .config_plist
+        .as_dictionary()
+        .unwrap()
+        .contains_key("Kernel")
+    {
+        return true;
+    }
     for res in resources
         .config_plist
         .as_dictionary()

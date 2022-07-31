@@ -4,9 +4,9 @@ use std::{
     io::{Stdout, Write},
 };
 
+use crossterm::cursor::position;
 use crossterm::event::KeyCode;
 use crossterm::terminal::size;
-use crossterm::cursor::position;
 
 use crate::{edit::read_key, init::Settings, res::Resources};
 
@@ -285,9 +285,13 @@ pub fn show_info(
     stdout.flush()?;
     let bump_position = row + position()?.1 + 1;
     if bump_position > rows {
-        write!(stdout, "\x1B8{}\x1B7", "\x1B[A".repeat(bump_position as usize - rows as usize))?;
+        write!(
+            stdout,
+            "\x1B8{}\x1B7",
+            "\x1B[A".repeat(bump_position as usize - rows as usize)
+        )?;
     }
-//    write!(stdout, " {} {} {} {} {}", bump_position, row, rows, position()?.0, position()?.1)?;
+    //    write!(stdout, " {} {} {} {} {}", bump_position, row, rows, position()?.0, position()?.1)?;
     stdout.flush()?;
     Ok(showing_info)
 }

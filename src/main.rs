@@ -76,10 +76,7 @@ fn process(
                 draw::update_screen(settings, &mut resources, stdout)?;
                 stdout.flush().unwrap();
             }
-            //            (key, key_mod) = read_key()?; // feature not in stable yet, issue #71126
-            let key_and_mods = read_key()?;
-            key = key_and_mods.0;
-            key_mod = key_and_mods.1;
+            (key, key_mod) = read_key()?;
             match key {
                 KeyCode::Char('q') => {
                     if showing_info {

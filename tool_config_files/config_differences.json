@@ -1,6 +1,12 @@
 {
   "config_differences": [
     [
+      "Misc",
+      "Tools",
+      "FullNvramAccess",
+      "0.8.4"
+    ],
+    [
       "UEFI",
       "Drivers",
       "LoadEarly",

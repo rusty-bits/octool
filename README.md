@@ -75,6 +75,9 @@ Usage:
  - If item is resource such as a kext or driver, octool will show the source of the file it will place in the `OUTPUT/EFI` folder.  
  - Otherwise, octool will show the description and info from the corresponding [Acidanthera](https://github.com/acidanthera) `Configuration.tex` file.  
 
+'I' - Capital I - `Insert` - enter the path to a plist file, or drop it on the window, and octool will add the fields from that plist  
+ - useful to add a plist that just contains Patches, for example the `patches_OC.plist` file created by  [CorpNewt's](https://github.com/corpnewt) SSDTTime tool  
+
 'K' `Key` - capital K - edit the name of the highlighted key  
 
 'M' `merge` - capital M - will add missing fields to the `config.plist` from the `Sample.plist` without changing any existing fields.  

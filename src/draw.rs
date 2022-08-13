@@ -372,6 +372,8 @@ fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
                 if d.contains_key(k) {
                     *key = d.get(k).unwrap().clone().into_string().unwrap();
                     break; // stop after first match
+                } else {
+                    *key = "".to_string();
                 }
             }
 

@@ -127,7 +127,7 @@ pub fn init_static(
     //load dortania build_repo package
     write!(
         stdout,
-        "\r\n\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json\r\n"
+        "\r\n\x1B[32mChecking\x1B[0m local dortania/build_repo/config.json ... "
     )?;
     let path = Path::new(
         resources.octool_config["dortania_config_path"]
@@ -138,7 +138,7 @@ pub fn init_static(
         .as_str()
         .unwrap();
     if !path.exists() {
-        write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
+        write!(stdout, "\x1b[32mNot found\r\nDownloading\x1B[0m latest config.json ... ")?;
         stdout.flush().unwrap();
         let path = path.parent().unwrap().join("builds.zip");
         res::curl_file(&url, &path)?;
@@ -148,7 +148,7 @@ pub fn init_static(
             Ok(_) => std::fs::remove_file(&path)?,
             Err(e) => panic!("{:?}", e),
         }
-        write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
+        write!(stdout, "\x1b[32mDone\x1b[0m\r\n")?
     } else {
         let path = path.parent().unwrap();
         let mut old_size = 0;
@@ -173,7 +173,7 @@ pub fn init_static(
         }
 
         if old_size != current_size {
-            write!(stdout, "\x1b[32mDownloading\x1B[0m latest config.json ... ")?;
+            write!(stdout, "\x1b[32mNew version found\r\nDownloading\x1B[0m latest config.json ... ")?;
             stdout.flush().unwrap();
             let path = path.join("builds.zip");
             res::curl_file(&url, &path)?;
@@ -183,14 +183,14 @@ pub fn init_static(
                 Ok(_) => std::fs::remove_file(&path)?,
                 Err(e) => panic!("{:?}", e),
             }
-            write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?
+            write!(stdout, "\x1b[32mDone\x1b[0m\r\n")?
         } else if old_size == 0 {
             write!(
                 stdout,
-                "Could not retrieve config.json info from Github API at this time.\r\n"
+                "\x1b[31mWARNING\x1b[0m\r\nCould not retrieve config.json info from Github API at this time.\r\n"
             )?;
         } else {
-            write!(stdout, "Already up to date.\r\n")?;
+            write!(stdout, "\x1b[32mAlready up to date\r\n")?;
         }
     };
     resources.dortania = res::get_serde_json(path.join("config.json").to_str().unwrap(), stdout)?;
@@ -286,7 +286,7 @@ pub fn init_oc_build(
             res::get_file_and_unzip(&url, "", &path, stdout, false)?;
             write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
         } else {
-            write!(stdout, "Already up to date.\r\n")?;
+            write!(stdout, "Already up to date\r\n")?;
         }
     }
 
@@ -315,7 +315,7 @@ pub fn init_oc_build(
 
     write!(
         stdout,
-        "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg {} binaries\r\n",
+        "\r\n\x1B[32mChecking\x1B[0m local OpenCorePkg {} binaries ... \x1b[32m",
         settings.oc_build_version
     )?;
     let path = res::get_or_update_local_parent(

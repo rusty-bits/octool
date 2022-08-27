@@ -852,7 +852,7 @@ fn main() {
 
     write!(
         stdout,
-        "\x1b[32musing\x1b[0m octool {}\r\n",
+        "octool {}\r\n",
         setup.octool_version
     )
     .unwrap();
@@ -876,7 +876,7 @@ fn main() {
         .unwrap();
         config_file = Path::new("").to_path_buf();
     } else {
-        write!(stdout, "\r\nUsing {:?}\r\n", config_file).unwrap();
+        write!(stdout, "\r\n\x1b[32mUsing\x1b[0m {:?}\r\n", config_file).unwrap();
         if config_file.to_str().unwrap().ends_with(".man") {
             let manifest_file = match File::open(&config_file) {
                 Err(e) => panic!("Couldn't open {:?}: {}", &config_file, e),

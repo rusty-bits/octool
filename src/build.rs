@@ -123,7 +123,7 @@ pub fn build_output(
         } else {
             write!(
                 stdout,
-                "\x1B[32mdone\x1B[0m with {} file{}\r\n\n",
+                "\x1B[32mDone\x1B[0m with {} file{}\r\n\n",
                 from_paths.len(),
                 s
             )?;
@@ -195,7 +195,7 @@ pub fn build_output(
             )?;
             stdout.flush()?;
             fs_extra::copy_items(&entries, out_path.join(res), &options)?;
-            write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
+            write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
             stdout.flush()?;
         }
         write!(stdout, "\r\n")?;
@@ -255,7 +255,7 @@ pub fn build_output(
                     ],
                 );
                 std::fs::remove_file("OUTPUT/EFI/OC/vault.pub")?;
-                write!(stdout, "\x1B[32mdone\x1B[0m\r\n\n")?;
+                write!(stdout, "\x1B[32mDone\x1B[0m\r\n\n")?;
             } else {
                 write!(stdout, "\x1b[33mWARNING:\tcan only build vault files on macOS at this time\r\n\
                 \trun octool on macOS to build vault files, or set Vault to \x1b[4mOptional\x1b[0;33m \
@@ -310,7 +310,7 @@ fn compute_vault_plist(resources: &Resources, stdout: &mut Stdout) -> Result<(),
             "OUTPUT/EFI/OC/vault.pub",
         ],
     );
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
+    write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
     stdout.flush()?;
     Ok(())
 }

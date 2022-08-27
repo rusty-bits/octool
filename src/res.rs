@@ -141,7 +141,7 @@ pub fn get_or_update_local_parent(
                             get_file_and_unzip(url, hash, &path, stdout, silent)?;
                         } else {
                             if verbose {
-                                write!(stdout, "Already up to date.\x1B[0K\r\n")?;
+                                write!(stdout, "Already up to date\x1B[0K\r\n")?;
                             }
                         }
                     }
@@ -258,7 +258,7 @@ fn get_repo_and_unzip(
     if path.join(&old_name).exists() {
         std::fs::rename(path.join(&old_name), path.join(&parent))?;
     };
-    write!(stdout, "\x1b[32mdone\x1b[0m\r\n")?;
+    write!(stdout, "\x1b[32mDone\x1b[0m\r\n")?;
     Ok(())
 }
 
@@ -517,7 +517,7 @@ pub fn get_serde_json(
     let file = File::open(Path::new(path))?;
     let buf = BufReader::new(file);
     let v = serde_json::from_reader(buf)?;
-    write!(stdout, "\x1B[32mdone\x1B[0m\r\n")?;
+    write!(stdout, "\x1B[32mDone\x1B[0m\r\n")?;
     Ok(v)
 }
 

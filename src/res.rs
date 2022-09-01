@@ -128,7 +128,7 @@ pub fn get_or_update_local_parent(
                             if !silent {
                                 write!(
                                     stdout,
-                                    "remote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
+                                    "\r\nremote hash {}\x1B[0K\r\n  local sum {}\x1B[0K\r\n",
                                     hash, sum
                                 )?;
                                 write!(
@@ -762,6 +762,7 @@ pub fn merge_whole_plist(
         .unwrap();
         let mut file_name = String::new();
         edit::edit_string(&mut file_name, None, stdout).unwrap();
+        file_name = file_name.replace("\\ ", " ");
         let file_name = PathBuf::from(&file_name.trim());
         if file_name.exists() {
             sample = match Value::from_file(&file_name) {

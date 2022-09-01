@@ -27,7 +27,11 @@ use crate::edit::read_key;
 use crate::init::{guess_version, Manifest, Settings};
 use crate::res::Resources;
 
-const OCTOOL_VERSION: &str = &"v0.4.7 2022-07-31";
+//use chrono::{Datelike, Utc};
+
+//const OCTOOL_VERSION: &str = env!("CARGO_PKG_VERSION");
+const OCTOOL_VERSION: &str = include!(concat!(env!("OUT_DIR"), "/version.txt"));
+//const OCTOOL_VERSION: &str = &"v0.4.7 2022-07-31";
 
 fn process(
     config_plist: &mut PathBuf,
@@ -656,6 +660,8 @@ fn process(
 }
 
 fn main() {
+//    let now = Utc::now();
+
     let current_dir = env::current_dir().expect("Finding current directory");
     let working_dir;
 
@@ -710,6 +716,23 @@ fn main() {
         res::get_serde_json_quiet("tool_config_files/octool_config.json").unwrap();
     let latest_octool_ver = res::get_latest_ver(&resources).expect("finding version");
 
+/*    let mut ver_build: String = "v".to_string();
+    ver_build.push_str(&env!("CARGO_PKG_VERSION").to_string());
+    ver_build.push(' ');
+    ver_build.push_str(&now.year().to_string());
+    ver_build.push('-');
+    let month = now.month();
+    if month<10 {
+        ver_build.push('0');
+    }
+    ver_build.push_str(&month.to_string());
+    ver_build.push('-');
+    let day = now.day();
+    if day<10 {
+        ver_build.push('0');
+    }
+    ver_build.push_str(&day.to_string());
+*/
     let mut setup = Settings {
         held_item: None,
         build_type: "release".to_string(),

@@ -6,6 +6,9 @@ version = "0.4.7"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+chrono ="0.4.22"
+
 [dependencies]
 crossterm = "0.23.2"
 curl = "0.4.43"

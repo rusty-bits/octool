@@ -2,7 +2,7 @@
 authors = ["rusty-bits <rusty_bits@aol.com>"]
 edition = "2021"
 name = "octool"
-version = "0.4.7"
+version = "0.4.8"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

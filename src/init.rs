@@ -138,7 +138,10 @@ pub fn init_static(
         .as_str()
         .unwrap();
     if !path.exists() {
-        write!(stdout, "\x1b[32mNot found\r\nDownloading\x1B[0m latest config.json ... ")?;
+        write!(
+            stdout,
+            "\x1b[32mNot found\r\nDownloading\x1B[0m latest config.json ... "
+        )?;
         stdout.flush().unwrap();
         let path = path.parent().unwrap().join("builds.zip");
         res::curl_file(&url, &path)?;
@@ -173,7 +176,10 @@ pub fn init_static(
         }
 
         if old_size != current_size {
-            write!(stdout, "\x1b[32mNew version found\r\nDownloading\x1B[0m latest config.json ... ")?;
+            write!(
+                stdout,
+                "\x1b[32mNew version found\r\nDownloading\x1B[0m latest config.json ... "
+            )?;
             stdout.flush().unwrap();
             let path = path.join("builds.zip");
             res::curl_file(&url, &path)?;

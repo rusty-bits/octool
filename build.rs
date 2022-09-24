@@ -8,13 +8,14 @@ fn main() {
 
     let mut fh = fs::File::create(&outfile).unwrap();
 
+    let now = chrono::Local::now();
     write!(
         fh,
         r#""v{} {}-{:02}-{:02}""#,
         env!("CARGO_PKG_VERSION"),
-        chrono::Local::now().year(),
-        chrono::Local::now().month(),
-        chrono::Local::now().day()
+        now.year(),
+        now.month(),
+        now.day()
     )
     .ok();
 }

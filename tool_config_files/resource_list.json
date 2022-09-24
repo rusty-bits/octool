@@ -448,6 +448,15 @@
   "VoodooPS2Trackpad.kext": {
     "parent": "VoodooPS2"
   },
+  "VoodooRMI.kext": {
+    "parent": "VoodooRMI"
+  },
+  "RMII2C.kext": {
+    "parent": "VoodooRMI"
+  },
+  "RMISMBus.kext": {
+    "parent": "VoodooRMI"
+  },
   "WhateverGreen.kext": {
     "parent": "WhateverGreen"
   },

@@ -1113,6 +1113,7 @@ pub fn purge_whole_plist(settings: &mut Settings, resources: &mut Resources, std
     stdout.flush().unwrap();
 }
 
+//return true if order is okay
 pub fn check_order(
     settings: &mut Settings,
     resources: &mut Resources,
@@ -1130,21 +1131,22 @@ pub fn check_order(
     {
         return true;
     }
-    for res in resources
+    let reses = resources
         .config_plist
-        .as_dictionary()
+        .as_dictionary_mut()
         .unwrap()
-        .get("Kernel")
+        .get_mut("Kernel")
         .unwrap()
-        .as_dictionary()
+        .as_dictionary_mut()
         .unwrap()
-        .get("Add")
+        .get_mut("Add")
         .unwrap()
-        .as_array()
-        .unwrap()
-        .iter()
-    {
-        let res_bundle = res
+        .as_array_mut()
+        .unwrap();
+
+    //build list of kexts from Kernel > Add Section
+    for res in reses {
+        let bundle_path = res
             .as_dictionary()
             .unwrap()
             .get("BundlePath")
@@ -1152,8 +1154,6 @@ pub fn check_order(
             .as_string()
             .unwrap_or("")
             .to_owned();
-        let res_version = res_version(settings, resources, &res_bundle).unwrap_or("".to_owned());
-        //        let res_version = res_version(settings, resources, &res_bundle);
         let res_enabled = res
             .as_dictionary()
             .unwrap()
@@ -1161,15 +1161,38 @@ pub fn check_order(
             .unwrap()
             .as_boolean()
             .unwrap_or(false);
-        //        if res_version.is_some() {
-        //            kext_list.push((res_bundle, res_version.unwrap(), res_enabled));
-        kext_list.push((res_bundle, res_version, res_enabled));
-        //        }
+        let mut new_res = (bundle_path.split('/').last().unwrap_or("").to_string(), "Unknown".to_owned(), res_enabled);
+        if kext_list.contains(&new_res) && res_enabled {
+            write!(
+                stdout,
+                "\x1b[2KResource {} already enabled!!\r\n",
+                new_res.0
+            )
+            .unwrap();
+            if !check_only {
+                write!(stdout, "\x1b[2KDisabling duplicate\r\n").unwrap();
+                match res {
+                    Value::Boolean(b) => *b = !*b,
+                    Value::Dictionary(d) => match d.get_mut("Enabled") {
+                        Some(Value::Boolean(b)) => *b = !*b,
+                        _ => (),
+                    },
+                    _ => (),
+                }
+            }
+            new_res.2 = false;
+        }
+        kext_list.push(new_res);
+    }
+
+    //add version numbers to list
+    for i in 0..kext_list.len() {
+        kext_list[i].1 = res_version(settings, resources, &kext_list[i].0).unwrap_or("".to_owned());
     }
 
     #[cfg(debug_assertions)]
     {
-        write!(stdout, "\x1b[0J{:?}\r\n", kext_list).unwrap();
+        write!(stdout, "\x1b[0J{} {:?}\r\n", kext_list.len(), kext_list).unwrap();
     }
 
     //iterate kext_list and build bundle_list
@@ -1210,6 +1233,8 @@ pub fn check_order(
                                 let mut buns = vec![];
                                 for val in d.iter() {
                                     if !val.0.contains("com.apple") {
+                                        //add requirement if it is
+                                        //not from apple
                                         buns.push((
                                             val.0.to_owned(),
                                             val.1.as_string().unwrap().to_owned(),
@@ -1240,12 +1265,14 @@ pub fn check_order(
 
     #[cfg(debug_assertions)]
     {
-        write!(stdout, "\r\n{:?}\r\n", bundle_list).unwrap();
+        write!(stdout, "\r\n{} {:?}\r\n", bundle_list.len(), bundle_list).unwrap();
     }
 
+    //enable or add requirements
     for (i, bun) in bundle_list.iter().enumerate() {
         if kext_list[i].2 {
             if bun.2.len() > 0 {
+                //has requirements
                 for (j, required) in bun.2.iter().enumerate() {
                     let mut requirement_exists = false;
                     let mut requirement_index = 0;
@@ -1256,6 +1283,10 @@ pub fn check_order(
                             requirement_index = k;
                             if k > i {
                                 requirement_out_of_order = true;
+                            }
+                            if kext_list[k].2 {
+                                break;
+                                //found enabled requirement
                             }
                         }
                     }

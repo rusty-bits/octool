@@ -270,7 +270,7 @@ pub fn build_output(
     if missing_files.len() > 0 {
         write!(
             stdout,
-            "\x1B[31;7mWARNING:\x1B[0m the following file(s) are unknown by octool\x1B[33m\r\n"
+            "\x1B[31;7mWARNING:\x1B[0m the following file(s) are missing or unknown by octool\x1B[33m\r\n"
         )?;
         for f in missing_files.iter() {
             write!(stdout, "{}\x1B[0K\r\n", f)?;
@@ -279,6 +279,8 @@ pub fn build_output(
             stdout,
             "\x1B[31mIf you want octool to include them automatically,\r\n\
             they need to be placed in the \x1B[32mINPUT\x1B[31m folder before building.\r\n\
+            If you feel octool should know this file, then there may be an issue with the\r\n\
+            resources folder.  You can delete that folder and try running octool again.\r\n\
             Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n"
         )?;
         stdout.flush()?;

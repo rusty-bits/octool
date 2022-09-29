@@ -32,7 +32,7 @@
   "reset_res_versions": true,
 
   "//comm_clob_local": "replace local res list with updated list when octool is run",
-  "clobber_local_dyn_res_list": true,
+  "clobber_local_dyn_res_list": false,
 
   "//comm_use_latest": "use latest version of OpenCore that fits the format of the config.plist being used",
   "use_latest_oc_on_guess": true,

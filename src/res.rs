@@ -425,6 +425,9 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                 .into_iter()
                 .filter_map(Result::ok)
             {
+                if entry.path().to_string_lossy().contains("_MAC") { //ignore
+                    continue;
+                }
                 let f_name = String::from(entry.file_name().to_string_lossy());
                 if f_name == ind_res {
                     out = Some(entry);
@@ -695,6 +698,9 @@ pub fn get_res_path(
                 .into_iter()
                 .filter_map(Result::ok)
             {
+                if entry.path().to_string_lossy().contains("_MAC") { //ignore
+                    continue;
+                }
                 let f_name = String::from(entry.file_name().to_string_lossy());
                 if f_name == ind_res {
                     out = Some(entry);

@@ -451,6 +451,9 @@
   "VoodooRMI.kext": {
     "parent": "VoodooRMI"
   },
+  "VoodooSMBus.kext": {
+          "parent": "VoodooSMBus"
+  },
   "RMII2C.kext": {
     "parent": "VoodooRMI"
   },

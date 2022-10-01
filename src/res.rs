@@ -425,7 +425,8 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
                 .into_iter()
                 .filter_map(Result::ok)
             {
-                if entry.path().to_string_lossy().contains("_MAC") { //ignore
+                if entry.path().to_string_lossy().contains("_MAC") {
+                    //ignore
                     continue;
                 }
                 let f_name = String::from(entry.file_name().to_string_lossy());
@@ -698,7 +699,8 @@ pub fn get_res_path(
                 .into_iter()
                 .filter_map(Result::ok)
             {
-                if entry.path().to_string_lossy().contains("_MAC") { //ignore
+                if entry.path().to_string_lossy().contains("_MAC") {
+                    //ignore
                     continue;
                 }
                 let f_name = String::from(entry.file_name().to_string_lossy());
@@ -1167,7 +1169,11 @@ pub fn check_order(
             .unwrap()
             .as_boolean()
             .unwrap_or(false);
-        let mut new_res = (bundle_path.split('/').last().unwrap_or("").to_string(), "Unknown".to_owned(), res_enabled);
+        let mut new_res = (
+            bundle_path.split('/').last().unwrap_or("").to_string(),
+            "Unknown".to_owned(),
+            res_enabled,
+        );
         if kext_list.contains(&new_res) && res_enabled {
             write!(
                 stdout,

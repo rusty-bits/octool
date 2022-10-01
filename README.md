@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/github/downloads/rusty-bits/octool/total)]()
 [![release](https://img.shields.io/github/v/release/rusty-bits/octool?display_name=tag)](https://github.com/rusty-bits/octool/releases)
 
-A small project to help me learn the Rust language and to hopefully provide better features than my older [OC-tool](https://github.com/rusty-bits/OC-tool).  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
+A small project to help me continue my learning of the Rust language.  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
 You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the binary from [the Releases section on GitHub](https://github.com/rusty-bits/octool/releases).  Unlike my older OC-tool, this tool does not auto update itself to the latest version, but it will let you know if there is an update.  
 
 ## Command line options ##  
@@ -23,15 +23,15 @@ You can build from the included source by running `cargo build --release` (if yo
 octool takes a path to a `config.plist` to use if desired.
 If you run octool with no path provided `./octool` will look for `config.plist` in the `INPUT` folder, if it doesn't find it there it will use the `OpenCorePkg/Docs/Sample.plist` file.  
 
-## Here's a rundown of the current process octool uses. ##  
-
 At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the prebuilt binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
  - It will update or download it to the `build-repo` into the `tool_config_files` folder as needed.  
 
 Next, octool does the same thing for [the master branch of the Acidanthera OpenCorePkg source files](https://github.com/acidanthera/OpenCorePkg), thanks to the [people of Acidanthera](https://github.com/acidanthera), in order to have the corresponding Sample.plist and Configuration.tex files, etc. for the version of OpenCore that you are building.  They will be placed into the `resources` folder along with the corresponding binaries from the Dortania builds.  This will allow `octool` to use Acidanthera tools while building the EFI, such as the ocvalitate and CreateVault tools.   Thanks, again [dhinakg](https://github.com/dhinakg).  
 
 Lastly, octool will run the input config.plist through ocvalitade and give you the option to quit or continue.  
-If you continue you then enter the config.plist editor...  
+If you continue you then enter the  
+
+## config.plist editor... ##  
 ```
 Navigation: arrow keys or some standard vi keys
           'up'/'k'            jump to top of section
@@ -84,6 +84,11 @@ Usage:
  - this command, coupled with its companion Purge command (capital P) will update a config.plist when OpenCore plist format changes occur  
 
 'n' `next` - jump to the next found item if more than one occurance was found  
+
+'O' `order` - Capital O - if currently in the Kernel > Add section the 'O' command will check the order and dependencies of kexts.  
+ - If a kext is in the wrong order based on a dependency then octool will reorder them.  
+ - If a required dependency is missing then octool will add and enable the required dependency.  
+ - If there are any duplicate enabled kexts then octool will disable the duplicates.  
 
 'P' `purge` - Capital P - removes fields from the `config.plist` that are not in the `Sample.plist`  
  - this command, coupled with it's companion merge command (capital M) will update a config.plist when OpenCore plst format changes occur  

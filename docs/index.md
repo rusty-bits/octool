@@ -3,7 +3,7 @@ Simple picture guide showing common usage of octool
 ***
 ## when downloaded the octool folder will contain these items
 ***
-[[images/01_octool_folder.png]]
+![](images/01_octool_folder.png)
 
 ***
 ## on first run you will see something similar to this

@@ -7,6 +7,8 @@
 A small project to help me continue my learning of the Rust language.  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  
 You can build from the included source by running `cargo build --release` (if you have the Rust environment installed) or you can use the binary from [the Releases section on GitHub](https://github.com/rusty-bits/octool/releases).  Unlike my older OC-tool, this tool does not auto update itself to the latest version, but it will let you know if there is an update.  
 
+You can find a basic picture guide for the use of octool here [https://rusty-bits.github.io/octool/](https://rusty-bits.github.io/octool/)  
+
 ## Command line options ##  
 
 ./octool [options] [-o x.y.z] [config.plist]  

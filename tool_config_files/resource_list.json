@@ -115,6 +115,10 @@
   "DebugEnhancer.kext": {
     "parent": "DebugEnhancer"
   },
+  "Ext4Dxe.efi": {
+      "parent": "OpenCorePkg",
+      "res_type": "driver"
+  },
   "ExFatDxe.efi": {
     "parent": "OcBinaryData",
     "res_type": "driver"
@@ -217,6 +221,10 @@
   "OpenUsbKbDxe.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
+  },
+  "OpenVariableRuntimeDxe.efi": {
+      "parent": "OpenCorePkg",
+      "res_type": "driver"
   },
   "PavpProvision.efi": {
     "parent": "OpenCorePkg"

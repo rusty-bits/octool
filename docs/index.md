@@ -11,57 +11,57 @@ Simple picture guide showing common usage of octool
 ![](images/02_first_run.png)
 
 ***
-## summary of basic navigation and commands
+## summary of basic navigation and commands of the plist viewer/editor
 ***
 ![](images/03_navigation.png)
 
 ***
-## how different data types are represented in the octool editor
+## how different data types are represented in the plist editor
 ***
 ![](images/04_types.png)
 
 ***
-## editing a data type by hex or string
+## editing a data type in hexidecimal or string format
 ***
 ![](images/05_edit_data.png)
 
 ***
-## editing an integer type
+## editing an integer type directly or bit by bit
 ***
 ![](images/06_edit_integer.png)
 
 ***
-## editing a string type
+## editing a string type directly or selecting from available options
 ***
 ![](images/07_edit_string.png)
 
 ***
-## the cut copy and paste commands
+## the cut, copy and paste commands
 ***
 ![](images/08_cut_copy_paste.png)
 
 ***
-## displaying Configuration.pdf information for a field
+## displaying Configuration.pdf information for the highlighted field
 ***
 ![](images/09_field_info.png)
 
 ***
-## typical display of resources in the config.plist
+## typical display of a resource section in the config.plist
 ***
 ![](images/10_resources.png)
 
 ***
-## information for the selected resource
+## displaying information of the selected resource
 ***
 ![](images/11_resource_info.png)
 
 ***
-## changing version of OpenCore being used
+## changing the version of OpenCore being used
 ***
 ![](images/12_oc_version.png)
 
 ***
-## changing version of single resource
+## changing the version used of a single resource
 ***
 ![](images/13_res_version.png)
 
@@ -76,7 +76,7 @@ Simple picture guide showing common usage of octool
 ![](images/15_merge_purge.png)
 
 ***
-## the ordering command for checking kext requirements and order
+## the ordering command for checking kext requirements and load order
 ***
 ![](images/16_ordering.png)
 

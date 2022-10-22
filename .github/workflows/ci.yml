@@ -1,0 +1,96 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [published]
+    
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-mac-win:
+    name: Build for ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [x86_64-apple-darwin, x86_64-pc-windows-gnu] # x86_64-unknown-linux-gnu]
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Add targets
+      run: rustup target add ${{ matrix.os }}
+
+    - name: Install x86_64-w64-mingw32-gcc
+      run: brew install mingw-w64
+      if: matrix.os == 'x86_64-pc-windows-gnu'
+    - name: Build for ${{ matrix.os }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --target ${{ matrix.os }} --release
+
+    - name: Move octool from target/${{ matrix.os }}/release/octool to .
+      run: mv target/${{ matrix.os }}/release/octool.* .
+
+    - name: Create zip archive for ${{ matrix.os }} build
+      run: zip ${{ matrix.os }}.zip octool octool.exe README.md LICENSE tool_config_files/octool_config.json
+    
+    - name: "Upload to artifacts"
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: "${{ matrix.os }}"
+        path: "${{ matrix.os }}.zip"
+        
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: output/*.zip
+        tag: ${{ github.ref }}
+        file_glob: true
+
+  build-linux:
+    name: Build for x86_64-unknown-linux-gnu
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Add targets
+      run: rustup target add x86_64-unknown-linux-gnu
+
+    - name: Build for x86_64-unknown-linux-gnu
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --target x86_64-unknown-linux-gnu --release
+
+    - name: Move octool from target/x86_64-unknown-linux-gnu/release/octool to .
+      run: mv target/x86_64-unknown-linux-gnu/release/octool .
+
+    - name: Create zip archive for x86_64-unknown-linux-gnu build
+      run: zip x86_64-unknown-linux-gnu.zip octool README.md LICENSE tool_config_files/octool_config.json
+    
+    - name: "Upload to artifacts"
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: "x86_64-unknown-linux-gnu"
+        path: "x86_64-unknown-linux-gnu.zip"
+        
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: output/*.zip
+        tag: ${{ github.ref }}
+        file_glob: true

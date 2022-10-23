@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
         args: --target ${{ matrix.os }} --release
 
     - name: Move octool from target/${{ matrix.os }}/release/octool to .
-      run: mv target/${{ matrix.os }}/release/octool.* .
+      run: mv target/${{ matrix.os }}/release/octool* .
 
     - name: Create zip archive for ${{ matrix.os }} build
       run: zip ${{ matrix.os }}.zip octool octool.exe README.md LICENSE tool_config_files/octool_config.json
@@ -53,7 +53,7 @@ jobs:
       uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: output/*.zip
+        file: *.zip
         tag: ${{ github.ref }}
         file_glob: true
 
@@ -91,6 +91,6 @@ jobs:
       uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: output/*.zip
+        file: *.zip
         tag: ${{ github.ref }}
         file_glob: true

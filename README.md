@@ -2,6 +2,7 @@
 
 [![license](https://img.shields.io/github/license/rusty-bits/octool.svg)](https://github.com/rusty-bits/octool/blob/main/LICENSE)
 [![downloads](https://img.shields.io/github/downloads/rusty-bits/octool/total)]()
+[![CI](https://github.com/rusty-bits/octool/actions/workflows/ci.yml/badge.svg)]()
 [![release](https://img.shields.io/github/v/release/rusty-bits/octool?display_name=tag)](https://github.com/rusty-bits/octool/releases)
 
 A small project to help me continue my learning of the Rust language.  All suggestions and criticisms are welcome (but that doesn't mean I'll get to them in a timely manner, I can be lazy at times)  

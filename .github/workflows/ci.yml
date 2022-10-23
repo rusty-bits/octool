@@ -53,7 +53,7 @@ jobs:
       uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: *.zip
+        file: ${{ matrix.os }}.zip
         tag: ${{ github.ref }}
         file_glob: true
 
@@ -91,6 +91,6 @@ jobs:
       uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: *.zip
+        file: x86_64-unknown-linux-gnu.zip
         tag: ${{ github.ref }}
         file_glob: true

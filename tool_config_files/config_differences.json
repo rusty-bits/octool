@@ -1,6 +1,12 @@
 {
   "config_differences": [
     [
+      "UEFI",
+      "AppleInput",
+      "PointerDwellClickTimeout",
+      "0.8.6"
+    ],
+    [
       "Misc",
       "Tools",
       "FullNvramAccess",

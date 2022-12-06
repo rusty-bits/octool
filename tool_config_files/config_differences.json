@@ -1,6 +1,12 @@
 {
   "config_differences": [
     [
+      "Misc",
+      "Boot",
+      "HibernateSkipsPicker",
+      "0.8.7"
+    ],
+    [
       "UEFI",
       "AppleInput",
       "PointerDwellClickTimeout",

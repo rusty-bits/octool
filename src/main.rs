@@ -913,8 +913,25 @@ fn main() {
             */
         }
 
-        resources.config_plist = plist::Value::from_file(&config_file)
-            .expect(format!("Didn't find valid plist at {:?}", config_file).as_str());
+        //        resources.config_plist = plist::Value::from_file(&config_file);
+        let result = plist::Value::from_file(&config_file);
+        match result {
+            Ok(_) => resources.config_plist = result.unwrap(),
+            Err(e) => {
+                write!(
+                    stdout,
+                    "\r\n\x1b[31mERROR: \x1b[0mDidn't find valid plist at {:?}\r\n\r\n\
+                    \treceived the following error\r\n\t{}\r\n\r\n",
+                    config_file, e
+                )
+                .unwrap();
+                stdout.flush().unwrap();
+                stdout.execute(cursor::Show).unwrap();
+                terminal::disable_raw_mode().unwrap();
+                return;
+            }
+        }
+
         if &setup.oc_build_version == "latest" {
             let first_diff;
             (setup.oc_build_version, first_diff) = guess_version(&resources);

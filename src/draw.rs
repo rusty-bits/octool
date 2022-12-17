@@ -408,7 +408,8 @@ pub fn hex_str_with_style(v: String) -> String {
     let mut col = v.len() % 2;
     for c in v.chars() {
         if col > 1 {
-            hex_u.push_str("\x1b[35m");
+            hex_u.push_str("\x1b[100;97m");
+//            hex_u.push_str("\x1b[35m");
             hex_u.push(c);
             hex_u.push_str("\x1b[0m");
         } else {

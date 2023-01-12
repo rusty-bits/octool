@@ -248,6 +248,7 @@ fn process(
                     write!(stdout, "\x1b[2K\r\n").unwrap();
                     let mut order_attempts = 0;
                     while !res::check_order(settings, resources, stdout, false) {
+                        settings.modified = true;
                         order_attempts += 1;
                         if order_attempts > 10 {
                             write!(
@@ -290,16 +291,17 @@ fn process(
                     settings.sec_num[settings.depth] = settings.sec_length[settings.depth] - 1
                 }
                 KeyCode::Char(' ') => {
-                    if !showing_info {
-                        edit::edit_value(
-                            settings,
-                            &mut resources.config_plist,
-                            None,
-                            stdout,
-                            true,
-                            false,
-                        )?;
-                    }
+                    //                    if !showing_info {
+                    edit::edit_value(
+                        settings,
+                        &mut resources.config_plist,
+                        None,
+                        stdout,
+                        true,
+                        false,
+                    )?;
+                    //                    }
+                    showing_info = false;
                 }
                 KeyCode::Enter | KeyCode::Tab => {
                     write!(stdout, "\x1b8\r\n")?;
@@ -766,11 +768,13 @@ fn main() {
                         'h' => {
                             write!(
                                 stdout,
-                                "SYNOPSIS\r\n\t./octool [options] [-o x.y.z] [config.plist]\r\n"
+                                "SYNOPSIS\r\n\t./octool [options] [-V x.y.z] [config.plist]\r\n"
                             )
                             .unwrap();
-                            write!(stdout, "OPTIONS\r\n\t-d  build debug version\n\t-h  print this help and exit\r\n\t-o x.y.z  \
-                                     select OpenCore version number\r\n\t-v  show octool version info\r\n").unwrap();
+                            write!(stdout, "OPTIONS\r\n\t-d   use debug versions instead of release\
+                                        \r\n\t-h   print this help and exit\
+                                        \r\n\t-v   show octool version info and exit\
+                                        \r\n\t-V x.y.z  manually force OpenCore version number to use\r\n").unwrap();
                             std::process::exit(0);
                         }
                         'v' => {
@@ -795,15 +799,15 @@ fn main() {
                             }
                             std::process::exit(0);
                         }
-                        'o' => match args.next() {
+                        'V' => match args.next() {
                             Some(version) => setup.oc_build_version = version.to_owned(),
                             _ => {
                                 write!(stdout,
                                     "\r\n\x1B[33mERROR:\x1b[0m You need to supply a version number \
-                                    with the -o option\r\n"
+                                    with the -V option\r\n"
                                 )
                                 .unwrap();
-                                write!(stdout, "e.g. './octool -o \x1b[4m0.7.4\x1b[0m'\r\n")
+                                write!(stdout, "e.g. './octool -V \x1b[4m0.7.4\x1b[0m'\r\n")
                                     .unwrap();
                                 std::process::exit(0);
                             }
@@ -955,7 +959,7 @@ fn main() {
             }
             write!(stdout, "\x1b[33mGUESSING:\x1b[0m at OpenCore version of \x1b[33m{}\x1b[0m based on the input config.plist file\r\n\
                 \tIf this is incorrect you can change the version used with the capital 'V' key on the next screen\r\n\
-                \tor run octool with the -o option and provide an OpenCore version number\r\n\n", setup.oc_build_version ).unwrap();
+                \tor run octool with the -V option and provide an OpenCore version number\r\n\n", setup.oc_build_version ).unwrap();
         }
     }
     stdout.flush().unwrap();

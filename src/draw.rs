@@ -161,10 +161,8 @@ fn display_value(
             live_item = true;
             settings.item_instructions = match plist_value {
             Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
-            Value::Integer(_) | Value::String(_) => "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit",
+            Value::Integer(_) | Value::String(_) | Value::Data(_) => "  \x1B[7menter\x1B[0m edit",
             Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
-            Value::Data(_) =>
-                "  \x1B[7menter\x1B[0m/\x1B[7mtab\x1B[0m edit  \x1B[7mtab\x1B[0m switch hex/string",
             _ => "  XXXunknownXXX",
         }.to_string();
             save_curs_pos = "\x1B7".to_string(); // save cursor position for editing and info display

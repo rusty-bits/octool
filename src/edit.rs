@@ -530,7 +530,7 @@ pub fn edit_value(
 ) -> Result<(), Box<dyn Error>> {
     write!(
         stdout,
-        "{}\x1B[H\x1B[0K {inv}enter{res} save changes   {inv}esc{res} cancel changes",
+        "{}\x1B[H\x1B[0K\r\n\x1B[0K {inv}enter{res} save changes   {inv}esc{res} cancel changes\x1b[H",
         cursor::Show,
         inv = style::Attribute::Reverse,
         res = style::Attribute::Reset,
@@ -618,6 +618,14 @@ fn edit_data(val: &mut Vec<u8>, stdout: &mut Stdout) -> Result<(), Box<dyn Error
     let mut edit_hex = hex::encode(val.clone());
     let mut pos = edit_hex.len();
     let mut hexedit = true;
+    write!(
+        stdout,
+        "edit {und}plist data{res}   {inv}tab{res} switch between editing by hex or string",
+        und = style::Attribute::Underlined,
+        inv = style::Attribute::Reverse,
+        res = style::Attribute::Reset,
+    )
+    .unwrap();
     //    let mut keys = std::io::stdin().keys();
     loop {
         let mut tmp_val = edit_hex.clone();
@@ -736,8 +744,22 @@ fn edit_int(val: &mut Integer, valid_values: Option<&Vec<String>>, stdout: &mut 
     let mut selected = 0;
     let mut hit_space = false;
     let mut new = new_int.to_string();
+    write!(
+        stdout,
+        "edit {und}plist integer{res}",
+        und = style::Attribute::Underlined,
+        res = style::Attribute::Reset,
+    )
+    .unwrap();
     loop {
         if let Some(valid_values) = valid_values {
+            write!(
+                stdout,
+                " directly or  {inv}up{res}/{inv}down{res} select   {inv}space{res} toggle bit",
+                inv = style::Attribute::Reverse,
+                res = style::Attribute::Reset,
+            )
+            .unwrap();
             let mut hex_val;
             write!(stdout, "\x1b8\r\n\x1B[2K\r\n").unwrap();
             for (i, vals) in valid_values.iter().enumerate() {
@@ -839,7 +861,21 @@ pub fn edit_string(
     let mut new = String::from(&*val);
     let mut pos = new.len();
     let mut selected = 0;
+    write!(
+        stdout,
+        "edit {und}plist string{res}",
+        und = style::Attribute::Underlined,
+        res = style::Attribute::Reset,
+    )
+    .unwrap();
     if let Some(valid_values) = valid_values {
+        write!(
+            stdout,
+            " directly or  {inv}up{res}/{inv}down{res} select",
+            inv = style::Attribute::Reverse,
+            res = style::Attribute::Reset,
+        )
+        .unwrap();
         selected = valid_values.len();
         if valid_values.len() > 0 {
             for (i, vals) in valid_values.iter().enumerate() {

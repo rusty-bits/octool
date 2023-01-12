@@ -58,6 +58,7 @@ pub fn update_screen(
                 stdout,
                 i,
                 0,
+                false,
             )
             .unwrap();
         }
@@ -89,6 +90,7 @@ pub fn update_screen(
         info = info[0..17].to_string();
         info.push_str("...");
     }
+    info = highlight_non_print("\x1b[4m", &info, true);
     write!(
         stdout,
         "\x1b[1;{}H\x1b[2KOC \x1b[7mV{}ersion {}",
@@ -100,8 +102,8 @@ pub fn update_screen(
     .unwrap();
     write!(
         stdout,
-        "\x1B[H{}{}   \x1B[0;7mi{}nfo for {}{}{}\r\n\x1B[0K",
-        "\x1b[32m", &settings.config_file_name, bgc, "\x1b[4m", &info, bgc,
+        "\x1B[H{}{}   \x1B[0;7mi{}nfo for {}{}\r\n\x1B[0K",
+        "\x1b[32m", &settings.config_file_name, bgc, &info, bgc,
     )
     .unwrap();
     if settings.depth > 0 {
@@ -142,6 +144,7 @@ fn display_value(
     stdout: &mut Stdout,
     item_num: usize,
     display_depth: usize,
+    is_array_key: bool,
 ) -> Result<i32, Box<dyn Error>> {
     let mut live_item = false;
     let mut selected_item = false;
@@ -160,11 +163,14 @@ fn display_value(
         if display_depth == settings.depth {
             live_item = true;
             settings.item_instructions = match plist_value {
-            Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
-            Value::Integer(_) | Value::String(_) | Value::Data(_) => "  \x1B[7menter\x1B[0m edit",
-            Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
-            _ => "  XXXunknownXXX",
-        }.to_string();
+                Value::Array(_) | Value::Dictionary(_) => "  \x1B[7mright\x1B[0m expand",
+                Value::Integer(_) | Value::String(_) | Value::Data(_) => {
+                    "  \x1B[7menter\x1B[0m edit"
+                }
+                Value::Boolean(_) => "  \x1B[7mspace\x1B[0m toggle",
+                _ => "  XXXunknownXXX",
+            }
+            .to_string();
             save_curs_pos = "\x1B7".to_string(); // save cursor position for editing and info display
         }
     }
@@ -187,10 +193,9 @@ fn display_value(
             }
             write!(
                 stdout,
-                "{} {}{}\x1B[0m  [{}]{} ",
+                "{} {}\x1B[0m  [{}]{} ",
                 pre_key,
-                key_style,
-                key,
+                highlight_non_print(&key_style, key, is_array_key),
                 v.len(),
                 save_curs_pos
             )?;
@@ -218,6 +223,7 @@ fn display_value(
                             stdout,
                             i,
                             display_depth + 1,
+                            true,
                         )?;
                     }
                 }
@@ -225,29 +231,41 @@ fn display_value(
         }
         Value::Boolean(v) => {
             match v {
-                true => write!(
+                true => key_style.push_str("\x1b[32m"),
+                false => key_style.push_str("\x1b[31m"),
+            };
+            write!(
+                stdout,
+                "{}{}: {}{}",
+                highlight_non_print(&key_style, key, is_array_key),
+                bgc,
+                save_curs_pos,
+                v
+            )
+            .unwrap();
+            /*                true => write!(
                     stdout,
                     "{}\x1b[32m{}{}: {}{}",
-                    key_style, key, bgc, save_curs_pos, v
+                    key_style, safe_key(&key_style, key), bgc, save_curs_pos, v
                 )
                 .unwrap(),
                 false => write!(
                     stdout,
                     "{}\x1b[31m{}{}: {}{}",
-                    key_style, key, bgc, save_curs_pos, v
+                    key_style, safe_key(&key_style, key), bgc, save_curs_pos, v
                 )
                 .unwrap(),
-            };
+            };*/
             if live_item {
                 settings.live_value = v.to_string();
             }
         }
         Value::Data(v) => {
+            key_style.push_str("\x1b[35m");
             write!(
                 stdout,
-                "{}\x1b[35m{}{}: <{}{}> | \"{}\"\x1B[0K",
-                key_style,
-                key,
+                "{}{}: <{}{}> | \"{}\"\x1B[0K",
+                highlight_non_print(&key_style, key, is_array_key),
                 bgc,
                 save_curs_pos,
                 hex_str_with_style(hex::encode(&*v)),
@@ -268,17 +286,16 @@ fn display_value(
             if settings.depth > display_depth && settings.sec_num[display_depth] == item_num {
                 pre_key = 'v';
             }
+            match key_color {
+                Some(true) => key_style.push_str("\x1b[32m"),
+                Some(false) => key_style.push_str("\x1b[31m"),
+                None => (),
+            };
             write!(
                 stdout,
-                "{} {}{}{}{} {} [{}]{} ",
+                "{} {}{} {} [{}]{} ",
                 pre_key,
-                key_style,
-                match key_color {
-                    Some(true) => "\x1b[32m",
-                    Some(false) => "\x1b[31m",
-                    None => "",
-                },
-                key,
+                highlight_non_print(&key_style, key, is_array_key),
                 bgc,
                 if display_depth == 2 {
                     let mut sec_sub = settings.sec_key[0].clone();
@@ -321,16 +338,21 @@ fn display_value(
                             stdout,
                             i,
                             display_depth + 1,
+                            false,
                         )?;
                     }
                 }
             }
         }
         Value::Integer(v) => {
+            key_style.push_str("\x1b[34m");
             write!(
                 stdout,
-                "{}\x1b[34m{}{}: {}{}",
-                key_style, key, bgc, save_curs_pos, v
+                "{}{}: {}{}",
+                highlight_non_print(&key_style, key, is_array_key),
+                bgc,
+                save_curs_pos,
+                v
             )?;
             if live_item {
                 settings.live_value = v.to_string();
@@ -339,8 +361,11 @@ fn display_value(
         Value::String(v) => {
             write!(
                 stdout,
-                "{}{:>2}{}: {}{}",
-                key_style, key, bgc, save_curs_pos, v
+                "{:>2}{}: {}{}",
+                highlight_non_print(&key_style, key, is_array_key),
+                bgc,
+                save_curs_pos,
+                highlight_non_print("", v, true),
             )?;
             if live_item {
                 settings.live_value = v.to_string();
@@ -407,7 +432,7 @@ pub fn hex_str_with_style(v: String) -> String {
     for c in v.chars() {
         if col > 1 {
             hex_u.push_str("\x1b[100;97m");
-//            hex_u.push_str("\x1b[35m");
+            //            hex_u.push_str("\x1b[35m");
             hex_u.push(c);
             hex_u.push_str("\x1b[0m");
         } else {
@@ -419,4 +444,30 @@ pub fn hex_str_with_style(v: String) -> String {
         };
     }
     hex_u
+}
+
+pub fn highlight_non_print(key_style: &str, key: &str, allow_space: bool) -> String {
+    let mut ret_key = String::new();
+    ret_key.push_str(key_style);
+    for c in key.chars() {
+        match c {
+            ' ' => {
+                if allow_space {
+                    ret_key.push(' ');
+                } else {
+                    ret_key.push_str("\x1b[7m\x1b[33m \x1b[0m");
+                    ret_key.push_str(key_style);
+                }
+            }
+            c if c.is_ascii_graphic() => ret_key.push(c),
+            //            c if c.is_alphanumeric() => ret_key.push(c),
+            _ => {
+                ret_key.push_str("\x1b[7m\x1b[33m");
+                ret_key.push('\u{fffd}');
+                ret_key.push_str("\x1b[0m");
+                ret_key.push_str(key_style);
+            }
+        }
+    }
+    ret_key
 }

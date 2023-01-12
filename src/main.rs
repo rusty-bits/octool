@@ -560,7 +560,7 @@ fn process(
                             write!(
                                 stdout,
                                 "\r\x1b[4m \x1b[33mno info found for{}\x1b[4m {}",
-                                &settings.bg_col_info, res_name,
+                                &settings.bg_col_info, draw::highlight_non_print("\x1b[4m", &res_name, true),
                             )?;
                             showing_info = true;
                         }

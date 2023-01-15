@@ -446,7 +446,10 @@ pub fn hex_str_with_style(v: String) -> String {
     hex_u
 }
 
-pub fn highlight_non_print(key_style: &str, key: &str, allow_space: bool) -> String {
+pub fn highlight_non_print(key_style: &str, key: &str, mut allow_space: bool) -> String {
+    if key.chars().nth(0) == Some('#') {
+        allow_space = true;
+    }
     let mut ret_key = String::new();
     ret_key.push_str(key_style);
     for c in key.chars() {

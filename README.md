@@ -12,16 +12,16 @@ You can find a basic picture guide for the use of octool here [https://rusty-bit
 
 ## Command line options ##  
 
-./octool [options] [-o x.y.z] [config.plist]  
+./octool [options] [-V x.y.z] [config.plist]  
 
 -d  use `debug` versions for EFI instead of `release` versions  
 
 -h  print help/usage message then exit  
 
--o x.y.z  select OpenCore version number to use e.g. `-o 0.7.4`  
- - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest OpenCore version  
-
 -v  print octool version information and booted OpenCore version if the var is in NVRAM then exit  
+
+-V x.y.z  select OpenCore version number to use e.g. `-V 0.7.4`  
+ - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest OpenCore version  
 
 octool takes a path to a `config.plist` to use if desired.
 If you run octool with no path provided `./octool` will look for `config.plist` in the `INPUT` folder, if it doesn't find it there it will use the `OpenCorePkg/Docs/Sample.plist` file.  
@@ -46,7 +46,7 @@ Navigation: arrow keys or some standard vi keys
           'down'/'j'          jump to bottom of section
 ```
 Usage:  
-'TAB/ENTER' will switch to edit mode for string, integer, or data fields. 'TAB' will also toggle between editing a data field as hex or as a string.  
+'ENTER' will switch to edit mode for string, integer, or data fields.  When editing a data field 'TAB' will toggle between editing the data as hex or as a string.  
  - 'ENTER' will save any changes made  
  - 'ESC' will discard and changes  
  - if the field being edited has values listed in the `Configuration.tex` file, octool will display a list of them  

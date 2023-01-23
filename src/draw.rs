@@ -4,9 +4,13 @@ use std::error::Error;
 use std::io::{Stdout, Write};
 
 use crate::init::Settings;
+use crate::parse_tex;
 use crate::res::{self, Resources};
+use crate::edit::read_key;
 
 use crossterm::terminal::size;
+use crossterm::cursor::position;
+use crossterm::event::KeyCode;
 
 /// Redraws the plist on the screen
 /// Draws the Footer first, in case it needs to be overwritten
@@ -473,4 +477,133 @@ pub fn highlight_non_print(key_style: &str, key: &str, mut allow_space: bool) ->
         }
     }
     ret_key
+}
+
+/// Read through the Configuration.tex and display the info for the highlighted plist item
+///
+/// TODO: keep highlighted item on screen so it can be edited while looking at definition
+pub fn show_info(
+    resources: &Resources,
+    settings: &Settings,
+    gather_valid: bool,
+    stdout: &mut Stdout,
+) -> Result<bool, Box<dyn Error>> {
+    let mut showing_info = true;
+    let rows = size()?.1;
+    let mut row = 0;
+
+    let tex_path = &resources
+        .open_core_source_path
+        .join("Docs/Configuration.tex");
+    let mut hit_bottom = false;
+
+    let mut search_str = vec![];
+    for a in 0..=settings.depth {
+        search_str.push(settings.sec_key[a].to_owned());
+    }
+    let width = size().unwrap().0 as i32;
+    let result = parse_tex::parse_configuration(
+        tex_path,
+        search_str,
+        width,
+        gather_valid,
+        settings.show_info_url,
+    );
+
+    write!(
+        stdout,
+        "{}\x1b[4m{}\x1b8\r\x1b[4m{}\r\n\x1b[0m",
+        &settings.live_value,
+        " ".repeat(size()?.0.into()),
+        "    ".repeat(settings.depth),
+    )?;
+    row += 1;
+
+    let mut start = 0;
+    loop {
+        for i in start..result.len() {
+            write!(stdout, "{}", result[i])?;
+            row += 1;
+            if row == rows {
+                if row == result.len() as u16 + 1 {
+                    break;
+                } else {
+                    hit_bottom = true;
+                }
+                if i == result.len() - 1 {
+                    write!(
+                        stdout,
+                        "{}END{} ... 'q' to quit\x1B[G",
+                        "\x1b[7m", &settings.bg_col_info,
+                    )?;
+                } else {
+                    write!(stdout, "\x1b[7mmore{} ...\x1B[G", &settings.bg_col_info)?;
+                }
+                stdout.flush()?;
+                match read_key().unwrap().0 {
+                    KeyCode::Char('q') | KeyCode::Char('i') | KeyCode::Esc => {
+                        hit_bottom = false;
+                        showing_info = false;
+                        break;
+                    }
+                    KeyCode::Down => {
+                        if i < result.len() - 1 {
+                            row -= 1;
+                            start += 1;
+                            if start > result.len() - rows as usize {
+                                start = result.len() - rows as usize;
+                            }
+                        } else {
+                            row = 0;
+                        }
+                    }
+                    KeyCode::Up => {
+                        row = 0;
+                        if start > 0 {
+                            start -= 1;
+                        }
+                        write!(stdout, "\x1B[1H")?;
+                        break;
+                    }
+                    KeyCode::Char('b') => {
+                        if start > rows as usize {
+                            start -= rows as usize;
+                        } else {
+                            start = 0;
+                        }
+                        row = 0;
+                        write!(stdout, "\x1B[1H")?;
+                        break;
+                    }
+                    _ => {
+                        row = 0;
+                        if i < result.len() - 1 {
+                            start += rows as usize;
+                            if start > result.len() - rows as usize {
+                                start = result.len() - rows as usize;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if !hit_bottom {
+            break;
+        }
+    }
+    //    }
+    write!(stdout, "\x1b[4m{}\x1B[0K", " ".repeat(size()?.0.into()))?;
+    write!(stdout, "\x1B8")?;
+    stdout.flush()?;
+    let bump_position = row + position()?.1 + 1;
+    if bump_position > rows {
+        write!(
+            stdout,
+            "\x1B8{}\x1B7",
+            "\x1B[A".repeat(bump_position as usize - rows as usize)
+        )?;
+    }
+    stdout.flush()?;
+    Ok(showing_info)
 }

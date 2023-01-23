@@ -38,7 +38,7 @@ fn process(
 ) -> Result<(), Box<dyn Error>> {
     let mut found = vec![edit::Found::new()];
     let mut found_id: usize = 0;
-    let mut res_name = String::new();
+    //    let mut res_name = String::new();
 
     init::init_oc_build(&mut resources, settings, stdout)?;
     init::init_plist(config_plist, &mut resources, settings, stdout)?;
@@ -262,8 +262,6 @@ fn process(
                     }
                     write!(stdout, "\x1b[2K\r\n\x1b[32mDone\x1b[0m\x1b[0K\r\n").unwrap();
 
-                    //                    let _ = res::check_order(settings, &mut resources, stdout);
-
                     showing_info = true;
                 }
                 KeyCode::Char('p') => {
@@ -305,8 +303,15 @@ fn process(
                 }
                 KeyCode::Enter | KeyCode::Tab => {
                     write!(stdout, "\x1b8\r\n")?;
-                    let mut valid_values = vec![];
-                    parse_tex::show_info(&resources, &settings, true, &mut valid_values, stdout)?;
+                    let tex_path = &resources
+                        .open_core_source_path
+                        .join("Docs/Configuration.tex");
+                    let mut search_str = vec![];
+                    for a in 0..=settings.depth {
+                        search_str.push(settings.sec_key[a].to_owned());
+                    }
+                    let valid_values =
+                        parse_tex::parse_configuration(tex_path, search_str, 0, true, false);
                     edit::edit_value(
                         settings,
                         &mut resources.config_plist,
@@ -411,7 +416,6 @@ fn process(
                                         Some(s) => s,
                                         None => "".to_string(),
                                     }
-                                // versions[0].split("---").next().unwrap().trim().to_owned();
                             } else {
                                 new_ver = settings.oc_build_version.to_owned();
                                 // reset resource versions if OpenCore version is changed
@@ -542,27 +546,16 @@ fn process(
                 }
                 KeyCode::Char('i') => {
                     if !showing_info {
-                        let mut empty_vec = vec![];
+                        //                        let mut empty_vec = vec![];
                         if settings.is_resource() {
                             let _ = res::show_res_info(&mut resources, &mut settings, stdout);
                             showing_info = true;
                         } else {
-                            showing_info = parse_tex::show_info(
-                                &resources,
-                                &settings,
-                                false,
-                                &mut empty_vec,
+                            showing_info = draw::show_info(
+                                &resources, &settings, false,
+                                //                                &mut empty_vec,
                                 stdout,
                             )?;
-                        }
-                        if !showing_info && empty_vec.len() == 0 {
-                            settings.res_name(&mut res_name);
-                            write!(
-                                stdout,
-                                "\r\x1b[4m \x1b[33mno info found for{}\x1b[4m {}",
-                                &settings.bg_col_info, draw::highlight_non_print("\x1b[4m", &res_name, true),
-                            )?;
-                            showing_info = true;
                         }
                         write!(stdout, "\x1b[0m")?;
                         stdout.flush()?;

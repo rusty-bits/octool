@@ -904,7 +904,11 @@ pub fn edit_string(
                 write!(stdout, "\n\x1B[2K\r\n").unwrap();
             }
         }
-        write!(stdout, "\x1B8{}\x1B[0K", draw::highlight_non_print("\x1b[4m", &new, true))?;
+        write!(
+            stdout,
+            "\x1B8{}\x1B[0K",
+            draw::highlight_non_print("\x1b[4m", &new, true)
+        )?;
         write!(stdout, "\x1B8{}", "\x1B[C".repeat(pos))?;
         stdout.flush()?;
         match read_key().unwrap().0 {

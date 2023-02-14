@@ -63,7 +63,7 @@ impl Settings {
         self.inside_an_array = false;
     }
     pub fn right(&mut self) {
-        if self.depth < 3 && self.can_expand {
+        if self.depth < 4 && self.can_expand {
             self.depth += 1;
             self.sec_num[self.depth] = 0;
         }

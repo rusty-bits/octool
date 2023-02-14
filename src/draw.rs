@@ -3,14 +3,14 @@ use plist::Value;
 use std::error::Error;
 use std::io::{Stdout, Write};
 
+use crate::edit::read_key;
 use crate::init::Settings;
 use crate::parse_tex;
 use crate::res::{self, Resources};
-use crate::edit::read_key;
 
-use crossterm::terminal::size;
 use crossterm::cursor::position;
 use crossterm::event::KeyCode;
+use crossterm::terminal::size;
 
 /// Redraws the plist on the screen
 /// Draws the Footer first, in case it needs to be overwritten
@@ -522,7 +522,7 @@ pub fn show_info(
     let mut start = 0;
     loop {
         for i in start..result.len() {
-            write!(stdout, "{}", result[i])?;
+            write!(stdout, "\x1b[0K{}", result[i])?;
             row += 1;
             if row == rows {
                 if row == result.len() as u16 + 1 {

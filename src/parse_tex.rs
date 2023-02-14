@@ -24,10 +24,10 @@ pub fn parse_configuration(
     let mut align = false;
     let mut sub_search = "\\subsection{".to_string();
 
-    match search_str.len() - 1 {
-        0 => (),
-        1 => sub_search.push_str("Properties}\\"),
-        2 | 3 => match search_str[0].as_str() {
+    match search_str.len() {
+        1 => (),
+        2 => sub_search.push_str("Properties}\\"),
+        3 | 4 => match search_str[0].as_str() {
             "NVRAM" => sub_search.push_str("Introduction}"),
             "DeviceProperties" => sub_search.push_str("Common"),
             "Misc" => {
@@ -104,6 +104,9 @@ pub fn parse_configuration(
     let mut lines_between_valid = 0;
 
     for line in lines {
+        if line.trim_start().starts_with("%") {
+            continue;
+        }
         if line.contains("\\subsection{Introduction}") {
             continue;
         }
@@ -177,7 +180,8 @@ pub fn parse_configuration(
             }
         } else {
             if parsed_line.len() != 0 {
-                result.push(format!("\x1B[0K{}", parsed_line));
+                result.push(parsed_line);
+                //                result.push(format!("\x1B[0K{}", parsed_line));
             }
         }
     }

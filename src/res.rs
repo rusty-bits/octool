@@ -7,6 +7,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use crossterm::terminal::size;
+use crossterm::{
+    cursor,
+    terminal, ExecutableCommand,
+};
 use curl::easy::Easy;
 use plist::Value;
 use walkdir::WalkDir;
@@ -282,7 +286,10 @@ pub fn get_file_and_unzip(
             write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
         }
         if sum != hash {
-            panic!("Sum of {:?} does not match {}", path, hash);
+            write!(stdout, "\x1b[31mERROR:\x1b[0m Sum of {:?} does not match {}\r\n\r\nExiting\r\n", path, hash)?;
+            stdout.execute(cursor::Show).unwrap();
+            terminal::disable_raw_mode().unwrap();
+            std::process::exit(1);
         } else {
             let sum_file = path.parent().unwrap().join("sum256");
             let mut sum_file = File::create(sum_file)?;

@@ -104,7 +104,7 @@ pub fn parse_configuration(
     let mut lines_between_valid = 0;
 
     for line in lines {
-        if line.trim_start().starts_with("%") {
+        if line.trim_start().starts_with("%") { // skip comments
             continue;
         }
         if line.contains("\\subsection{Introduction}") {

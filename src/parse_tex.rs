@@ -104,7 +104,8 @@ pub fn parse_configuration(
     let mut lines_between_valid = 0;
 
     for line in lines {
-        if line.trim_start().starts_with("%") { // skip comments
+        if line.trim_start().starts_with("%") {
+            // skip comments
             continue;
         }
         if line.contains("\\subsection{Introduction}") {
@@ -138,9 +139,9 @@ pub fn parse_configuration(
         if line.contains("\\mbox") {
             continue;
         }
-        //        if line.contains("\\begin{") {
-        //            continue;
-        //        }
+//        if line.contains("\\begin{") {
+//            continue;
+//        }
         if line.contains("\\end{tabular}") {
             columns = 0;
             continue;

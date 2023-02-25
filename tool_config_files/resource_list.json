@@ -115,6 +115,9 @@
   "DebugEnhancer.kext": {
     "parent": "DebugEnhancer"
   },
+  "ECEnabler.kext": {
+      "parent": "ECEnabler"
+  },
   "Ext4Dxe.efi": {
       "parent": "OpenCorePkg",
       "res_type": "driver"
@@ -155,6 +158,15 @@
   "HiiDatabase.efi": {
     "parent": "OpenCorePkg",
     "res_type": "driver"
+  },
+  "IntelBluetoothFirmware.kext": {
+    "parent": "IntelBluetoothFirmware"
+  },
+  "IntelBluetoothInjector.kext": {
+    "parent": "IntelBluetoothFirmware"
+  },
+  "InteBTPatcher.kext": {
+    "parent": "IntelBluetoothFirmware"
   },
   "IntelMausi.kext": {
     "parent": "IntelMausi"

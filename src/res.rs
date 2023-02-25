@@ -7,10 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use crossterm::terminal::size;
-use crossterm::{
-    cursor,
-    terminal, ExecutableCommand,
-};
+use crossterm::{cursor, terminal, ExecutableCommand};
 use curl::easy::Easy;
 use plist::Value;
 use walkdir::WalkDir;
@@ -32,7 +29,7 @@ pub struct Resources {
     pub config_plist: plist::Value,  // current active config.plist
     pub sample_plist: plist::Value,  // latest Sample.plist
     pub working_dir_path: PathBuf,   // location of octool and files
-    pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binariesg
+    pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binaries
     pub open_core_source_path: PathBuf, // location of OpenCore source files
 }
 
@@ -286,7 +283,11 @@ pub fn get_file_and_unzip(
             write!(stdout, "  local sum {}\x1B[0K\r\n", sum)?;
         }
         if sum != hash {
-            write!(stdout, "\x1b[31mERROR:\x1b[0m Sum of {:?} does not match {}\r\n\r\nExiting\r\n", path, hash)?;
+            write!(
+                stdout,
+                "\x1b[31mERROR:\x1b[0m Sum of {:?} does not match {}\r\n\r\nExiting\r\n",
+                path, hash
+            )?;
             stdout.execute(cursor::Show).unwrap();
             terminal::disable_raw_mode().unwrap();
             std::process::exit(1);
@@ -1146,7 +1147,7 @@ pub fn check_order(
     {
         return true;
     }
-    let reses = resources
+    let kernel_add_section = resources
         .config_plist
         .as_dictionary_mut()
         .unwrap()
@@ -1160,11 +1161,19 @@ pub fn check_order(
         .unwrap();
 
     //build list of kexts from Kernel > Add Section
-    for res in reses {
+    for res in kernel_add_section {
         let bundle_path = res
             .as_dictionary()
             .unwrap()
             .get("BundlePath")
+            .unwrap()
+            .as_string()
+            .unwrap_or("")
+            .to_owned();
+        let plist_path = res
+            .as_dictionary()
+            .unwrap()
+            .get("PlistPath")
             .unwrap()
             .as_string()
             .unwrap_or("")
@@ -1178,6 +1187,7 @@ pub fn check_order(
             .unwrap_or(false);
         let mut new_res = (
             bundle_path.split('/').last().unwrap_or("").to_string(),
+            plist_path,
             "Unknown".to_owned(),
             res_enabled,
         );
@@ -1199,14 +1209,14 @@ pub fn check_order(
                     _ => (),
                 }
             }
-            new_res.2 = false;
+            new_res.3 = false;
         }
         kext_list.push(new_res);
     }
 
-    //add version numbers to list
+    //add version numbers to list from the res_version manifest
     for i in 0..kext_list.len() {
-        kext_list[i].1 = res_version(settings, resources, &kext_list[i].0).unwrap_or("".to_owned());
+        kext_list[i].2 = res_version(settings, resources, &kext_list[i].0).unwrap_or("".to_owned());
     }
 
     #[cfg(debug_assertions)]
@@ -1215,7 +1225,7 @@ pub fn check_order(
     }
 
     //iterate kext_list and build bundle_list
-    for (res_bundle, _, _) in kext_list.iter() {
+    for (res_bundle, plist_path, _, _) in kext_list.iter() {
         match get_res_path(
             &settings,
             &resources,
@@ -1226,18 +1236,18 @@ pub fn check_order(
         ) {
             //found path to resource - check for Info.plist
             Some(path) => {
-                let info_path = PathBuf::from(path).join("Contents/Info.plist");
+                let info_path = PathBuf::from(path).join(plist_path);
                 if info_path.exists() {
                     let info =
-                        plist::Value::from_file(&info_path).expect("got Value from Info.plist");
-                    let cfbun = info
+                        plist::Value::from_file(&info_path).expect("getting Value from Info.plist");
+                    let cfbundle_id = info
                         .as_dictionary()
                         .unwrap()
                         .get("CFBundleIdentifier")
                         .unwrap()
                         .as_string()
                         .unwrap();
-                    let cfver = info
+                    let cfbundle_version = info
                         .as_dictionary()
                         .unwrap()
                         .get("CFBundleVersion")
@@ -1245,31 +1255,35 @@ pub fn check_order(
                         .as_string()
                         .unwrap();
 
-                    let os_bun_lib = info.as_dictionary().unwrap().get("OSBundleLibraries");
-                    if os_bun_lib.is_some() {
-                        match os_bun_lib.unwrap() {
+                    let os_bundle_lib = info.as_dictionary().unwrap().get("OSBundleLibraries");
+                    if os_bundle_lib.is_some() {
+                        match os_bundle_lib.unwrap() {
                             plist::Value::Dictionary(d) => {
-                                let mut buns = vec![];
+                                let mut lib_children = vec![];
                                 for val in d.iter() {
                                     if !val.0.contains("com.apple") {
                                         //add requirement if it is
                                         //not from apple
-                                        buns.push((
+                                        lib_children.push((
                                             val.0.to_owned(),
                                             val.1.as_string().unwrap().to_owned(),
                                         ));
                                     }
                                 }
                                 bundle_list.push((
-                                    cfbun.to_string(),
-                                    cfver.to_string(),
-                                    buns.clone(),
+                                    cfbundle_id.to_string(),
+                                    cfbundle_version.to_string(),
+                                    lib_children.clone(),
                                 ));
                             }
                             _ => {}
                         }
                     } else {
-                        bundle_list.push((cfbun.to_string(), cfver.to_string(), vec![]));
+                        bundle_list.push((
+                            cfbundle_id.to_string(),
+                            cfbundle_version.to_string(),
+                            vec![],
+                        ));
                     }
                 } else {
                     bundle_list.push(("bad_path".to_string(), "".to_string(), vec![]));
@@ -1288,11 +1302,11 @@ pub fn check_order(
     }
 
     //enable or add requirements
-    for (i, bun) in bundle_list.iter().enumerate() {
-        if kext_list[i].2 {
-            if bun.2.len() > 0 {
+    for (i, bundle) in bundle_list.iter().enumerate() {
+        if kext_list[i].3 {
+            if bundle.2.len() > 0 {
                 //has requirements
-                for (j, required) in bun.2.iter().enumerate() {
+                for (j, required) in bundle.2.iter().enumerate() {
                     let mut requirement_exists = false;
                     let mut requirement_index = 0;
                     let mut requirement_out_of_order = false;
@@ -1303,19 +1317,19 @@ pub fn check_order(
                             if k > i {
                                 requirement_out_of_order = true;
                             }
-                            if kext_list[k].2 {
+                            if kext_list[k].3 {
                                 break;
                                 //found enabled requirement
                             }
                         }
                     }
                     if requirement_exists {
-                        if !kext_list[requirement_index].2 {
+                        if !kext_list[requirement_index].3 {
                             if !check_only {
                                 write!(
                                     stdout,
                                     " \x1b[32menabling\x1b[0m {} for {}\x1b[0K\r\n",
-                                    kext_list[requirement_index].0, bun.0
+                                    kext_list[requirement_index].0, bundle.0
                                 )
                                 .unwrap();
                                 //enable the requirement
@@ -1342,7 +1356,7 @@ pub fn check_order(
                                 write!(
                                     stdout,
                                     " \x1b[32mfixing\x1b[0m {} order for {}\x1b[0K\r\n",
-                                    kext_list[requirement_index].0, bun.0
+                                    kext_list[requirement_index].0, bundle.0
                                 )
                                 .unwrap();
                                 //place resource after requirement then remove resource from current
@@ -1370,7 +1384,7 @@ pub fn check_order(
                             write!(
                                 stdout,
                                 "  \x1b[32madding\x1b[0m requirement {} for {}\x1b[0K\r\n",
-                                required.0, bun.0
+                                required.0, bundle.0
                             )
                             .unwrap();
                             //add requirement

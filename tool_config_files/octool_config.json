@@ -1,57 +1,69 @@
 {
-  "octool_version": "v0.5.0 2023-01-20",
-  "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
-  "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
-  "octool_latest_dyn_res_list_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/dyn_res_list.zip",
+    "octool_version": "v0.5.0 2023-01-20",
+    "octool_releases_url": "https://github.com/rusty-bits/octool/releases",
+    "octool_latest_config_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/octool_config.json",
+    "octool_latest_dyn_res_list_url": "https://raw.githubusercontent.com/rusty-bits/octool/main/tool_config_files/dyn_res_list.zip",
 
-  "acpi_path": "Docs/AcpiSamples/Binaries",
-  "drivers_path": "X64/EFI/OC/Drivers",
-  "tools_path": "X64/EFI/OC/Tools",
+    "acpi_path": "Docs/AcpiSamples/Binaries",
+    "drivers_path": "X64/EFI/OC/Drivers",
+    "tools_path": "X64/EFI/OC/Tools",
 
-  "dortania_config_path": "tool_config_files/build-repo-builds",
-  "dortania_config_zip": "https://github.com/dortania/build-repo/archive/refs/heads/builds.zip",
+    "dortania_config_path": "tool_config_files/build-repo-builds",
+    "dortania_config_zip": "https://github.com/dortania/build-repo/archive/refs/heads/builds.zip",
 
-  "opencorepkg_path": "resources/OpenCorePkg",
-  "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",
-  "current_sample_plist": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Sample.plist",
+    "opencorepkg_path": "resources/OpenCorePkg",
+    "current_configuration_tex": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Configuration.tex",
+    "current_sample_plist": "https://raw.githubusercontent.com/acidanthera/OpenCorePkg/master/Docs/Sample.plist",
 
-  "//comm_can_lang": "only include language files containing 'canopy_language' when OpenCanopy is used",
-  "canopy_language": "en",
+    "//comm_can_lang": "only include language files containing 'canopy_language' when OpenCanopy is used",
+    "canopy_language": "en",
 
-  "//comm_glob_audio": "always include these audio files when OpenCanopy is used",
-  "global_audio_files": [
-    "AXEFIAudio_Beep.mp3",
-    "AXEFIAudio_Click.mp3",
-    "AXEFIAudio_VoiceOver_Boot.mp3"
-  ],
-
-  "//comm_show_url": "show url in info screens in addition to link name",
-  "show_url_in_info_screens": false,
-
-  "//comm_reset_ver": "when OpenCore version is changed, set other resource versions to match",
-  "reset_res_versions": true,
-
-  "//comm_clob_local": "replace local res list with updated list when octool is run",
-  "clobber_local_dyn_res_list": true,
-
-  "//comm_use_latest": "use latest version of OpenCore that fits the format of the config.plist being used",
-  "use_latest_oc_on_guess": true,
-
-  "//comm_build": "set use of either 'X64' or 'IA32' build architecture",
-  "build_architecture": "X64",
-
-  "resource_sections": [
-    [
-      "ACPI", "Add", "Path", "ACPI"
+    "//comm_glob_audio": "always include these audio files when OpenCanopy is used",
+    "global_audio_files": [
+        "AXEFIAudio_Beep.mp3",
+        "AXEFIAudio_Click.mp3",
+        "AXEFIAudio_VoiceOver_Boot.mp3"
     ],
-    [
-      "Kernel", "Add", "BundlePath", "Kexts"
-    ],
-    [
-      "Misc", "Tools", "Path", "Tools"
-    ],
-    [
-      "UEFI", "Drivers", "Path", "Drivers"
+
+    "//comm_show_url": "show url in info screens in addition to link name",
+    "show_url_in_info_screens": false,
+
+    "//comm_reset_ver": "when OpenCore version is changed, set other resource versions to match",
+    "reset_res_versions": true,
+
+    "//comm_clob_local": "replace local res list with updated list when octool is run",
+    "clobber_local_dyn_res_list": true,
+
+    "//comm_use_latest": "use latest version of OpenCore that fits the format of the config.plist being used",
+    "use_latest_oc_on_guess": true,
+
+    "//comm_build": "set use of either 'X64' or 'IA32' build architecture",
+    "build_architecture": "X64",
+
+    "resource_sections": [
+        [
+            "ACPI",
+            "Add",
+            "Path",
+            "ACPI"
+        ],
+        [
+            "Kernel",
+            "Add",
+            "BundlePath",
+            "Kexts"
+        ],
+        [
+            "Misc",
+            "Tools",
+            "Path",
+            "Tools"
+        ],
+        [
+            "UEFI",
+            "Drivers",
+            "Path",
+            "Drivers"
+        ]
     ]
-  ]
 }

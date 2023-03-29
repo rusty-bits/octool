@@ -2,6 +2,12 @@
   "config_differences": [
     [
       "UEFI",
+      "Output",
+      "GopBurstMode",
+      "0.9.1"
+    ],
+    [
+      "UEFI",
       "Quirks",
       "ResizeUsePciRbIo",
       "0.8.9"

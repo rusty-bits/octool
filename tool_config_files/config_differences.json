@@ -3,6 +3,12 @@
     [
       "UEFI",
       "Output",
+      "InitialMode",
+      "0.9.2"
+    ],
+    [
+      "UEFI",
+      "Output",
       "GopBurstMode",
       "0.9.1"
     ],

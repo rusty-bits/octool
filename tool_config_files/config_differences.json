@@ -1,6 +1,18 @@
 {
   "config_differences": [
     [
+      "Misc",
+      "Boot",
+      "InstanceIdentifier",
+      "0.9.4"
+    ],
+    [
+      "UEFI",
+      "Output",
+      "ConsoleFont",
+      "0.9.3"
+    ],
+    [
       "UEFI",
       "Output",
       "InitialMode",

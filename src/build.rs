@@ -151,23 +151,23 @@ pub fn build_output(
         let mut lang = "_".to_string();
         lang.push_str(&canopy_language);
         lang.push('_');
-        let input_resources = Path::new("INPUT/Resources");
+        let input_resources = Path::new(resources.input_dir_path.file_name().unwrap()).join("Resources");
         let in_path = Path::new("resources/OcBinaryData/Resources");
         let out_path = Path::new("OUTPUT/EFI/OC/Resources");
         for res in &["Audio", "Font", "Image", "Label"] {
             let mut entries: Vec<PathBuf> = Default::default();
-            let mut res_source = "";
+            let mut res_source = "".to_owned();
             if input_resources.join(&res).exists() {
                 for r in fs::read_dir(input_resources.join(res))? {
                     entries.push(r?.path());
                 }
-                res_source = "\x1b[33mINPUT/Resources\x1b[0m";
+                res_source = format!("\x1b[33m{}/Resources\x1b[0m", resources.input_dir_path.file_name().unwrap().to_str().unwrap());
             }
             if entries.len() == 0 {
                 for r in fs::read_dir(in_path.join(res))? {
                     entries.push(r?.path());
                 }
-                res_source = "OcBinaryData";
+                res_source = "OcBinaryData".to_owned();
             }
             // only use selected language if using OcBinaryData as input source, otherwise do not
             // modify the source list at all
@@ -278,10 +278,11 @@ pub fn build_output(
         write!(
             stdout,
             "\x1B[31mIf you want octool to include them automatically,\r\n\
-            they need to be placed in the \x1B[32mINPUT\x1B[31m folder before building.\r\n\
+            they need to be placed in the \x1B[32m{}\x1B[31m folder before building.\r\n\
             If you feel octool should know this file, then there may be an issue with the\r\n\
             resources folder.  You can delete that folder and try running octool again.\r\n\
-            Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n"
+            Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n",
+            resources.input_dir_path.file_name().unwrap().to_str().unwrap()
         )?;
         stdout.flush()?;
     }

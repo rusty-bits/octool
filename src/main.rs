@@ -122,10 +122,12 @@ fn process(
                         tmp.push_str(&config_file);
                         config_file = tmp.to_owned();
                     }
-                    let save_file = PathBuf::from("INPUT").join(&config_file);
+                    let save_file = PathBuf::from(resources.input_dir_path.file_name().unwrap())
+                        .join(&config_file);
                     write!(
                         stdout,
-                        "\r\n\x1B[0JSaving copy of plist as INPUT/{}\r\n\x1B[0K",
+                        "\r\n\x1B[0JSaving copy of plist as {}/{}\r\n\x1B[0K",
+                        save_file.file_name().unwrap().to_str().unwrap(),
                         config_file
                     )
                     .unwrap();
@@ -579,18 +581,29 @@ fn process(
                         tmp.push_str(&config_file);
                         config_file = tmp.to_owned();
                     }
-                    let save_path = PathBuf::from("INPUT").join(&config_file);
+                    //                    let save_path = PathBuf::from("INPUT").join(&config_file);
+                    let save_path = PathBuf::from(resources.input_dir_path.file_name().unwrap())
+                        .join(&config_file);
                     write!(
                         stdout,
-                        "\r\n\n\x1B[0JSaving copy of plist to INPUT directory\r\n\n\x1B[32m\
+                        "\r\n\n\x1B[0JSaving copy of plist to {} directory\r\n\n\x1B[32m\
                            Validating\x1B[0m {} with {} Acidanthera/ocvalidate\r\n",
-                        config_file, settings.oc_build_version,
+                        resources
+                            .input_dir_path
+                            .file_name()
+                            .unwrap()
+                            .to_str()
+                            .unwrap(),
+                        config_file,
+                        settings.oc_build_version,
                     )?;
                     resources.config_plist.to_file_xml(&save_path)?;
 
                     //save manifest
                     config_file.push_str(".man");
-                    let manifest_path = PathBuf::from("INPUT").join(&config_file);
+                    let manifest_path =
+                        PathBuf::from(resources.input_dir_path.file_stem().unwrap())
+                            .join(&config_file);
                     let manifest_file = match File::create(&manifest_path) {
                         Err(e) => panic!("Couldn't open {:?}: {}", &save_path, e),
                         Ok(f) => f,
@@ -677,21 +690,23 @@ fn main() {
         other: Default::default(),
         config_plist: plist::Value::Boolean(false),
         sample_plist: plist::Value::Boolean(false),
+        input_dir_path: Default::default(),
         working_dir_path: Default::default(),
         open_core_binaries_path: Default::default(),
         open_core_source_path: Default::default(),
     };
 
-    if !working_dir.join("INPUT").exists() {
-        std::fs::create_dir_all(working_dir.join("INPUT")).expect("creating INPUT directory");
-    }
+    //set default INPUT path, may be overriden by command line args
+    resources.input_dir_path = working_dir.join("INPUT");
 
+    // create tool_config_files if it doesn't exist
     if !working_dir.join("tool_config_files").exists() {
         std::fs::create_dir_all(working_dir.join("tool_config_files"))
             .expect("creating tool_config_files directory");
     }
 
-    if !working_dir
+
+    if !working_dir //  download octool_config if it doesn't exist
         .join("tool_config_files/octool_config.json")
         .exists()
     {
@@ -750,7 +765,8 @@ fn main() {
     resources.config_differences =
         res::get_serde_json_quiet("tool_config_files/config_differences.json").unwrap();
 
-    let mut config_file = working_dir.join("INPUT/config.plist");
+    //    let mut config_file = working_dir.join("INPUT/config.plist");
+    let mut config_file = resources.input_dir_path.join("config.plist");
     let args = env::args().skip(1).collect::<Vec<String>>();
     let mut args = args.iter();
     loop {
@@ -811,10 +827,23 @@ fn main() {
                 }
             } else {
                 config_file = current_dir.join(arg);
+                // if given config file is in an INPUT... directory set the input_dir_path
+                if config_file.is_dir() {
+                    config_file = config_file.join("config.plist");
+                }
+                let possible_input = config_file.parent().expect("config file has no parent");
+                if possible_input.file_name().unwrap().to_str().unwrap().contains("INPUT") {
+                    resources.input_dir_path = PathBuf::from(possible_input);
+                }
             }
         } else {
             break;
         }
+    }
+
+    // create the INPUT dir if it does not exist
+    if !resources.input_dir_path.exists() {
+        std::fs::create_dir_all(&resources.input_dir_path).expect("creating INPUT directory");
     }
 
     terminal::enable_raw_mode().unwrap();

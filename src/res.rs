@@ -28,6 +28,7 @@ pub struct Resources {
     pub other: serde_json::Value,    // list of other party parent/childs
     pub config_plist: plist::Value,  // current active config.plist
     pub sample_plist: plist::Value,  // latest Sample.plist
+    pub input_dir_path: PathBuf,     // location of INPUT directory to be used
     pub working_dir_path: PathBuf,   // location of octool and files
     pub open_core_binaries_path: PathBuf, // location of the OpenCorePkg binaries
     pub open_core_source_path: PathBuf, // location of OpenCore source files
@@ -326,7 +327,7 @@ pub fn show_res_info(resources: &mut Resources, settings: &mut Settings, stdout:
     )
     .unwrap();
 
-    res_path = res_exists(&resources.working_dir_path, "INPUT", &ind_res, stdout, bgc);
+    res_path = res_exists(&resources.working_dir_path, resources.input_dir_path.file_name().unwrap().to_str().unwrap(), &ind_res, stdout, bgc);
 
     let open_core_pkg = &resources.open_core_binaries_path;
 
@@ -636,7 +637,8 @@ pub fn get_res_path(
     let parent = resources.resource_list[&ind_res]["parent"]
         .as_str()
         .unwrap_or("");
-    let mut path = resources.working_dir_path.join("INPUT").join(ind_res);
+//    let mut path = resources.working_dir_path.join("INPUT").join(ind_res);
+    let mut path = resources.input_dir_path.join(ind_res);
     if path.exists() {
         from_input = true;
         res_path = Some(path.clone());
@@ -724,8 +726,9 @@ pub fn get_res_path(
                         if from_input {
                             write!(
                                 stdout,
-                                "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from INPUT folder\x1B[0m\r\n",
-                                ind_res
+                                "\x1B[33mUsing \x1B[0m{}\x1B[33m copy from {} folder\x1B[0m\r\n",
+                                ind_res,
+                                resources.input_dir_path.file_name().unwrap().to_str().unwrap()
                             )
                             .unwrap();
                         } else {

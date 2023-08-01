@@ -6,3 +6,5 @@ INPUT/*
 !INPUT/README.md
 OUTPUT/
 octool
+*INPUT*/
+scripts/

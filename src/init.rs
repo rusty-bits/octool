@@ -21,6 +21,7 @@ pub struct Settings {
     pub sec_num: [usize; 5],               // selected section for each depth
     pub depth: usize,                      // depth of plist section we are looking at
     pub sec_key: [String; 5],              // key of selected section
+    pub raw_sec_key: [String; 5],          // raw key of selected section, e.g. plain array #s
     pub item_instructions: String,         // item instructions for display in header
     pub held_item: Option<Value>,          // last deleted or placed item value
     pub held_key: String,                  // last deleted or placed key

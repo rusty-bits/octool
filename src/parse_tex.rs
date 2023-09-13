@@ -21,76 +21,74 @@ pub fn parse_configuration(
         return result;
     }
 
-    let mut align = false;
-    let mut sub_search = "\\subsection{".to_string();
+    let mut search_terms = vec![];
+
+    search_terms.push("\\section{".to_string() + &search_str[0]);
+    let mut text_search = search_str.last().unwrap().to_owned();
+    if text_search.len() < 3 {
+        result.push("array item #".to_string() + &text_search + "\r\n");
+        return result;
+    }
 
     match search_str.len() {
         1 => (),
-        2 => sub_search.push_str("Properties}\\"),
-        3 | 4 => match search_str[0].as_str() {
-            "NVRAM" => sub_search.push_str("Introduction}"),
-            "DeviceProperties" => sub_search.push_str("Common"),
-            "Misc" => {
-                if search_str.len() < 4 {
-                    sub_search.push_str(&search_str[1]);
-                    sub_search.push_str(" Properties}\\");
-                } else {
-                    sub_search.push_str("Entry Properties}\\");
+        2 => {
+            search_terms.push("\\subsection{Properties".to_string());
+            search_terms.push("texttt{".to_string() + &text_search + "}\\");
+        }
+        3 => {
+            if search_str[0] == "NVRAM" {
+                search_terms.push("\\subsection{Introduction".to_string());
+                search_terms.push("texttt{".to_string() + &text_search + "}");
+            } else {
+                search_terms.push("\\subsection{".to_string() + &search_str[1] + " Properties");
+                search_terms.push("texttt{".to_string() + &text_search + "}\\");
+            }
+        }
+        4 => {
+            let mut sub_search = "\\subsection{".to_string();
+            match search_str[0].as_str() {
+                "NVRAM" => {
+                    sub_search = "\\subsection{Introduction".to_string();
+                    text_search = search_str[2].to_owned() + ":" + &search_str[3] + "}";
                 }
-            }
-            _ => {
-                sub_search.push_str(&search_str[1]);
-                sub_search.push_str(" Properties}\\");
-            }
-        },
+                "DeviceProperties" => {
+                    sub_search.push_str("Common");
+                    text_search.push_str("}");
+                }
+                "Misc" => {
+                    if search_str[2].len() < 3 {
+                        sub_search.push_str("Entry Properties");
+                    } else {
+                        sub_search = "\\subsubsection{".to_string() + &search_str[1];
+                    }
+                    text_search.push_str("}");
+                }
+                _ => {
+                    sub_search.push_str(&search_str[1]);
+                    sub_search.push_str(" Properties");
+                    text_search.push_str("}\\");
+                }
+            };
+            search_terms.push(sub_search);
+            search_terms.push("texttt{".to_string() + &text_search);
+        }
+        5 => {
+            search_terms.push("\\subsubsection{".to_string() + &search_str[1]);
+            search_terms.push("texttt{".to_string() + &text_search);
+        }
         _ => return result,
     }
 
-    let mut sec_search = "\\section{".to_string();
-    sec_search.push_str(&search_str[0]);
+    //    return search_terms;
 
     let mut lines = contents.lines();
 
-    loop {
-        match lines.next() {
-            Some(line) => {
-                if line.contains(&sec_search) {
-                    break;
-                }
-            }
-            None => return result,
-        }
-    }
-
-    if search_str.len() != 1 {
+    for term in search_terms {
         loop {
             match lines.next() {
                 Some(line) => {
-                    if line.contains(&sub_search) {
-                        break;
-                    }
-                }
-                None => return result,
-            }
-        }
-
-        let mut text_search = "texttt{".to_string();
-        if search_str[0].as_str() == "NVRAM" && search_str.len() > 2 {
-            text_search.push_str(&search_str[2]);
-            if search_str.len() == 4 {
-                text_search.push(':');
-                text_search.push_str(&search_str[3]);
-            }
-        } else if search_str[0].as_str() == "DeviceProperties" && search_str.len() == 4 {
-            text_search.push_str(&search_str[3]);
-        } else {
-            text_search.push_str(&search_str[search_str.len() - 1]);
-            text_search.push_str(&"}\\");
-        }
-        loop {
-            match lines.next() {
-                Some(line) => {
-                    if line.contains(&text_search) {
+                    if line.contains(&term) {
                         break;
                     }
                 }
@@ -98,6 +96,8 @@ pub fn parse_configuration(
             }
         }
     }
+
+    let mut align = false;
     let mut itemize = 0;
     let mut enumerate = 0;
     let mut columns = 0;
@@ -139,9 +139,9 @@ pub fn parse_configuration(
         if line.contains("\\mbox") {
             continue;
         }
-//        if line.contains("\\begin{") {
-//            continue;
-//        }
+        //        if line.contains("\\begin{") {
+        //            continue;
+        //        }
         if line.contains("\\end{tabular}") {
             columns = 0;
             continue;

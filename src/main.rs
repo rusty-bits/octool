@@ -705,7 +705,6 @@ fn main() {
             .expect("creating tool_config_files directory");
     }
 
-
     if !working_dir //  download octool_config if it doesn't exist
         .join("tool_config_files/octool_config.json")
         .exists()
@@ -832,7 +831,13 @@ fn main() {
                     config_file = config_file.join("config.plist");
                 }
                 let possible_input = config_file.parent().expect("config file has no parent");
-                if possible_input.file_name().unwrap().to_str().unwrap().contains("INPUT") {
+                if possible_input
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .contains("INPUT")
+                {
                     resources.input_dir_path = PathBuf::from(possible_input);
                 }
             }

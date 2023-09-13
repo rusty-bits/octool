@@ -1,6 +1,12 @@
 {
   "config_differences": [
     [
+      "UEFI",
+      "Quirks",
+      "ShimRetainProtocol",
+      "0.9.5"
+    ],
+    [
       "Misc",
       "Boot",
       "InstanceIdentifier",

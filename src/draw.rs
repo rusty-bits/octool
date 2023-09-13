@@ -55,6 +55,7 @@ pub fn update_screen(
         if row_being_drawn < screen_rows {
             row_being_drawn += display_value(
                 k,
+                k,
                 None,
                 settings,
                 resources,
@@ -71,12 +72,13 @@ pub fn update_screen(
     #[cfg(debug_assertions)]
     write!(
         stdout,
-        "debug-> {:?} {} {:?} array? {} {:?}",
+        "debug-> {:?} {} {:?} array? {} {:?} {:?}",
         settings.sec_length,
         settings.depth,
         settings.sec_num,
         settings.inside_an_array,
-        settings.sec_key
+        settings.sec_key,
+        settings.raw_sec_key,
     )?;
 
     let mut blanks = screen_rows - row_being_drawn - 1;
@@ -141,6 +143,7 @@ pub fn update_screen(
 
 fn display_value(
     key: &String,
+    raw_key: &String,
     key_color: Option<bool>,
     settings: &mut Settings,
     resources: &Resources,
@@ -162,6 +165,7 @@ fn display_value(
     if settings.sec_num[display_depth] == item_num {
         selected_item = true;
         settings.sec_key[display_depth] = key.to_string();
+        settings.raw_sec_key[display_depth] = raw_key.to_string();
         key_style.push_str("\x1B[7m");
         // is current live item
         if display_depth == settings.depth {
@@ -216,10 +220,12 @@ fn display_value(
                     row += 1;
                 } else {
                     let mut key = String::new();
+                    let mut raw_key = String::new();
                     for i in 0..v.len() {
-                        let color = get_array_key(&mut key, &v[i], i);
+                        let color = get_array_key(&mut key, &mut raw_key, &v[i], i);
                         row += display_value(
                             &key,
+                            &raw_key,
                             color,
                             settings,
                             resources,
@@ -335,6 +341,7 @@ fn display_value(
                     for (i, k) in keys.iter().enumerate() {
                         row += display_value(
                             &k,
+                            &k,
                             None,
                             settings,
                             resources,
@@ -392,21 +399,30 @@ pub fn get_lossy_string(v: &Vec<u8>) -> String {
     tmp
 }
 
-fn get_array_key(key: &mut String, v: &plist::Value, i: usize) -> Option<bool> {
+fn get_array_key(
+    key: &mut String,
+    raw_key: &mut String,
+    v: &plist::Value,
+    i: usize,
+) -> Option<bool> {
     match v {
         Value::Dictionary(d) => {
+            *key = i.to_string();
+            *raw_key = i.to_string();
+
             for k in ["Path", "BundlePath", "Name", "Comment"] {
                 if d.contains_key(k) {
                     *key = d.get(k).unwrap().clone().into_string().unwrap();
                     break; // stop after first match
-                } else {
-                    *key = "".to_string();
                 }
+                //                } else {
+                //                    *key = "".to_string();
+                //                }
             }
 
-            if key.len() == 0 {
-                *key = i.to_string();
-            }
+            //            if key.len() == 0 {
+            //                *key = i.to_string();
+            //            }
             match d.get("Enabled") {
                 Some(Value::Boolean(b)) => {
                     return Some(*b);
@@ -499,7 +515,8 @@ pub fn show_info(
 
     let mut search_str = vec![];
     for a in 0..=settings.depth {
-        search_str.push(settings.sec_key[a].to_owned());
+        search_str.push(settings.raw_sec_key[a].to_owned());
+        //        search_str.push(settings.sec_key[a].to_owned());
     }
     let width = size().unwrap().0 as i32;
     let result = parse_tex::parse_configuration(

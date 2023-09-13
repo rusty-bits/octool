@@ -151,7 +151,8 @@ pub fn build_output(
         let mut lang = "_".to_string();
         lang.push_str(&canopy_language);
         lang.push('_');
-        let input_resources = Path::new(resources.input_dir_path.file_name().unwrap()).join("Resources");
+        let input_resources =
+            Path::new(resources.input_dir_path.file_name().unwrap()).join("Resources");
         let in_path = Path::new("resources/OcBinaryData/Resources");
         let out_path = Path::new("OUTPUT/EFI/OC/Resources");
         for res in &["Audio", "Font", "Image", "Label"] {
@@ -161,7 +162,15 @@ pub fn build_output(
                 for r in fs::read_dir(input_resources.join(res))? {
                     entries.push(r?.path());
                 }
-                res_source = format!("\x1b[33m{}/Resources\x1b[0m", resources.input_dir_path.file_name().unwrap().to_str().unwrap());
+                res_source = format!(
+                    "\x1b[33m{}/Resources\x1b[0m",
+                    resources
+                        .input_dir_path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                );
             }
             if entries.len() == 0 {
                 for r in fs::read_dir(in_path.join(res))? {
@@ -282,7 +291,12 @@ pub fn build_output(
             If you feel octool should know this file, then there may be an issue with the\r\n\
             resources folder.  You can delete that folder and try running octool again.\r\n\
             Otherwise, they will need to be placed into your EFI manually\x1B[0m\r\n\n",
-            resources.input_dir_path.file_name().unwrap().to_str().unwrap()
+            resources
+                .input_dir_path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
         )?;
         stdout.flush()?;
     }

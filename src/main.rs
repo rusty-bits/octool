@@ -776,7 +776,7 @@ fn main() {
                         'h' => {
                             write!(
                                 stdout,
-                                "SYNOPSIS\r\n\t./octool [options] [-V x.y.z] [config.plist]\r\n"
+                                "SYNOPSIS\r\n\t./octool [options] [-V x.y.z] [INPUT_folder ||config.plist]\r\n"
                             )
                             .unwrap();
                             write!(stdout, "OPTIONS\r\n\t-d   use debug versions instead of release\

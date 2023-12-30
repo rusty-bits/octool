@@ -1,6 +1,12 @@
 {
   "config_differences": [
     [
+      "Booter",
+      "Quirks",
+      "FixupAppleEfiImages",
+      "0.9.7"
+    ],
+    [
       "UEFI",
       "Quirks",
       "ShimRetainProtocol",

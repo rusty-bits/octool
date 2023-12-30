@@ -12,7 +12,7 @@ You can find a basic picture guide for the use of octool here [https://rusty-bit
 
 ## Command line options ##  
 
-./octool [options] [-V x.y.z] [config.plist]  
+./octool [options] [-V x.y.z] [INPUT_folder || config.plist]  
 
 -d  use `debug` versions for EFI instead of `release` versions  
 
@@ -20,11 +20,11 @@ You can find a basic picture guide for the use of octool here [https://rusty-bit
 
 -v  print octool version information and booted OpenCore version if the var is in NVRAM then exit  
 
--V x.y.z  select OpenCore version number to use e.g. `-V 0.7.4`  
+-V x.y.z  select OpenCore version number to use e.g. `-V 0.9.7`  
  - without this option octool will make a quick guess as to which version to use based on the INPUT config.plist, if no INPUT config.plist is provided, octool will default to the latest OpenCore version  
 
-octool takes a path to a `config.plist` to use if desired.
-If you run octool with no path provided `./octool` will look for `config.plist` in the `INPUT` folder, if it doesn't find it there it will use the `OpenCorePkg/Docs/Sample.plist` file.  
+octool takes a path to a folder whos name contains `INPUT` at any point.  This folder contains a config.plist and additional files for a specific build which allows the user to have numerous differing configs.  octool will also take a direct path to a specific `config.plist` to use if desired and will gather what is needed for that specific config in the generic `INPUT` folder
+If you run octool with no path provided `./octool` will look for `config.plist` in the generic `INPUT` folder, if it doesn't find it there it will use the `OpenCorePkg/Docs/Sample.plist` file.  
 
 At startup, octool checks for a local copy of [the builds branch of the Dortania/build-repo](https://github.com/dortania/build-repo/tree/builds) so it will know the urls and hashes of the prebuilt binary resources.  Thank you [dhinakg](https://github.com/dhinakg), [hieplpvip](https://github.com/hieplpvip), and [khronokernel](https://github.com/khronokernel).  
  - It will update or download it to the `build-repo` into the `tool_config_files` folder as needed.  
